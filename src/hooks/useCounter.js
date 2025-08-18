@@ -28,7 +28,7 @@ const useCounter = (end, duration = 2000, start = 0) => {
         observer.unobserve(currentRef);
       }
     };
-  }, []);}]}}}
+  }, []);
 
   useEffect(() => {
     if (!isVisible) return;
