@@ -240,7 +240,7 @@ const BookVideoPage = () => {
             <p>The selected celebrity could not be found. Please try again.</p>
             <button 
               className="btn btn-primary"
-              onClick={() => window.location.href = '/personalized-videos'}
+              onClick={() => window.location.assign('/personalized-videos')}
             >
               <span>← Back to Celebrity List</span>
             </button>
@@ -261,7 +261,7 @@ const BookVideoPage = () => {
           <div className="hero-content">
             <button 
               className="back-btn"
-              onClick={() => window.location.href = '/personalized-videos'}
+              onClick={() => window.location.assign('/personalized-videos')}
             >
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

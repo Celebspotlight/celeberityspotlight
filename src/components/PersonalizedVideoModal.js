@@ -19,7 +19,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
   const [formErrors, setFormErrors] = useState({});
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(null);
+  const [, setSelectedPaymentMethod] = useState(null);
   const [originalScrollPosition, setOriginalScrollPosition] = useState(0);
   const modalRef = useRef(null);
 
@@ -109,11 +109,11 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     return true;
   };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => prev + 1);
-    }
-  };
+  // const handleNext = () => {
+  //   if (validateStep(currentStep)) {
+  //     setCurrentStep(prev => prev + 1);
+  //   }
+  // };
 
   const handleBitcoinPayment = () => {
     const bookingId = 'PV' + Date.now();
@@ -174,10 +174,10 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     }
   };
 
-  const handleBitcoinPaymentComplete = () => {
-    setShowBitcoinPayment(false);
-    onClose();
-  };
+  // const handleBitcoinPaymentComplete = () => {
+  //   setShowBitcoinPayment(false);
+  //   onClose();
+  // };
 
   const handleClose = () => {
     setCurrentStep(1);

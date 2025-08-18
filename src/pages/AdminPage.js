@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './AdminPage.css';
 import visitorTracker from '../services/visitorTracker';
 import LiveVisitorTracker from '../components/LiveVisitorTracker';
-import { createPayment } from '../services/paymentService';
+// import { createPayment } from '../services/paymentService';
 
 const getDefaultCelebrities = () => {
   return [
