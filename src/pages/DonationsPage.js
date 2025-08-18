@@ -89,7 +89,77 @@ const DonationsPage = () => {
     // Set progress bar widths and trigger animations
     const progressBars = document.querySelectorAll('.progress-fill');
     
-    campaigns.forEach((campaign, index) => {
+    // Use the campaigns array directly since it's static
+    const staticCampaigns = [
+      {
+        id: 1,
+        title: 'Education for All',
+        celebrity: 'Emma Watson',
+        description: 'Providing quality education to underprivileged children worldwide through school building and scholarship programs',
+        raised: 125000,
+        goal: 200000,
+        supporters: 1250,
+        image: '📚',
+        category: 'Education'
+      },
+      {
+        id: 2,
+        title: 'Clean Water Initiative',
+        celebrity: 'Leonardo DiCaprio',
+        description: 'Building wells and water purification systems in rural communities across Africa and Asia',
+        raised: 89000,
+        goal: 150000,
+        supporters: 890,
+        image: '💧',
+        category: 'Environment'
+      },
+      {
+        id: 3,
+        title: 'Mental Health Awareness',
+        celebrity: 'Dwayne Johnson',
+        description: 'Supporting mental health programs, suicide prevention, and therapy access for underserved communities',
+        raised: 156000,
+        goal: 250000,
+        supporters: 2100,
+        image: '🧠',
+        category: 'Health'
+      },
+      {
+        id: 4,
+        title: 'Animal Rescue Initiative',
+        celebrity: 'Ricky Gervais',
+        description: 'Rescuing and rehabilitating abandoned animals, supporting no-kill shelters worldwide',
+        raised: 67000,
+        goal: 100000,
+        supporters: 670,
+        image: '🐾',
+        category: 'Animals'
+      },
+      {
+        id: 5,
+        title: 'Youth Empowerment Program',
+        celebrity: 'Oprah Winfrey',
+        description: 'Empowering at-risk youth through mentorship, job training, and leadership development programs',
+        raised: 198000,
+        goal: 300000,
+        supporters: 1580,
+        image: '🌟',
+        category: 'Youth Development'
+      },
+      {
+        id: 6,
+        title: 'Disaster Relief Fund',
+        celebrity: 'Ryan Reynolds',
+        description: 'Providing emergency aid, shelter, and rebuilding support for communities affected by natural disasters',
+        raised: 143000,
+        goal: 250000,
+        supporters: 1120,
+        image: '🏠',
+        category: 'Emergency Relief'
+      }
+    ];
+    
+    staticCampaigns.forEach((campaign, index) => {
       const progressBar = progressBars[index];
       if (progressBar) {
         const percentage = Math.round((campaign.raised / campaign.goal) * 100);
@@ -106,7 +176,7 @@ const DonationsPage = () => {
         }, 2500);
       }
     });
-  }, [campaigns]);
+  }, []); // Empty dependency array since we're using static data
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {

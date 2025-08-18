@@ -17,7 +17,7 @@ function ContactPage() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
-    const result = await handleSubmit(e);
+    await handleSubmit(e);
     if (state.succeeded) {
       setFormData({ name: '', email: '', message: '' });
     }

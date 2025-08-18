@@ -9,7 +9,6 @@ const BookingSuccess = () => {
   const [bookingDetails, setBookingDetails] = useState(null);
   const [error, setError] = useState(null);
 
-  const bookingId = searchParams.get('booking_id');
   const paymentId = searchParams.get('payment_id');
 
   useEffect(() => {

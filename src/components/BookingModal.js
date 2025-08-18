@@ -9,8 +9,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('regular');
-  const [isConfirmed, setIsConfirmed] = useState(false); // ADD THIS LINE
+  const [isConfirmed, setIsConfirmed] = useState(false);
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -241,38 +240,6 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
       return;
     }
     setIsConfirmed(true);
-  };
-  
-  const handlePaymentSuccess = async (paymentData) => {
-    try {
-      // Send booking confirmation email
-      await emailService.sendBookingConfirmation({
-        email: formData.email,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        celebrity: celebrity,
-        id: bookingId,
-        date: formData.date,
-        time: formData.time,
-        duration: formData.duration,
-        package: formData.package,
-        amount: packages[formData.package].price
-      });
-      
-      // Send payment confirmation
-      await emailService.sendPaymentConfirmation({
-        email: formData.email,
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        paymentId: paymentData.payment_id,
-        amount: paymentData.price_amount,
-        method: paymentData.pay_currency
-      });
-      
-      console.log('Confirmation emails sent successfully');
-    } catch (error) {
-      console.error('Failed to send confirmation emails:', error);
-      // Don't block the booking process if email fails
-    }
   };
   
   const handleCancelTransaction = () => {

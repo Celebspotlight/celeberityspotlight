@@ -1,85 +1,3 @@
-class AdvancedVisitorTracker {
-  constructor() {
-    this.sessionId = this.generateSessionId();
-    this.startTime = Date.now();
-    this.initializeTracking();
-  }
-
-  async initializeTracking() {
-    const visitorInfo = await this.collectVisitorInfo();
-    this.recordVisitor(visitorInfo);
-  }
-
-  async collectVisitorInfo() {
-    // Get IP and location info
-    const ipInfo = await this.getIPInfo();
-    
-    return {
-      sessionId: this.sessionId,
-      timestamp: Date.now(),
-      ip: ipInfo.ip,
-      country: ipInfo.country,
-      city: ipInfo.city,
-      browser: this.getBrowserInfo(),
-      device: this.getDeviceInfo(),
-      screen: {
-        width: window.screen.width,
-        height: window.screen.height
-      },
-      referrer: document.referrer || 'Direct',
-      userAgent: navigator.userAgent,
-      language: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
-    };
-  }
-
-  async getIPInfo() {
-    try {
-      const response = await fetch('https://ipapi.co/json/');
-      return await response.json();
-    } catch (error) {
-      return { ip: 'Unknown', country: 'Unknown', city: 'Unknown' };
-    }
-  }
-
-  getBrowserInfo() {
-    const ua = navigator.userAgent;
-    if (ua.includes('Chrome')) return 'Chrome';
-    if (ua.includes('Firefox')) return 'Firefox';
-    if (ua.includes('Safari')) return 'Safari';
-    if (ua.includes('Edge')) return 'Edge';
-    return 'Unknown';
-  }
-
-  getDeviceInfo() {
-    const ua = navigator.userAgent;
-    if (/Mobile|Android|iPhone|iPad/.test(ua)) return 'Mobile';
-    if (/Tablet|iPad/.test(ua)) return 'Tablet';
-    return 'Desktop';
-  }
-
-  trackPageView(page) {
-    const pageView = {
-      page,
-      timestamp: Date.now(),
-      sessionId: this.sessionId,
-      timeSpent: Date.now() - this.startTime
-    };
-    
-    this.savePageView(pageView);
-  }
-
-  trackUserInteraction(action, element) {
-    const interaction = {
-      action, // 'click', 'scroll', 'hover', etc.
-      element,
-      timestamp: Date.now(),
-      sessionId: this.sessionId
-    };
-    
-    this.saveInteraction(interaction);
-  }
-}
 class VisitorTracker {
   constructor() {
     this.sessionId = this.generateSessionId();
@@ -179,4 +97,5 @@ class VisitorTracker {
   }
 }
 
-export default new VisitorTracker();
+const visitorTracker = new VisitorTracker();
+export default visitorTracker;

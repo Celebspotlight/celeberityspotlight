@@ -15,16 +15,16 @@ const Footer = () => {
                 Professional, secure, and memorable moments.
               </p>
               <div className="social-links">
-                <a href="#" aria-label="Facebook" data-platform="facebook">
+                <a href="https://facebook.com" aria-label="Facebook" data-platform="facebook">
                   f
                 </a>
-                <a href="#" aria-label="Twitter" data-platform="twitter">
+                <a href="https://twitter.com" aria-label="Twitter" data-platform="twitter">
                   𝕏
                 </a>
-                <a href="#" aria-label="Instagram" data-platform="instagram">
+                <a href="https://instagram.com" aria-label="Instagram" data-platform="instagram">
                   📷
                 </a>
-                <a href="#" aria-label="LinkedIn" data-platform="linkedin">
+                <a href="https://linkedin.com" aria-label="LinkedIn" data-platform="linkedin">
                   in
                 </a>
               </div>

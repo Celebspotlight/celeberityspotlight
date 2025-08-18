@@ -10,7 +10,6 @@ const PromotionsPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
-  const [paymentData, setPaymentData] = useState(null);
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
   const paymentModalRef = useRef(null);
 
