@@ -1,0 +1,231 @@
+.bitcoin-payment {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 1rem 0;
+  border: 2px solid #f39c12;
+  box-shadow: 0 4px 20px rgba(243, 156, 18, 0.1);
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.payment-header h3 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.payment-header p {
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.payment-details {
+  margin-bottom: 2rem;
+}
+
+.amount-section,
+.address-section {
+  margin-bottom: 1.5rem;
+}
+
+.amount-section label,
+.address-section label {
+  display: block;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+}
+
+.amount-display {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 2px solid #f39c12;
+  text-align: center;
+}
+
+.amount {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f39c12;
+  display: block;
+}
+
+.amount-display small {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.address-container {
+  display: flex;
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.address-display {
+  flex: 1;
+  background: #2c3e50;
+  padding: 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.address-display code {
+  color: #f39c12;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  word-break: break-all;
+  white-space: nowrap;
+}
+
+.copy-btn {
+  background: #f39c12;
+  color: white;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  background: #e67e22;
+  transform: translateY(-2px);
+}
+
+.copy-btn.copied {
+  background: #27ae60;
+  transform: scale(1.05);
+}
+
+.instructions {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+  margin-bottom: 1rem;
+}
+
+.instructions h4 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.instructions ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+
+.instructions li {
+  margin-bottom: 0.5rem;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.instructions a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.instructions a:hover {
+  text-decoration: underline;
+}
+
+.warning {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.warning p {
+  margin: 0;
+  color: #856404;
+  font-size: 0.9rem;
+}
+
+.payment-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.btn-secondary,
+.btn-primary {
+  flex: 1;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+  transform: translateY(-2px);
+}
+
+.btn-primary {
+  background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(45deg, #229954 0%, #27ae60 100%);
+  transform: translateY(-2px);
+}
+
+.btn-primary.confirmed {
+  background: #27ae60;
+  cursor: not-allowed;
+}
+
+.btn-primary:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .bitcoin-payment {
+    padding: 1.5rem;
+  }
+  
+  .address-container {
+    flex-direction: column;
+  }
+  
+  .copy-btn {
+    padding: 0.75rem;
+  }
+  
+  .payment-actions {
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .bitcoin-payment {
+    padding: 1rem;
+  }
+  
+  .address-display code {
+    font-size: 0.8rem;
+  }
+}

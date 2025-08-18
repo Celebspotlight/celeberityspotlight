@@ -1,0 +1,390 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { createPayment } from '../services/paymentService';
+import BitcoinPayment from '../components/BitcoinPayment';
+import PaymentModal from '../components/PaymentModal';
+import CryptoTutorial from '../components/CryptoTutorial';
+import './DonationsPage.css';
+
+const DonationsPage = () => {
+  const [selectedCampaign, setSelectedCampaign] = useState(null);
+  const [donationAmount, setDonationAmount] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
+  const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [campaignAmounts, setCampaignAmounts] = useState({});
+  const [clickedButtonRef, setClickedButtonRef] = useState(null);
+  const paymentModalRef = useRef(null);
+
+  const campaigns = [
+    {
+      id: 1,
+      title: 'Education for All',
+      celebrity: 'Emma Watson',
+      description: 'Providing quality education to underprivileged children worldwide through school building and scholarship programs',
+      raised: 125000,
+      goal: 200000,
+      supporters: 1250,
+      image: '📚',
+      category: 'Education'
+    },
+    {
+      id: 2,
+      title: 'Clean Water Initiative',
+      celebrity: 'Leonardo DiCaprio',
+      description: 'Building wells and water purification systems in rural communities across Africa and Asia',
+      raised: 89000,
+      goal: 150000,
+      supporters: 890,
+      image: '💧',
+      category: 'Environment'
+    },
+    {
+      id: 3,
+      title: 'Mental Health Awareness',
+      celebrity: 'Dwayne Johnson',
+      description: 'Supporting mental health programs, suicide prevention, and therapy access for underserved communities',
+      raised: 156000,
+      goal: 250000,
+      supporters: 2100,
+      image: '🧠',
+      category: 'Health'
+    },
+    {
+      id: 4,
+      title: 'Animal Rescue Initiative',
+      celebrity: 'Ricky Gervais',
+      description: 'Rescuing and rehabilitating abandoned animals, supporting no-kill shelters worldwide',
+      raised: 67000,
+      goal: 100000,
+      supporters: 670,
+      image: '🐾',
+      category: 'Animals'
+    },
+    {
+      id: 5,
+      title: 'Youth Empowerment Program',
+      celebrity: 'Oprah Winfrey',
+      description: 'Empowering at-risk youth through mentorship, job training, and leadership development programs',
+      raised: 198000,
+      goal: 300000,
+      supporters: 1580,
+      image: '🌟',
+      category: 'Youth Development'
+    },
+    {
+      id: 6,
+      title: 'Disaster Relief Fund',
+      celebrity: 'Ryan Reynolds',
+      description: 'Providing emergency aid, shelter, and rebuilding support for communities affected by natural disasters',
+      raised: 143000,
+      goal: 250000,
+      supporters: 1120,
+      image: '🏠',
+      category: 'Emergency Relief'
+    }
+  ];
+
+  // Add useEffect to set progress widths after component mounts
+  useEffect(() => {
+    // Set progress bar widths and trigger animations
+    const progressBars = document.querySelectorAll('.progress-fill');
+    
+    campaigns.forEach((campaign, index) => {
+      const progressBar = progressBars[index];
+      if (progressBar) {
+        const percentage = Math.round((campaign.raised / campaign.goal) * 100);
+        
+        // Set CSS custom property for the specific progress bar
+        progressBar.style.setProperty('--progress-width', `${percentage}%`);
+        
+        // Add loading attribute for pulsing effect
+        progressBar.setAttribute('data-loading', 'true');
+        
+        // Remove loading attribute after animation completes
+        setTimeout(() => {
+          progressBar.setAttribute('data-loading', 'false');
+        }, 2500);
+      }
+    });
+  }, [campaigns]);
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
+
+  const getProgressPercentage = (raised, goal) => {
+    return Math.min((raised / goal) * 100, 100);
+  };
+
+  const handleAmountChange = (campaignId, amount) => {
+    setCampaignAmounts(prev => ({
+      ...prev,
+      [campaignId]: amount
+    }));
+  };
+
+  const handleDonate = (campaign, event) => {
+    const amount = parseFloat(campaignAmounts[campaign.id] || '');
+    if (!amount || amount <= 0) {
+      alert('Please enter a valid donation amount');
+      return;
+    }
+    
+    // Store reference to the clicked button
+    setClickedButtonRef(event.target);
+    
+    setSelectedCampaign(campaign);
+    setDonationAmount(amount);
+    setShowPaymentModal(true);
+    
+    // Scroll to payment modal after it renders
+    setTimeout(() => {
+      if (paymentModalRef.current) {
+        const modalElement = paymentModalRef.current.querySelector('.payment-modal');
+        if (modalElement) {
+          modalElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+        }
+      }
+    }, 100);
+  };
+
+  const handleRegularPayment = async (formData) => {
+    try {
+      const donationId = 'DONATE' + Date.now();
+      
+      const paymentRequestData = {
+        bookingId: donationId,
+        totalAmount: donationAmount,
+        celebrityName: selectedCampaign.title,
+        selectedCrypto: 'btc',
+        email: formData.email
+      };
+      
+      const response = await createPayment(paymentRequestData);
+      
+      if (response && response.invoice_url) {
+        const donationData = {
+          id: donationId,
+          type: 'donation',
+          campaign: selectedCampaign,
+          amount: donationAmount,
+          formData,
+          paymentUrl: response.invoice_url,
+          status: 'pending_payment',
+          createdAt: new Date().toISOString()
+        };
+        
+        const existingDonations = JSON.parse(localStorage.getItem('donations') || '[]');
+        existingDonations.push(donationData);
+        localStorage.setItem('donations', JSON.stringify(existingDonations));
+        
+        window.open(response.invoice_url, '_blank');
+        setShowPaymentModal(false);
+        setCampaignAmounts(prev => ({
+          ...prev,
+          [selectedCampaign.id]: ''
+        }));
+        
+        // Scroll back to the clicked button
+        setTimeout(() => {
+          if (clickedButtonRef) {
+            clickedButtonRef.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'center' 
+            });
+          }
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment processing failed. Please try again.');
+    }
+  };
+
+  const handleBitcoinPayment = (formData) => {
+    const donationId = 'DONATE' + Date.now();
+    const donationData = {
+      id: donationId,
+      type: 'donation',
+      campaign: selectedCampaign,
+      amount: donationAmount,
+      formData,
+      status: 'pending_bitcoin_payment',
+      createdAt: new Date().toISOString()
+    };
+    
+    const existingDonations = JSON.parse(localStorage.getItem('donations') || '[]');
+    existingDonations.push(donationData);
+    localStorage.setItem('donations', JSON.stringify(existingDonations));
+    
+    setShowBitcoinPayment(true);
+    setShowPaymentModal(false);
+  };
+
+  const handleBitcoinPaymentComplete = () => {
+    setShowBitcoinPayment(false);
+    setCampaignAmounts(prev => ({
+      ...prev,
+      [selectedCampaign.id]: ''
+    }));
+    
+    // Scroll back to the clicked button
+    setTimeout(() => {
+      if (clickedButtonRef) {
+        clickedButtonRef.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+    }, 100);
+    
+    alert('Thank you for your donation! Your Bitcoin payment has been processed.');
+  };
+
+  const handleCloseModal = () => {
+    setShowPaymentModal(false);
+    
+    // Scroll back to the clicked button
+    setTimeout(() => {
+      if (clickedButtonRef) {
+        clickedButtonRef.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }
+    }, 100);
+  };
+
+  return (
+    <div className="donations-page">
+      {/* Hero Section */}
+      <section className="hero-section">
+        <div className="hero-content">
+          <h1>Make a Difference Today</h1>
+          <p>Join celebrities in supporting causes that matter. Every donation counts towards building a better world.</p>
+        </div>
+      </section>
+
+      {/* Campaigns Section */}
+      <section className="campaigns-section">
+        <div className="container">
+          <h2>Active Campaigns</h2>
+          <div className="campaigns-grid">
+            {campaigns.map((campaign) => (
+              <div key={campaign.id} id={`campaign-${campaign.id}`} className="campaign-card">
+                <div className="campaign-header">
+                  <div className="campaign-title-section">
+                    <div className="campaign-icon">{campaign.image}</div>
+                    <div className="campaign-title-info">
+                      <h3>{campaign.title}</h3>
+                      <p className="celebrity-name">Supported by {campaign.celebrity}</p>
+                      <span className="campaign-category">{campaign.category}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="campaign-body">
+                  <p className="campaign-description">{campaign.description}</p>
+                  
+                  <div className="progress-section">
+                    <div className="progress-header">
+                      <span className="progress-label">Campaign Progress</span>
+                      <span className="progress-percentage">{Math.round(getProgressPercentage(campaign.raised, campaign.goal))}%</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill" 
+                        style={{ width: `${getProgressPercentage(campaign.raised, campaign.goal)}%` }}
+                      ></div>
+                    </div>
+                    <div className="progress-stats">
+                      <span className="raised">{formatCurrency(campaign.raised)} raised</span>
+                      <span className="goal">of {formatCurrency(campaign.goal)} goal</span>
+                    </div>
+                    <p className="supporters">{campaign.supporters.toLocaleString()} supporters</p>
+                  </div>
+                </div>
+                
+                <div className="donation-section">
+                  <div className="donation-header">
+                    <h4>Support This Cause</h4>
+                    <p className="donation-subtitle">Every contribution makes a difference</p>
+                  </div>
+                  <div className="amount-input">
+                    <input
+                      type="number"
+                      placeholder="Enter donation amount ($)"
+                      value={campaignAmounts[campaign.id] || ''}
+                      onChange={(e) => handleAmountChange(campaign.id, e.target.value)}
+                      min="1"
+                      step="1"
+                    />
+                  </div>
+                  <button 
+                    className="donate-btn"
+                    onClick={(e) => handleDonate(campaign, e)}
+                    disabled={!campaignAmounts[campaign.id] || parseFloat(campaignAmounts[campaign.id]) <= 0}
+                  >
+                    Donate Now
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div ref={paymentModalRef} className="modal-container">
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={handleCloseModal}
+            service={selectedCampaign}
+            amount={donationAmount}
+            onRegularPayment={handleRegularPayment}
+            onBitcoinPayment={handleBitcoinPayment}
+            onShowCryptoTutorial={() => setShowCryptoTutorial(true)}
+          />
+        </div>
+      )}
+
+      {/* Bitcoin Payment Modal */}
+      {showBitcoinPayment && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <BitcoinPayment
+              amount={donationAmount}
+              onPaymentComplete={handleBitcoinPaymentComplete}
+              onCancel={() => setShowBitcoinPayment(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Crypto Tutorial Modal */}
+      {showCryptoTutorial && (
+        <div className="modal-overlay" onClick={() => setShowCryptoTutorial(false)}>
+          <div className="modal-content crypto-tutorial-modal" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="modal-close-btn"
+              onClick={() => setShowCryptoTutorial(false)}
+            >
+              ×
+            </button>
+            <CryptoTutorial />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default DonationsPage;

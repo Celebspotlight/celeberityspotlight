@@ -1,0 +1,10 @@
+.animated-counter {
+  display: inline-block;
+  font-weight: inherit;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+.animated-counter:hover {
+  transform: scale(1.05);
+}

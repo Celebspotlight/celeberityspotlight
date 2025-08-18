@@ -1,0 +1,252 @@
+.footer {
+  background: #0f0f0f;
+  color: #ffffff;
+  margin-top: auto;
+  width: 100%;
+}
+
+.footer-main {
+  padding: 60px 0 40px;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.footer-content {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 48px;
+  align-items: start;
+}
+
+/* Company Section */
+.footer-section.company {
+  max-width: 400px;
+}
+
+.footer-section h3 {
+  font-size: 28px;
+  margin-bottom: 16px;
+  color: #ffffff;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.footer-section h4 {
+  font-size: 14px;
+  margin-bottom: 24px;
+  color: #ffffff;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.footer-section p {
+  color: #9ca3af;
+  line-height: 1.7;
+  margin-bottom: 32px;
+  font-size: 16px;
+}
+
+.footer-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-section ul li {
+  margin-bottom: 12px;
+}
+
+.footer-section ul li a {
+  color: #9ca3af;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.footer-section ul li a:hover {
+  color: #ffffff;
+}
+
+/* Social Links */
+.social-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.social-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: #1f1f1f;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 18px;
+  color: #9ca3af;
+  transition: all 0.3s ease;
+  font-weight: bold;
+}
+
+.social-links a:hover {
+  background: #2a2a2a;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* Specific social platform colors on hover */
+.social-links a[data-platform="facebook"]:hover {
+  background: #1877f2;
+  color: white;
+}
+
+.social-links a[data-platform="twitter"]:hover {
+  background: #1da1f2;
+  color: white;
+}
+
+.social-links a[data-platform="instagram"]:hover {
+  background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+  color: white;
+}
+
+.social-links a[data-platform="linkedin"]:hover {
+  background: #0077b5;
+  color: white;
+}
+
+/* Footer Bottom */
+.footer-bottom {
+  border-top: 1px solid #1f1f1f;
+  padding: 32px 0;
+  margin-top: 48px;
+}
+
+.footer-bottom-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.footer-bottom-content p {
+  color: #6b7280;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.footer-links {
+  display: flex;
+  gap: 32px;
+}
+
+.footer-links a {
+  color: #6b7280;
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.3s ease;
+  font-weight: 400;
+}
+
+.footer-links a:hover {
+  color: #9ca3af;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .footer-content {
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+  
+  .footer-section.company {
+    grid-column: 1 / -1;
+    max-width: 100%;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 20px;
+  }
+  
+  .footer-main {
+    padding: 48px 0 32px;
+  }
+  
+  .footer-content {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    text-align: center;
+  }
+  
+  .footer-section.company {
+    text-align: center;
+    margin-bottom: 24px;
+    max-width: 100%;
+  }
+  
+  .social-links {
+    justify-content: center;
+  }
+  
+  .footer-bottom-content {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+  
+  .footer-links {
+    justify-content: center;
+    gap: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-main {
+    padding: 40px 0 24px;
+  }
+  
+  .footer-content {
+    gap: 24px;
+  }
+  
+  .footer-section h3 {
+    font-size: 24px;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .social-links {
+    gap: 8px;
+  }
+  
+  .social-links a {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+}
+
+/* Remove focus outlines */
+.footer *:focus {
+  outline: none !important;
+}
+
+/* Smooth transitions */
+.footer * {
+  transition: all 0.3s ease;
+}

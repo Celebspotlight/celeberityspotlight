@@ -1,0 +1,631 @@
+.podcast-requests-page {
+  min-height: 100vh;
+  padding-top: 70px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Hero Section - Reduced padding */
+.page-header {
+  position: relative;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 60px 0 40px; /* Reduced from 120px 0 80px */
+  text-align: center;
+  overflow: hidden;
+}
+
+.page-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.1);
+  z-index: 1;
+}
+
+.page-header .container {
+  position: relative;
+  z-index: 2;
+}
+
+.page-header h1 {
+  font-size: clamp(2rem, 4vw, 3rem); /* Reduced size */
+  margin-bottom: 1rem; /* Reduced margin */
+  font-weight: 700;
+  line-height: 1.2;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-header p {
+  font-size: clamp(1rem, 1.5vw, 1.2rem); /* Reduced size */
+  margin: 0 auto;
+  opacity: 0.95;
+  max-width: 500px; /* Reduced width */
+  line-height: 1.5;
+}
+
+/* Container */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem; /* Reduced padding */
+}
+
+/* Podcast Services Section - Reduced spacing */
+.podcast-services {
+  padding: 3rem 0; /* Reduced from 5rem */
+  background: #f8fafc;
+}
+
+.podcast-services h2 {
+  text-align: center;
+  font-size: 2rem; /* Reduced from 2.5rem */
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2rem; /* Reduced from 3rem */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.services-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Reduced min width */
+  gap: 1.5rem; /* Reduced gap */
+  margin-top: 2rem; /* Reduced margin */
+}
+
+.service-card {
+  background: white;
+  border-radius: 12px; /* Reduced radius */
+  padding: 1.5rem; /* Reduced padding */
+  text-align: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Reduced shadow */
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.service-card:hover {
+  transform: translateY(-3px); /* Reduced movement */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.service-icon {
+  font-size: 2.5rem; /* Reduced size */
+  margin-bottom: 0.75rem; /* Reduced margin */
+}
+
+.service-card h3 {
+  font-size: 1.25rem; /* Reduced size */
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem; /* Reduced margin */
+}
+
+.service-card p {
+  color: #64748b;
+  line-height: 1.5;
+  margin-bottom: 1rem; /* Reduced margin */
+  font-size: 0.9rem;
+}
+
+.service-price {
+  font-size: 1.1rem; /* Reduced size */
+  font-weight: 700;
+  color: #667eea;
+}
+
+/* Celebrity Selection - Reduced spacing */
+.celebrity-selection {
+  padding: 3rem 0; /* Reduced from 5rem */
+  background: white;
+}
+
+.celebrity-selection h2 {
+  text-align: center;
+  font-size: 2rem; /* Reduced from 2.5rem */
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 2rem; /* Reduced from 3rem */
+}
+
+/* Filters - Compact design */
+.filters {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem; /* Reduced from 3rem */
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-bar {
+  flex: 1;
+  min-width: 250px; /* Reduced */
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 10px 16px; /* Reduced padding */
+  border: 2px solid #e2e8f0;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.category-filters {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 6px 12px; /* Reduced padding */
+  border: 2px solid #e2e8f0;
+  background: white;
+  border-radius: 16px; /* Reduced radius */
+  font-size: 0.85rem; /* Reduced size */
+  cursor: pointer;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.filter-btn:hover {
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.filter-btn.active {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+/* Celebrity Grid - Compact cards */
+.celebrities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); /* Reduced min width */
+  gap: 1.5rem; /* Reduced gap */
+}
+
+.celebrity-card {
+  background: white;
+  border-radius: 12px; /* Reduced radius */
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Reduced shadow */
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.celebrity-card:hover {
+  transform: translateY(-3px); /* Reduced movement */
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+.celebrity-image {
+  height: 160px; /* Reduced height */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.celebrity-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.placeholder-image {
+  width: 60px; /* Reduced size */
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem; /* Reduced size */
+  font-weight: bold;
+  color: white;
+}
+
+.celebrity-info {
+  padding: 1.25rem; /* Reduced padding */
+}
+
+.celebrity-info h3 {
+  font-size: 1.2rem; /* Reduced size */
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.5rem;
+}
+
+.category {
+  color: #667eea;
+  font-size: 0.85rem; /* Reduced size */
+  font-weight: 500;
+  margin-bottom: 0.75rem; /* Reduced margin */
+}
+
+.pricing {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem; /* Reduced margin */
+}
+
+.price-label {
+  color: #64748b;
+  font-size: 0.85rem; /* Reduced size */
+}
+
+.price {
+  font-size: 1.1rem; /* Reduced size */
+  font-weight: 700;
+  color: #27ae60;
+}
+
+.book-btn {
+  width: 100%;
+  padding: 10px; /* Reduced padding */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem; /* Reduced size */
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.book-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Modal Styles - Compact design */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px; /* Reduced radius */
+  width: 100%;
+  max-width: 700px; /* Reduced max width */
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  padding: 1.5rem 1.5rem 1rem; /* Reduced padding */
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  font-size: 1.4rem; /* Reduced size */
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem; /* Reduced size */
+  cursor: pointer;
+  color: #64748b;
+  padding: 0;
+  width: 32px; /* Reduced size */
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Form Styles - Compact */
+.booking-form {
+  padding: 1.5rem; /* Reduced padding */
+}
+
+.form-section {
+  margin-bottom: 1.5rem; /* Reduced margin */
+}
+
+.form-section h3 {
+  font-size: 1.1rem; /* Reduced size */
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 0.75rem; /* Reduced margin */
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.4rem; /* Reduced margin */
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem; /* Reduced size */
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 10px; /* Reduced padding */
+  border: 2px solid #e2e8f0;
+  border-radius: 6px; /* Reduced radius */
+  font-size: 0.95rem; /* Reduced size */
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.form-group textarea {
+  min-height: 80px; /* Reduced height */
+  resize: vertical;
+}
+
+.checkbox-group {
+  margin: 1.5rem 0; /* Reduced margin */
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  font-size: 0.9rem; /* Reduced size */
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.pricing-summary {
+  background: #f8fafc;
+  padding: 1rem; /* Reduced padding */
+  border-radius: 6px; /* Reduced radius */
+  margin: 1.5rem 0; /* Reduced margin */
+  text-align: center;
+}
+
+.pricing-summary h3 {
+  color: #667eea;
+  margin: 0;
+  font-size: 1.3rem; /* Reduced size */
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 12px; /* Reduced padding */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px; /* Reduced radius */
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
+}
+
+/* Payment Modal Styles */
+.payment-modal {
+  max-width: 500px; /* Smaller payment modal */
+}
+
+.payment-form {
+  padding: 1.5rem;
+}
+
+.payment-summary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1.25rem; /* Reduced padding */
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.payment-summary h4 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+}
+
+.payment-summary p {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+/* Payment Methods */
+.payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.payment-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.payment-btn.regular {
+  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.payment-btn.regular:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.payment-btn.bitcoin {
+  background: linear-gradient(45deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+.payment-btn.bitcoin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.bitcoin-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.payment-btn.bitcoin {
+  background: linear-gradient(45deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+.payment-btn.bitcoin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.bitcoin-modal {
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.payment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(39, 174, 96, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header {
+    padding: 40px 0 30px; /* Further reduced for mobile */
+  }
+  
+  .container {
+    padding: 0 1rem;
+  }
+  
+  .podcast-services,
+  .celebrity-selection {
+    padding: 2rem 0; /* Reduced for mobile */
+  }
+  
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .search-bar {
+    min-width: auto;
+  }
+  
+  .category-filters {
+    justify-content: center;
+  }
+  
+  .celebrities-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-overlay {
+    padding: 0.5rem;
+  }
+  
+  .modal-header,
+  .booking-form,
+  .payment-form {
+    padding: 1rem; /* Reduced for mobile */
+  }
+}
+
+@media (max-width: 480px) {
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .service-card {
+    padding: 1.25rem; /* Reduced for small mobile */
+  }
+  
+  .celebrity-info {
+    padding: 1rem;
+  }
+}

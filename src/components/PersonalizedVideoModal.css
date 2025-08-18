@@ -1,0 +1,933 @@
+.personalized-video-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999999;
+  padding: 20px;
+  box-sizing: border-box;
+  animation: strongFadeIn 0.2s ease-out;
+}
+
+.personalized-video-modal {
+  background: white;
+  border-radius: 15px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 85vh;
+  overflow-y: auto;
+  position: relative;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6);
+  margin: 0;
+  transform: none;
+  border: 3px solid #667eea;
+  animation: strongSlideIn 0.3s ease-out;
+}
+
+@keyframes strongFadeIn {
+  from {
+    opacity: 0;
+    background: rgba(0, 0, 0, 0);
+  }
+  to {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.85);
+  }
+}
+
+@keyframes strongSlideIn {
+  from {
+    transform: scale(0.8) translateY(-30px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .personalized-video-modal {
+    margin: 10px;
+    max-height: 95vh;
+    width: calc(100% - 20px);
+  }
+  
+  .personalized-video-modal-overlay {
+    padding: 10px;
+  }
+}
+
+.personalized-video-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid #eee;
+  background: #f8f9fa;
+  border-radius: 16px 16px 0 0;
+}
+
+.personalized-video-modal .modal-header h2 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.personalized-video-modal .close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+  line-height: 1;
+}
+
+.personalized-video-modal .close-btn:hover {
+  background-color: #e9ecef;
+  color: #333;
+  transform: scale(1.1);
+}
+
+.personalized-video-modal .celebrity-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: #f8f9fa;
+  margin: 0;
+  border-bottom: 1px solid #eee;
+}
+
+.personalized-video-modal .celebrity-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid #667eea;
+}
+
+.personalized-video-modal .celebrity-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.personalized-video-modal .celebrity-avatar .placeholder {
+  width: 100%;
+  height: 100%;
+  background: #667eea;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.personalized-video-modal .celebrity-info h3 {
+  margin: 0 0 4px 0;
+  color: #2c3e50;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.personalized-video-modal .celebrity-info .category {
+  color: #667eea;
+  font-size: 0.9rem;
+  font-weight: 500;
+  background: #f0f2ff;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.personalized-video-modal .step-content {
+  padding: 24px;
+}
+
+.personalized-video-modal .step-content h3 {
+  margin: 0 0 24px 0;
+  color: #2c3e50;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.personalized-video-modal .video-types-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.personalized-video-modal .video-type-card {
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.personalized-video-modal .video-type-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.personalized-video-modal .video-type-card.selected {
+  border-color: #667eea;
+  background: #f8f9ff;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.personalized-video-modal .video-type-card .service-icon {
+  font-size: 2.5rem;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.personalized-video-modal .video-type-card h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.personalized-video-modal .video-type-card p {
+  margin: 0 0 12px 0;
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.personalized-video-modal .video-type-card .price {
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.2rem;
+}
+
+.personalized-video-modal .urgent-delivery {
+  padding: 16px;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  margin-top: 20px;
+}
+
+.personalized-video-modal .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #856404;
+}
+
+.personalized-video-modal .modal-footer {
+  padding: 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  background: #f8f9fa;
+  border-radius: 0 0 16px 16px;
+}
+
+.personalized-video-modal .btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 100px;
+}
+
+.personalized-video-modal .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.personalized-video-modal .btn-secondary:hover {
+  background: #5a6268;
+}
+
+.personalized-video-modal .btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.personalized-video-modal .btn-primary:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.personalized-video-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+.personalized-video-modal .selected-service {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.personalized-video-modal .service-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.personalized-video-modal .service-summary .icon {
+  font-size: 2rem;
+}
+
+.personalized-video-modal .service-summary h4 {
+  margin: 0 0 4px 0;
+  color: #2c3e50;
+}
+
+.personalized-video-modal .service-summary p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.personalized-video-modal .service-summary .price {
+  margin-left: auto;
+  font-weight: bold;
+  color: #667eea;
+  font-size: 1.2rem;
+}
+
+.personalized-video-modal .form-group {
+  margin-bottom: 20px;
+}
+
+.personalized-video-modal .form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.personalized-video-modal .form-group input,
+.personalized-video-modal .form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+  box-sizing: border-box;
+}
+
+.personalized-video-modal .form-group input:focus,
+.personalized-video-modal .form-group textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.personalized-video-modal .form-group input.error,
+.personalized-video-modal .form-group textarea.error {
+  border-color: #dc3545;
+}
+
+.personalized-video-modal .error-text {
+  color: #dc3545;
+  font-size: 0.875rem;
+  margin-top: 4px;
+  display: block;
+}
+
+.personalized-video-modal .form-group textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.personalized-video-modal .modal-footer {
+  padding: 24px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.personalized-video-modal .step-info {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.personalized-video-modal .modal-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.personalized-video-modal .btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.personalized-video-modal .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.personalized-video-modal .btn-secondary:hover {
+  background: #5a6268;
+}
+
+.personalized-video-modal .btn-primary {
+  background: #667eea;
+  color: white;
+}
+
+.personalized-video-modal .btn-primary:hover {
+  background: #5a67d8;
+}
+
+.personalized-video-modal .btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.personalized-video-modal .order-summary {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.personalized-video-modal .order-summary h4 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+}
+
+.personalized-video-modal .summary-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.personalized-video-modal .summary-row.total {
+  font-weight: bold;
+  font-size: 1.1rem;
+  border-top: 1px solid #dee2e6;
+  padding-top: 8px;
+  margin-top: 12px;
+}
+
+.personalized-video-modal .terms-checkbox {
+  margin-bottom: 20px;
+}
+
+.personalized-video-modal .terms-checkbox label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.personalized-video-modal .terms-checkbox input {
+  margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+  .personalized-video-modal-overlay {
+    padding: 10px;
+  }
+  
+  .personalized-video-modal .video-types-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .personalized-video-modal .modal-footer {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .personalized-video-modal .modal-actions {
+    width: 100%;
+  }
+  
+  .personalized-video-modal .btn {
+    flex: 1;
+  }
+}
+
+/* Payment Methods Grid */
+.payment-methods-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+.payment-option-card {
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 16px;
+  padding: 2rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.payment-option-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  transition: left 0.5s;
+}
+
+.payment-option-card:hover::before {
+  left: 100%;
+}
+
+.payment-option-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+.regular-payment {
+  border-color: #667eea;
+  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+}
+
+.regular-payment:hover {
+  border-color: #5a67d8;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
+}
+
+.bitcoin-payment {
+  border-color: #f39c12;
+  background: linear-gradient(135deg, #fff9f0 0%, #fef3e2 100%);
+}
+
+.bitcoin-payment:hover {
+  border-color: #e67e22;
+  box-shadow: 0 10px 30px rgba(243, 156, 18, 0.2);
+}
+
+.payment-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.payment-option-card h4 {
+  color: #2c3e50;
+  margin-bottom: 0.5rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.payment-option-card p {
+  color: #6c757d;
+  margin-bottom: 1.5rem;
+  font-size: 0.95rem;
+}
+
+.payment-features {
+  list-style: none;
+  padding: 0;
+  margin: 1.5rem 0;
+  text-align: left;
+}
+
+.payment-features li {
+  padding: 0.5rem 0;
+  color: #495057;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.payment-features li:last-child {
+  border-bottom: none;
+}
+
+.select-payment-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.select-payment-btn.bitcoin {
+  background: linear-gradient(45deg, #f39c12 0%, #e67e22 100%);
+}
+
+.select-payment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.payment-help {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+  margin-top: 2rem;
+}
+
+.payment-help p {
+  margin: 0;
+  color: #495057;
+}
+
+.payment-help a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.payment-help a:hover {
+  text-decoration: underline;
+}
+
+.payment-processing {
+  text-align: center;
+  padding: 2rem;
+}
+
+.payment-processing h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.payment-processing p {
+  color: #6c757d;
+  margin-bottom: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .payment-option-card {
+    padding: 1.5rem;
+  }
+  
+  .payment-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* Bitcoin Payment Integration */
+.payment-options {
+  margin: 20px 0;
+}
+
+.payment-option-card {
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 15px;
+  background: white;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.payment-option-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.payment-option-card.bitcoin-payment {
+  border-color: #f7931a;
+  background: linear-gradient(135deg, #fff9f0 0%, #ffffff 100%);
+}
+
+.payment-icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.payment-features {
+  list-style: none;
+  padding: 0;
+  margin: 15px 0;
+}
+
+.payment-features li {
+  padding: 5px 0;
+  font-size: 0.9rem;
+}
+
+.select-payment-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.select-payment-btn.bitcoin {
+  background: linear-gradient(45deg, #f7931a 0%, #ff8c00 100%);
+  color: white;
+}
+
+.select-payment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.bitcoin-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.9) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000000 !important;
+}
+
+.bitcoin-modal-content {
+  background: white !important;
+  border-radius: 12px !important;
+  max-width: 500px !important;
+  width: 90% !important;
+  max-height: 90vh !important;
+  overflow-y: auto !important;
+  padding: 20px !important;
+}
+
+.payment-actions {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.payment-features li {
+  padding: 0.5rem 0;
+  color: #495057;
+  font-size: 0.9rem;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.payment-features li:last-child {
+  border-bottom: none;
+}
+
+.select-payment-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.select-payment-btn.bitcoin {
+  background: linear-gradient(45deg, #f39c12 0%, #e67e22 100%);
+}
+
+.select-payment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.payment-help {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid #3498db;
+  margin-top: 2rem;
+}
+
+.payment-help p {
+  margin: 0;
+  color: #495057;
+}
+
+.payment-help a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.payment-help a:hover {
+  text-decoration: underline;
+}
+
+.payment-processing {
+  text-align: center;
+  padding: 2rem;
+}
+
+.payment-processing h3 {
+  color: #2c3e50;
+  margin-bottom: 1rem;
+}
+
+.payment-processing p {
+  color: #6c757d;
+  margin-bottom: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .payment-option-card {
+    padding: 1.5rem;
+  }
+  
+  .payment-icon {
+    font-size: 2.5rem;
+  }
+}
+
+/* Payment Buttons */
+.payment-buttons {
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.payment-btn {
+  width: 100%;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary.payment-btn {
+  background: linear-gradient(45deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+}
+
+.btn-primary.payment-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.btn-bitcoin {
+  background: linear-gradient(45deg, #f39c12 0%, #e67e22 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+}
+
+.btn-bitcoin:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(243, 156, 18, 0.4);
+}
+
+.payment-divider {
+  text-align: center;
+  position: relative;
+  margin: 0.5rem 0;
+}
+
+.payment-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #dee2e6;
+}
+
+.payment-divider span {
+  background: white;
+  padding: 0 1rem;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.payment-help {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.payment-help p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.payment-help a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.payment-help a:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 768px) {
+  .payment-btn {
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
+  }
+}
