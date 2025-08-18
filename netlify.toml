@@ -1,5 +1,4 @@
 [build]
-  base = "meet-and-greet"
   publish = "build"
   command = "npm run build"
 
