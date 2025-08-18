@@ -35,14 +35,7 @@ const Header = () => {
     document.body.classList.remove('menu-open');
   }, [location.pathname]);
 
-  const toggleServices = () => {
-    setIsServicesOpen(!isServicesOpen);
-  };
 
-  const closeAllMenus = () => {
-    setIsMenuOpen(false);
-    setIsServicesOpen(false);
-  };
 
   const isActive = (path) => {
     return location.pathname === path;

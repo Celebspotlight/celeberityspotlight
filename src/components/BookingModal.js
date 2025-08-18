@@ -3,7 +3,6 @@ import './BookingModal.css';
 import { createPayment } from '../services/paymentService';
 import CryptoTutorial from './CryptoTutorial';
 import BitcoinPayment from './BitcoinPayment'; // ADD THIS IMPORT
-import emailService from '../services/emailService';
 
 const BookingModal = ({ isOpen, onClose, celebrity }) => {
   const [currentStep, setCurrentStep] = useState(1);
