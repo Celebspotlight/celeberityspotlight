@@ -2,12 +2,15 @@
   min-height: 100vh;
   padding-top: 70px;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 /* Hero Section - Reduced padding */
 .page-header {
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 60px 0 40px; /* Reduced from 120px 0 80px */
   text-align: center;
@@ -56,16 +59,17 @@
 /* Podcast Services Section - Reduced spacing */
 .podcast-services {
   padding: 3rem 0; /* Reduced from 5rem */
-  background: #f8fafc;
+  background: var(--bg-secondary);
+  transition: background-color 0.3s ease;
 }
 
 .podcast-services h2 {
   text-align: center;
   font-size: 2rem; /* Reduced from 2.5rem */
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 2rem; /* Reduced from 3rem */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -79,18 +83,18 @@
 }
 
 .service-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px; /* Reduced radius */
   padding: 1.5rem; /* Reduced padding */
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Reduced shadow */
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px var(--shadow-color); /* Reduced shadow */
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
 .service-card:hover {
   transform: translateY(-3px); /* Reduced movement */
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 25px var(--shadow-color);
 }
 
 .service-icon {
@@ -101,12 +105,12 @@
 .service-card h3 {
   font-size: 1.25rem; /* Reduced size */
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.75rem; /* Reduced margin */
 }
 
 .service-card p {
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 1rem; /* Reduced margin */
   font-size: 0.9rem;
@@ -115,20 +119,20 @@
 .service-price {
   font-size: 1.1rem; /* Reduced size */
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent-color);
 }
 
 /* Celebrity Selection - Reduced spacing */
 .celebrity-selection {
   padding: 3rem 0; /* Reduced from 5rem */
-  background: white;
+  background: var(--bg-primary);
 }
 
 .celebrity-selection h2 {
   text-align: center;
   font-size: 2rem; /* Reduced from 2.5rem */
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 2rem; /* Reduced from 3rem */
 }
 
@@ -150,15 +154,17 @@
 .search-bar input {
   width: 100%;
   padding: 10px 16px; /* Reduced padding */
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 20px;
   font-size: 0.95rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   outline: none;
   transition: all 0.3s ease;
 }
 
 .search-bar input:focus {
-  border-color: #667eea;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -170,8 +176,9 @@
 
 .filter-btn {
   padding: 6px 12px; /* Reduced padding */
-  border: 2px solid #e2e8f0;
-  background: white;
+  border: 2px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-radius: 16px; /* Reduced radius */
   font-size: 0.85rem; /* Reduced size */
   cursor: pointer;
@@ -180,13 +187,13 @@
 }
 
 .filter-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--accent-color);
+  color: var(--accent-color);
 }
 
 .filter-btn.active {
-  background: #667eea;
-  border-color: #667eea;
+  background: var(--accent-color);
+  border-color: var(--accent-color);
   color: white;
 }
 
@@ -198,22 +205,22 @@
 }
 
 .celebrity-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px; /* Reduced radius */
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Reduced shadow */
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 4px 12px var(--shadow-color); /* Reduced shadow */
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
 .celebrity-card:hover {
   transform: translateY(-3px); /* Reduced movement */
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 8px 25px var(--shadow-color);
 }
 
 .celebrity-image {
   height: 160px; /* Reduced height */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -246,12 +253,12 @@
 .celebrity-info h3 {
   font-size: 1.2rem; /* Reduced size */
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
 .category {
-  color: #667eea;
+  color: var(--accent-color);
   font-size: 0.85rem; /* Reduced size */
   font-weight: 500;
   margin-bottom: 0.75rem; /* Reduced margin */
@@ -265,20 +272,20 @@
 }
 
 .price-label {
-  color: #64748b;
+  color: var(--text-secondary);
   font-size: 0.85rem; /* Reduced size */
 }
 
 .price {
   font-size: 1.1rem; /* Reduced size */
   font-weight: 700;
-  color: #27ae60;
+  color: var(--success-color, #27ae60);
 }
 
 .book-btn {
   width: 100%;
   padding: 10px; /* Reduced padding */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 8px;
@@ -300,7 +307,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: var(--modal-overlay, rgba(0, 0, 0, 0.75));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -309,19 +316,19 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px; /* Reduced radius */
   width: 100%;
   max-width: 700px; /* Reduced max width */
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 40px var(--shadow-color);
 }
 
 .modal-header {
   padding: 1.5rem 1.5rem 1rem; /* Reduced padding */
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -330,7 +337,7 @@
 .modal-header h2 {
   font-size: 1.4rem; /* Reduced size */
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin: 0;
 }
 
@@ -339,7 +346,7 @@
   border: none;
   font-size: 1.5rem; /* Reduced size */
   cursor: pointer;
-  color: #64748b;
+  color: var(--text-secondary);
   padding: 0;
   width: 32px; /* Reduced size */
   height: 32px;
@@ -351,8 +358,8 @@
 }
 
 .close-btn:hover {
-  background: #f1f5f9;
-  color: #1e293b;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Form Styles - Compact */
@@ -367,10 +374,10 @@
 .form-section h3 {
   font-size: 1.1rem; /* Reduced size */
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.75rem; /* Reduced margin */
   padding-bottom: 0.5rem;
-  border-bottom: 2px solid #e2e8f0;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .form-row {
@@ -388,7 +395,7 @@
   display: block;
   margin-bottom: 0.4rem; /* Reduced margin */
   font-weight: 500;
-  color: #374151;
+  color: var(--text-primary);
   font-size: 0.9rem; /* Reduced size */
 }
 
@@ -397,9 +404,11 @@
 .form-group textarea {
   width: 100%;
   padding: 10px; /* Reduced padding */
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 6px; /* Reduced radius */
   font-size: 0.95rem; /* Reduced size */
+  background: var(--bg-primary);
+  color: var(--text-primary);
   outline: none;
   transition: all 0.3s ease;
 }
@@ -407,7 +416,7 @@
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
-  border-color: #667eea;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -434,7 +443,7 @@
 }
 
 .pricing-summary {
-  background: #f8fafc;
+  background: var(--bg-secondary);
   padding: 1rem; /* Reduced padding */
   border-radius: 6px; /* Reduced radius */
   margin: 1.5rem 0; /* Reduced margin */
@@ -442,7 +451,7 @@
 }
 
 .pricing-summary h3 {
-  color: #667eea;
+  color: var(--accent-color);
   margin: 0;
   font-size: 1.3rem; /* Reduced size */
 }
@@ -450,7 +459,7 @@
 .submit-btn {
   width: 100%;
   padding: 12px; /* Reduced padding */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 6px; /* Reduced radius */
@@ -475,7 +484,7 @@
 }
 
 .payment-summary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 1.25rem; /* Reduced padding */
   border-radius: 8px;

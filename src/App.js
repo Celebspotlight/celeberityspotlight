@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
@@ -88,15 +89,17 @@ function App() {
   }, [trackingEnabled]);
 
   return (
-    <Loader isLoading={isLoading}>
-      <Router>
-        <AppContent />
-        <CookieConsent 
-          onAccept={handleCookieAccept}
-          onDecline={handleCookieDecline}
-        />
-      </Router>
-    </Loader>
+    <ThemeProvider>
+      <Loader isLoading={isLoading}>
+        <Router>
+          <AppContent />
+          <CookieConsent 
+            onAccept={handleCookieAccept}
+            onDecline={handleCookieDecline}
+          />
+        </Router>
+      </Loader>
+    </ThemeProvider>
   );
 }
 

@@ -2,7 +2,9 @@
 
 .donations-page {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 .hero-section {
@@ -28,7 +30,8 @@
 
 .campaigns-section {
   padding: 40px 0 60px;
-  background: #f8f9fa;
+  background: var(--bg-primary);
+  transition: background-color 0.3s ease;
 }
 
 .container {
@@ -41,7 +44,7 @@
   text-align: center;
   font-size: 2.2rem;
   margin-bottom: 32px;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
@@ -53,12 +56,12 @@
 }
 
 .campaign-card {
-  background: white;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px var(--shadow-color);
   transition: all 0.3s ease;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   overflow: hidden;
   position: relative;
   max-width: 380px;
@@ -67,12 +70,12 @@
 
 .campaign-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px var(--shadow-color);
 }
 
 .campaign-header {
   padding: 20px 20px 12px;
-  background: white;
+  background: var(--bg-secondary);
 }
 
 .campaign-title-section {
@@ -103,13 +106,13 @@
 .campaign-title-info h3 {
   font-size: 1.2rem;
   margin-bottom: 2px;
-  color: #2c3e50;
+  color: var(--text-primary);
   font-weight: 600;
   line-height: 1.3;
 }
 
 .celebrity-name {
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.85rem;
   margin: 0;
   font-weight: 500;
@@ -117,14 +120,14 @@
 
 .campaign-category {
   display: inline-block;
-  background: #f8f9fa;
-  color: #495057;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
   padding: 2px 8px;
   border-radius: 12px;
   font-size: 0.75rem;
   font-weight: 500;
   margin-top: 4px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
 }
 
 .campaign-body {
@@ -132,7 +135,7 @@
 }
 
 .campaign-description {
-  color: #495057;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 16px;
   font-size: 0.9rem;
@@ -144,10 +147,10 @@
 
 .progress-section {
   margin-bottom: 16px;
-  background: #f8f9fa;
+  background: var(--bg-primary);
   padding: 12px;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   position: relative;
 }
 
@@ -160,13 +163,13 @@
 
 .progress-label {
   font-weight: 500;
-  color: #495057;
+  color: var(--text-secondary);
   font-size: 0.8rem;
 }
 
 .progress-percentage {
   font-weight: 600;
-  color: #28a745;
+  color: var(--accent-color);
   font-size: 0.9rem;
   opacity: 0;
   animation: fadeInPercentage 0.5s ease-out 2.5s forwards;
@@ -175,12 +178,12 @@
 .progress-bar {
   width: 100%;
   height: 8px;
-  background: #e9ecef;
+  background: var(--border-color);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 8px;
   position: relative;
-  box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: inset 0 1px 2px var(--shadow-color);
 }
 
 .progress-fill {
@@ -298,12 +301,12 @@
 
 .raised {
   font-weight: 600;
-  color: #28a745;
+  color: var(--success-color, #28a745);
   font-size: 0.85rem;
 }
 
 .goal {
-  color: #6c757d;
+  color: var(--text-secondary);
   font-weight: 400;
   font-size: 0.8rem;
 }
@@ -313,9 +316,9 @@
 }
 
 .donation-section {
-  border-top: 1px solid #e9ecef;
+  border-top: 1px solid var(--border-color);
   padding: 16px 20px 20px;
-  background: #ffffff;
+  background: var(--bg-primary);
 }
 
 .donation-header {
@@ -324,14 +327,14 @@
 }
 
 .donation-header h4 {
-  color: #2c3e50;
+  color: var(--text-primary);
   font-size: 1rem;
   font-weight: 600;
   margin-bottom: 2px;
 }
 
 .donation-subtitle {
-  color: #6c757d;
+  color: var(--text-secondary);
   font-size: 0.8rem;
 }
 
@@ -343,32 +346,33 @@
 .amount-input input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #e9ecef;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
   font-size: 0.95rem;
   font-weight: 500;
   transition: all 0.3s ease;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
   text-align: center;
   box-sizing: border-box;
 }
 
 .amount-input input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
-  background: white;
+  background: var(--bg-primary);
 }
 
 .amount-input input::placeholder {
-  color: #adb5bd;
+  color: var(--text-secondary);
   font-weight: 400;
 }
 
 .donate-btn {
   width: 100%;
   padding: 10px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 6px;
@@ -405,7 +409,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--modal-overlay, rgba(0, 0, 0, 0.7));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -414,13 +418,13 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   max-width: 450px;
   width: 90%;
   max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 15px 30px var(--shadow-color);
 }
 
 /* Responsive Design */

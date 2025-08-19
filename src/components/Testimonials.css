@@ -1,5 +1,6 @@
 .testimonials {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
+  transition: all 0.3s ease;
 }
 
 .testimonials-grid {
@@ -10,11 +11,17 @@
 }
 
 .testimonial-card {
-  background: white;
+  background: var(--bg-primary);
   padding: 2rem;
   border-radius: 15px;
   text-align: center;
-  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  box-shadow: 0 5px 20px var(--shadow-color);
+  transition: all 0.3s ease;
+}
+
+.testimonial-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px var(--shadow-color);
 }
 
 .stars {
@@ -29,12 +36,12 @@
 
 .testimonial-text {
   font-style: italic;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
   line-height: 1.6;
 }
 
 .testimonial-name {
-  color: #333;
+  color: var(--text-primary);
   font-weight: bold;
 }

@@ -49,17 +49,24 @@ a:focus {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   line-height: 1.6;
-  color: #374151;
-  /* REMOVED: background-color: #ffffff; */
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .App {
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 main {
   min-height: 100vh;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .container {
@@ -73,7 +80,7 @@ h1 {
   font-size: clamp(2.25rem, 4vw, 3.5rem);
   font-weight: 700;
   line-height: 1.1;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 1.5rem;
   letter-spacing: -0.025em;
 }
@@ -82,21 +89,21 @@ h2 {
   font-size: clamp(1.875rem, 3vw, 2.5rem);
   font-weight: 700;
   line-height: 1.2;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 1rem;
 }
 
 h3 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 0.75rem;
 }
 
 p {
   font-size: 1rem;
   line-height: 1.6;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
 }
 
@@ -114,14 +121,14 @@ p {
 .section-title {
   font-size: clamp(1.875rem, 3vw, 2.5rem);
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 1rem;
   text-align: center;
 }
 
 .section-subtitle {
   font-size: 1.125rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   text-align: center;
   line-height: 1.6;
 }
@@ -163,14 +170,14 @@ p {
 }
 
 .App-header {
-  background-color: #282c34;
+  background-color: var(--bg-secondary);
   min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: calc(10px + 2vmin);
-  color: white;
+  color: var(--text-primary);
 }
 
 .App-link {
@@ -188,7 +195,7 @@ p {
 
 .lead {
   font-size: 1.125rem;
-  color: #4b5563;
+  color: var(--text-secondary);
 }
 
 /* Buttons */
@@ -216,14 +223,14 @@ p {
 }
 
 .btn-secondary {
-  background: white;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background: #f9fafb;
-  border-color: #9ca3af;
+  background: var(--bg-secondary);
+  border-color: var(--text-secondary);
 }
 
 .btn-large {
@@ -259,15 +266,17 @@ p {
 
 /* Cards */
 .card {
-  background: white;
-  border: 1px solid #e5e7eb;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1.5rem;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .card:hover {
-  border-color: #d1d5db;
+  border-color: var(--border-color);
+  box-shadow: 0 4px 12px var(--shadow-color);
+  transform: translateY(-2px);
 }
 
 /* Grid */

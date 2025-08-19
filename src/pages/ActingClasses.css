@@ -3,12 +3,15 @@
   min-height: 100vh;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding-top: 70px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.3s ease;
 }
 
 /* Modern Hero Section */
 .hero-section {
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 120px 0 80px;
   text-align: center;
@@ -22,7 +25,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.1);
+  background: var(--shadow-color);
   z-index: 1;
 }
 
@@ -36,7 +39,7 @@
   margin-bottom: 1.5rem;
   font-weight: 700;
   line-height: 1.2;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .hero-section p {
@@ -57,7 +60,8 @@
 /* Main Section */
 .main-section {
   padding: 5rem 0;
-  background: #f8fafc;
+  background: var(--bg-secondary);
+  transition: background-color 0.3s ease;
 }
 
 .section-header {
@@ -68,9 +72,9 @@
 .section-header h2 {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -78,7 +82,7 @@
 
 .section-header p {
   font-size: 1.1rem;
-  color: #64748b;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -99,16 +103,17 @@
 .search-bar input {
   width: 100%;
   padding: 1rem 1.25rem;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 1rem;
-  background: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   transition: all 0.3s ease;
 }
 
 .search-bar input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -119,24 +124,25 @@
 
 .filter-group select {
   padding: 1rem 1.25rem;
-  border: 2px solid #e2e8f0;
+  border: 2px solid var(--border-color);
   border-radius: 12px;
   font-size: 1rem;
-  background: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
 .filter-group select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--accent-color);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 /* Results Info */
 .results-info {
   margin-bottom: 2rem;
-  color: #64748b;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
@@ -169,7 +175,7 @@
 .coach-image {
   position: relative;
   height: 200px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -194,7 +200,7 @@
   top: 1rem;
   right: 1rem;
   background: rgba(255, 255, 255, 0.9);
-  color: #1e293b;
+  color: var(--text-primary);
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -225,12 +231,12 @@
 .coach-name {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
 .coach-specialization {
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
   font-size: 0.95rem;
 }
@@ -238,7 +244,7 @@
 .coach-price {
   font-size: 1.5rem;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent-color);
   margin-bottom: 0.5rem;
 }
 

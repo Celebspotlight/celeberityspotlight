@@ -4,17 +4,18 @@
   align-items: center;
   justify-content: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
 }
 
 .booking-result-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 20px;
   padding: 3rem;
   text-align: center;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 20px 40px var(--shadow-color);
   max-width: 600px;
   width: 100%;
+  border: 1px solid var(--border-color);
 }
 
 .result-icon {
@@ -35,28 +36,29 @@
 }
 
 .booking-result-card h1 {
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 1rem;
   font-size: 2.5rem;
 }
 
 .result-message {
-  color: #6b7280;
+  color: var(--text-secondary);
   font-size: 1.1rem;
   margin-bottom: 2rem;
   line-height: 1.6;
 }
 
 .booking-details {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 1.5rem;
   margin: 2rem 0;
   text-align: left;
+  border: 1px solid var(--border-color);
 }
 
 .booking-details h3 {
-  color: #1f2937;
+  color: var(--text-primary);
   margin-bottom: 1rem;
 }
 
@@ -65,7 +67,7 @@
   justify-content: space-between;
   margin-bottom: 0.5rem;
   padding: 0.5rem 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .detail-row:last-child {
@@ -74,11 +76,11 @@
 
 .detail-label {
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .detail-value {
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 .result-actions {
@@ -101,39 +103,39 @@
 }
 
 .btn-primary {
-  background: #3b82f6;
+  background: var(--accent-color);
   color: white;
 }
 
 .btn-primary:hover {
-  background: #2563eb;
+  background: var(--accent-hover);
   transform: translateY(-2px);
 }
 
 .btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-  border: 1px solid #d1d5db;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
 }
 
 .btn-secondary:hover {
-  background: #e5e7eb;
+  background: var(--bg-hover);
   transform: translateY(-2px);
 }
 
 .help-section {
   margin-top: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid #e5e7eb;
+  border-top: 1px solid var(--border-color);
 }
 
 .help-section p {
-  color: #6b7280;
+  color: var(--text-secondary);
   margin: 0;
 }
 
 .help-section a {
-  color: #3b82f6;
+  color: var(--accent-color);
   text-decoration: none;
 }
 
@@ -145,9 +147,9 @@
   display: inline-block;
   width: 2rem;
   height: 2rem;
-  border: 3px solid #f3f4f6;
+  border: 3px solid var(--border-color);
   border-radius: 50%;
-  border-top-color: #3b82f6;
+  border-top-color: var(--accent-color);
   animation: spin 1s ease-in-out infinite;
   margin-right: 0.5rem;
 }
