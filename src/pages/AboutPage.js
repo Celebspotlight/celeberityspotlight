@@ -7,7 +7,7 @@ function AboutPage() {
     <div className="about-page">
       <div className="page-header">
         <div className="container">
-          <h1>About CelebrityConnect</h1>
+          <h1>About Celebrity Spotlight</h1>
           <p>Learn more about our mission to connect fans with their favorite celebrities</p>
         </div>
       </div>

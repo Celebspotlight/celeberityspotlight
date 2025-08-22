@@ -46,13 +46,7 @@ function ContactPage() {
               <h3>Get in Touch</h3>
               
               <div className="contact-methods">
-                <div className="contact-method">
-                  <span className="method-icon">📞</span>
-                  <div>
-                    <strong>Phone</strong>
-                    <p>+1 (555) 123-4567</p>
-                  </div>
-                </div>
+
                 
                 <div className="contact-method">
                   <span className="method-icon">✉️</span>
