@@ -228,10 +228,23 @@ const AdminPage = () => {
   useEffect(() => {
     let interval;
     if (showVisitorStats) {
-      interval = setInterval(() => {
-        const stats = visitorTracker.getVisitorStats();
-        setVisitorStats(stats);
-      }, 30000); // Refresh every 30 seconds
+      const refreshStats = async () => {
+        try {
+          const stats = await visitorTracker.getCombinedStats();
+          setVisitorStats(stats);
+        } catch (error) {
+          console.error('Failed to refresh visitor stats:', error);
+          // Fallback to regular stats
+          const fallbackStats = visitorTracker.getVisitorStats();
+          setVisitorStats(fallbackStats);
+        }
+      };
+      
+      // Initial load
+      refreshStats();
+      
+      // Set up interval
+      interval = setInterval(refreshStats, 30000); // Refresh every 30 seconds
     }
     return () => {
       if (interval) clearInterval(interval);
@@ -1404,9 +1417,16 @@ const AdminPage = () => {
           <div className="stats-header">
             <h2>Visitor Analytics Dashboard</h2>
             <button 
-              onClick={() => {
-                const stats = visitorTracker.getVisitorStats();
-                setVisitorStats(stats);
+              onClick={async () => {
+                try {
+                  const stats = await visitorTracker.getCombinedStats();
+                  setVisitorStats(stats);
+                } catch (error) {
+                  console.error('Failed to refresh visitor stats:', error);
+                  // Fallback to regular stats
+                  const fallbackStats = visitorTracker.getVisitorStats();
+                  setVisitorStats(fallbackStats);
+                }
               }}
               className="refresh-btn"
             >
