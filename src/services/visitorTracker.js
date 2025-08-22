@@ -1,5 +1,9 @@
+import databaseVisitorTracker from './databaseVisitorTracker';
+
+// Enhanced visitor tracking service with database integration
 class VisitorTracker {
   constructor() {
+    this.databaseTracker = databaseVisitorTracker;
     this.sessionId = this.generateSessionId();
     this.sessionStartTime = Date.now();
     this.initializeTracking();
@@ -9,7 +13,7 @@ class VisitorTracker {
     return 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   }
 
-  initializeTracking() {
+  async initializeTracking() {
     // Initialize visitor data if not exists
     if (!localStorage.getItem('visitorData')) {
       const initialData = {
@@ -21,19 +25,26 @@ class VisitorTracker {
       localStorage.setItem('visitorData', JSON.stringify(initialData));
     }
 
+    // Initialize database tracking
+    try {
+      await this.databaseTracker.initializeTracking();
+    } catch (error) {
+      console.warn('Database tracking initialization failed, using local storage only:', error);
+    }
+
     // Check if this is a new visitor
     const lastVisit = localStorage.getItem('lastVisit');
     const now = Date.now();
     const isNewSession = !lastVisit || (now - parseInt(lastVisit)) > 30 * 60 * 1000; // 30 minutes
 
     if (isNewSession) {
-      this.recordNewSession();
+      await this.recordNewSession();
     }
 
     localStorage.setItem('lastVisit', now.toString());
   }
 
-  recordNewSession() {
+  async recordNewSession() {
     const data = JSON.parse(localStorage.getItem('visitorData'));
     
     // Check if this is a completely new visitor
@@ -45,16 +56,29 @@ class VisitorTracker {
     }
     
     data.totalVisits += 1;
-    data.sessions.push({
+    const session = {
       id: this.sessionId,
       startTime: this.sessionStartTime,
       referrer: document.referrer || 'Direct'
-    });
+    };
+    data.sessions.push(session);
 
     localStorage.setItem('visitorData', JSON.stringify(data));
+
+    // Also track in database
+    try {
+      await this.databaseTracker.trackSession({
+        sessionId: this.sessionId,
+        startTime: new Date(this.sessionStartTime).toISOString(),
+        pages: [window.location.pathname],
+        isNewVisitor
+      });
+    } catch (error) {
+      console.warn('Database session tracking failed:', error);
+    }
   }
 
-  trackPageView(page) {
+  async trackPageView(page) {
     const data = JSON.parse(localStorage.getItem('visitorData'));
     const visit = {
       id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -72,9 +96,36 @@ class VisitorTracker {
     }
 
     localStorage.setItem('visitorData', JSON.stringify(data));
+
+    // Also track in database
+    try {
+      await this.databaseTracker.trackVisit({
+        sessionId: this.sessionId,
+        timestamp: new Date(visit.timestamp).toISOString(),
+        page: page,
+        userAgent: navigator.userAgent,
+        referrer: document.referrer || 'direct'
+      });
+    } catch (error) {
+      console.warn('Database visit tracking failed:', error);
+    }
   }
 
-  getVisitorStats() {
+  async getVisitorStats() {
+    // Try to get stats from database first
+    try {
+      const databaseStats = await this.databaseTracker.getVisitorStats();
+      if (databaseStats) {
+        return {
+          ...databaseStats,
+          source: 'database'
+        };
+      }
+    } catch (error) {
+      console.warn('Failed to get database stats, falling back to local storage:', error);
+    }
+
+    // Fallback to local storage
     const data = JSON.parse(localStorage.getItem('visitorData')) || {
       totalVisitors: 0,
       totalVisits: 0,
@@ -92,8 +143,36 @@ class VisitorTracker {
       totalVisitors: data.totalVisitors,
       totalVisits: data.totalVisits,
       averageTimeOnSite: averageTimeOnSite,
-      recentVisits: data.visits.slice(-10).reverse() // Last 10 visits, newest first
+      recentVisits: data.visits.slice(-10).reverse(), // Last 10 visits, newest first
+      source: 'localStorage'
     };
+  }
+
+  // Get combined stats from both local and database
+  async getCombinedStats() {
+    const localStats = await this.getVisitorStats();
+    
+    try {
+      const databaseStats = await this.databaseTracker.getVisitorStats();
+      
+      return {
+        local: localStats,
+        database: databaseStats,
+        combined: {
+          totalVisitors: Math.max(localStats.totalVisitors, databaseStats?.totalVisitors || 0),
+          totalVisits: Math.max(localStats.totalVisits, databaseStats?.totalVisits || 0),
+          averageTimeOnSite: databaseStats?.averageTimeOnSite || localStats.averageTimeOnSite,
+          recentVisits: databaseStats?.recentVisits || localStats.recentVisits
+        }
+      };
+    } catch (error) {
+      return {
+        local: localStats,
+        database: null,
+        combined: localStats,
+        error: error.message
+      };
+    }
   }
 }
 
