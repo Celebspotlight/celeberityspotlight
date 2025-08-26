@@ -35,14 +35,14 @@
     Cache-Control = "public, max-age=31536000, immutable"
 
 # Form handling
-[[forms]]
-  name = "contact"
-  action = "/contact"
-  method = "POST"
+# [[forms]]
+#   name = "contact"
+#   action = "/contact"
+#   method = "POST"
 
 # Function for payment processing (if needed)
-[[functions]]
-  directory = "netlify/functions"
+# [[functions]]
+#   directory = "netlify/functions"
 
 # Plugin configuration (disabled for now)
 # [[plugins]]
