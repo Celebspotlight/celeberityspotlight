@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './PersonalizedVideoModal.css';
-import { createPayment } from '../services/paymentService';
 import BitcoinPayment from './BitcoinPayment';
 import CryptoTutorial from './CryptoTutorial';
 
@@ -57,7 +56,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
         }
       }
     };
-  }, [isOpen]); // Remove originalScrollPosition from dependency array
+  }, [isOpen, originalScrollPosition]);
 
   if (!isOpen) return null;
 
@@ -77,24 +76,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     }
   };
 
-  const validateStep = (step) => {
-    const errors = {};
-    
-    if (step === 2) {
-      if (!formData.recipientName.trim()) errors.recipientName = 'Recipient name is required';
-      if (!formData.senderName.trim()) errors.senderName = 'Your name is required';
-      if (!formData.email.trim()) errors.email = 'Email is required';
-      if (!/\S+@\S+\.\S+/.test(formData.email)) errors.email = 'Email is invalid';
-    }
-    
-    // Remove the agreeToTerms validation for step 3 since it's not in the form
-    // if (step === 3) {
-    //   if (!formData.agreeToTerms) errors.agreeToTerms = 'You must agree to terms';
-    // }
-    
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
+  // Removed unused validateStep function
 
   const canProceedToNextStep = () => {
     if (currentStep === 1) {
@@ -135,44 +117,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     setShowBitcoinPayment(true);
   };
 
-  const handleRegularPayment = async () => {
-    try {
-      const bookingId = 'PV' + Date.now();
-      
-      const paymentData = {
-        bookingId,
-        totalAmount: totalPrice,
-        celebrityName: celebrity.name,
-        selectedCrypto: 'btc',
-        email: formData.email
-      };
-      
-      const payment = await createPayment(paymentData);
-      
-      const bookingData = {
-        id: bookingId,
-        type: 'personalized_video',
-        celebrity: celebrity,
-        videoType: formData.videoType,
-        formData: formData,
-        total: totalPrice,
-        status: 'pending_payment',
-        createdAt: new Date().toISOString(),
-        paymentId: payment.payment_id,
-        paymentUrl: payment.payment_url
-      };
-      
-      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push(bookingData);
-      localStorage.setItem('bookings', JSON.stringify(existingBookings));
-      
-      window.open(payment.payment_url, '_blank');
-      onClose();
-      
-    } catch (error) {
-      alert('Payment failed: ' + error.message);
-    }
-  };
+  // Removed unused handleRegularPayment function
 
   // const handleBitcoinPaymentComplete = () => {
   //   setShowBitcoinPayment(false);

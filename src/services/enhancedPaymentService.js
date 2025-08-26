@@ -1,4 +1,4 @@
-import emailService from './emailService';
+// Removed unused emailService import
 
 const NOWPAYMENTS_API_URL = 'https://api.nowpayments.io/v1';
 const API_KEY = process.env.REACT_APP_NOWPAYMENTS_API_KEY;
@@ -280,7 +280,7 @@ export const getPaymentHistory = () => {
   return JSON.parse(localStorage.getItem('paymentHistory') || '[]');
 };
 
-export default {
+const enhancedPaymentService = {
   createPayment,
   checkPaymentStatus,
   getAvailableCurrencies,
@@ -289,3 +289,5 @@ export default {
   clearPaymentDebugLogs,
   getPaymentHistory
 };
+
+export default enhancedPaymentService;
