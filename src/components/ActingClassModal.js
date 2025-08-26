@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import './ActingClassModal.css';
-import { createPayment } from '../services/paymentService';
 import BitcoinPayment from './BitcoinPayment';
 import CryptoTutorial from './CryptoTutorial';
 import './ActingClassModal.css';
@@ -111,23 +110,9 @@ const ActingClassModal = ({ coach, onClose }) => {
       existingBookings.push(bookingData);
       localStorage.setItem('bookings', JSON.stringify(existingBookings));
       
-      // Create payment
-      const paymentData = {
-        bookingId,
-        celebrityName: coach.name,
-        totalAmount: coach.class_price,
-        email: formData.email,
-        selectedCrypto: 'btc'
-      };
-      
-      const payment = await createPayment(paymentData);
-      
-      if (payment.payment_url) {
-        // Redirect to payment
-        window.location.href = payment.payment_url;
-      } else {
-        throw new Error('Payment URL not received');
-      }
+      // Show simple confirmation message
+      alert(`Acting class booking confirmed! Your booking ID is: ${bookingId}\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
+      onClose();
       
     } catch (error) {
       console.error('Booking failed:', error);
@@ -229,6 +214,25 @@ const ActingClassModal = ({ coach, onClose }) => {
                 <div className="payment-options-section">
                   <h4>Payment Options</h4>
                   
+                  {/* Crypto Tutorial Section - First Priority */}
+                  <div className="payment-tutorial-section">
+                    <div className="tutorial-highlight">
+                      <div className="tutorial-icon">🚀</div>
+                      <div className="tutorial-content">
+                        <h4>New to Crypto Payments?</h4>
+                        <p>Watch our comprehensive 3-step video series to learn how to send cryptocurrency payments securely and confidently.</p>
+                        <button 
+                          type="button"
+                          className="tutorial-btn"
+                          onClick={() => setShowCryptoTutorial(true)}
+                        >
+                          🎥 Watch Crypto Tutorial
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Bitcoin Payment Option - Second Priority */}
                   <div className="payment-option-card bitcoin-payment">
                     <div className="payment-icon">🪙</div>
                     <h4>Direct Bitcoin Payment</h4>
@@ -238,26 +242,8 @@ const ActingClassModal = ({ coach, onClose }) => {
                       className="select-payment-btn bitcoin"
                       onClick={handleBitcoinPayment}
                     >
-                      Pay with Bitcoin
+                      ₿ Pay with Bitcoin
                     </button>
-                  </div>
-                </div>
-                
-                {/* Crypto Tutorial Section */}
-                <div className="payment-tutorial-section">
-                  <div className="tutorial-highlight">
-                    <div className="tutorial-icon">🚀</div>
-                    <div className="tutorial-content">
-                      <h4>New to Crypto Payments?</h4>
-                      <p>Watch our comprehensive 3-step video series to learn how to send cryptocurrency payments securely and confidently.</p>
-                      <button 
-                        type="button"
-                        className="tutorial-btn"
-                        onClick={() => setShowCryptoTutorial(true)}
-                      >
-                        Watch Crypto Tutorial
-                      </button>
-                    </div>
                   </div>
                 </div>
                 
@@ -290,7 +276,10 @@ const ActingClassModal = ({ coach, onClose }) => {
                 <h2>Crypto Payment Tutorial</h2>
                 <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
               </div>
-              <CryptoTutorial onClose={() => setShowCryptoTutorial(false)} />
+              <CryptoTutorial 
+                onContinue={() => setShowCryptoTutorial(false)}
+                onSkip={() => setShowCryptoTutorial(false)}
+              />
             </div>
           </div>
         )}

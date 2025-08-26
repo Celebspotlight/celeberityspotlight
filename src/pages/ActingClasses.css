@@ -154,17 +154,17 @@
 }
 
 .coach-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e2e8f0;
+  box-shadow: 0 10px 25px var(--shadow-color);
+  border: 1px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
 .coach-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 40px var(--shadow-color);
 }
 
 .coach-card.unavailable {
@@ -199,13 +199,15 @@
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--bg-primary);
   color: var(--text-primary);
   padding: 0.5rem 1rem;
   border-radius: 20px;
   font-size: 0.85rem;
   font-weight: 600;
   backdrop-filter: blur(10px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 2px 8px var(--shadow-color);
 }
 
 .unavailable-overlay {
@@ -249,13 +251,13 @@
 }
 
 .coach-duration {
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 1rem;
   font-size: 0.95rem;
 }
 
 .coach-description {
-  color: #64748b;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 1.5rem;
   font-size: 0.95rem;
@@ -290,19 +292,19 @@
   grid-column: 1 / -1;
   text-align: center;
   padding: 4rem 2rem;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 10px 25px var(--shadow-color);
 }
 
 .no-results h3 {
   font-size: 1.5rem;
-  color: #1e293b;
+  color: var(--text-primary);
   margin-bottom: 1rem;
 }
 
 .no-results p {
-  color: #64748b;
+  color: var(--text-secondary);
   margin-bottom: 2rem;
 }
 

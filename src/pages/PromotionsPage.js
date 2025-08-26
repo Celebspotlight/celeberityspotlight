@@ -214,6 +214,23 @@ const PromotionsPage = () => {
     }, 100);
   };
 
+  const handleFreeConsultation = () => {
+    const subject = encodeURIComponent('Free Consultation Request - Celebrity Promotion Services');
+    const body = encodeURIComponent(
+      'Hello,\n\n' +
+      'I am interested in a free consultation for celebrity promotion services.\n\n' +
+      'Please contact me to discuss:\n' +
+      '- My brand and promotion goals\n' +
+      '- Available celebrity partnerships\n' +
+      '- Pricing and package options\n' +
+      '- Timeline and campaign strategy\n\n' +
+      'Thank you for your time.\n\n' +
+      'Best regards'
+    );
+    
+    window.open(`mailto:celebrityspotlight2024@gmail.com?subject=${subject}&body=${body}`, '_blank');
+  };
+
   return (
     <div className="promotions-page">
       {/* Hero Section */}
@@ -281,7 +298,7 @@ const PromotionsPage = () => {
           <div className="cta-content">
             <h2>Ready to Elevate Your Brand?</h2>
             <p>Contact us today to discuss your celebrity promotion needs</p>
-            <button className="cta-button">Get Free Consultation</button>
+            <button className="cta-button" onClick={handleFreeConsultation}>Get Free Consultation</button>
           </div>
         </div>
       </section>
@@ -324,7 +341,10 @@ const PromotionsPage = () => {
             >
               ×
             </button>
-            <CryptoTutorial />
+            <CryptoTutorial 
+                  onContinue={() => setShowCryptoTutorial(false)}
+                  onSkip={() => setShowCryptoTutorial(false)}
+                />
           </div>
         </div>
       )}

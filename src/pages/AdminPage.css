@@ -38,33 +38,42 @@
 .form-group select {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--input-border);
   border-radius: 6px;
   font-size: 1rem;
-  transition: border-color 0.2s ease;
+  background: var(--input-bg);
+  color: var(--input-text);
+  transition: all 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 3px var(--input-focus-shadow);
+}
+
+.form-group input::placeholder {
+  color: var(--input-placeholder);
 }
 
 .login-btn {
   width: 100%;
-  background: #3b82f6;
-  color: white;
+  background: var(--accent-color);
+  color: var(--button-text, white);
   border: none;
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .login-btn:hover {
-  background: #2563eb;
+  background: var(--accent-hover, #2563eb);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--accent-color-rgb, 59, 130, 246), 0.3);
 }
 
 .login-hint {
@@ -110,18 +119,20 @@
 }
 
 .logout-btn {
-  background: #ef4444;
-  color: white;
+  background: var(--error-color, #ef4444);
+  color: var(--button-text, white);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
-  background: #dc2626;
+  background: var(--error-hover, #dc2626);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .admin-controls {
@@ -137,18 +148,20 @@
 }
 
 .add-celebrity-btn {
-  background: #10b981;
-  color: white;
+  background: var(--success-color, #10b981);
+  color: var(--button-text, white);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .add-celebrity-btn:hover {
-  background: #059669;
+  background: var(--success-hover, #059669);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .stats {
@@ -242,7 +255,7 @@
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -252,41 +265,42 @@
 .modal select {
   width: 100%;
   padding: 1rem 1.25rem;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--input-border);
   border-radius: 12px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: linear-gradient(135deg, #fafafa 0%, #f3f4f6 100%);
+  background: var(--input-bg);
+  color: var(--input-text);
   box-sizing: border-box;
 }
 
 .modal input:focus,
 .modal select:focus {
   outline: none;
-  border-color: #3b82f6;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  border-color: var(--input-focus-border);
+  background: var(--bg-primary);
+  box-shadow: 0 0 0 4px var(--input-focus-shadow);
   transform: translateY(-1px);
 }
 
 /* Special styling for different input types */
 .modal input[type="number"] {
-  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+  background: var(--input-bg);
 }
 
 .modal input[type="number"]:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  border-color: var(--success-color);
+  box-shadow: 0 0 0 4px var(--success-shadow);
 }
 
 .modal select {
   cursor: pointer;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--input-bg);
 }
 
 .modal select:focus {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.1);
+  border-color: var(--warning-color);
+  box-shadow: 0 0 0 4px var(--input-focus-shadow);
 }
 
 /* Checkbox styling */
@@ -294,7 +308,7 @@
   width: auto;
   margin-right: 0.75rem;
   transform: scale(1.3);
-  accent-color: #3b82f6;
+  accent-color: var(--accent-color);
 }
 
 .modal label:has(input[type="checkbox"]) {
@@ -310,22 +324,23 @@
 }
 
 .modal label:has(input[type="checkbox"]):hover {
-  background-color: #f3f4f6;
+  background-color: var(--bg-secondary);
 }
 
 /* File input styling */
 .modal input[type="file"] {
-  background: white;
-  border: 3px dashed #d1d5db;
+  background: var(--input-bg);
+  border: 3px dashed var(--border-color);
   padding: 1.5rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
+  color: var(--input-text);
 }
 
 .modal input[type="file"]:hover {
-  border-color: #3b82f6;
-  background: #f8fafc;
+  border-color: var(--accent-color);
+  background: var(--bg-secondary);
 }
 
 /* Enhanced Action Buttons */
@@ -339,8 +354,8 @@
 }
 
 .modal .save-btn {
-  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
-  color: white;
+  background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-hover) 100%);
+  color: var(--button-text, white);
   border: none;
   padding: 1rem 2.5rem;
   border-radius: 12px;
@@ -350,19 +365,19 @@
   font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 8px 16px rgba(var(--accent-color-rgb, 59, 130, 246), 0.3);
 }
 
 .modal .save-btn:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  background: linear-gradient(135deg, var(--accent-hover) 0%, var(--accent-color) 100%);
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 12px 24px rgba(var(--accent-color-rgb, 59, 130, 246), 0.4);
 }
 
 .modal button[type="button"] {
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
-  color: #6b7280;
-  border: 2px solid #d1d5db;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  color: var(--text-secondary);
+  border: 2px solid var(--border-color);
   padding: 1rem 2.5rem;
   border-radius: 12px;
   font-weight: 600;
@@ -374,8 +389,9 @@
 }
 
 .modal button[type="button"]:hover {
-  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
-  color: #4b5563;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  color: var(--text-primary);
+  border-color: var(--accent-color);
   transform: translateY(-1px);
 }
 
@@ -546,23 +562,25 @@
 }
 
 .save-btn {
-  background: #3b82f6;
-  color: white;
+  background: var(--accent-color);
+  color: var(--button-text, white);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .save-btn:hover {
-  background: #2563eb;
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(var(--accent-color-rgb, 59, 130, 246), 0.3);
 }
 
 .cancel-btn {
-  background: #6b7280;
-  color: white;
+  background: var(--text-secondary);
+  color: var(--button-text, white);
   border: none;
   padding: 0.75rem 1.5rem;
   border-radius: 6px;
@@ -597,10 +615,11 @@
 
 /* Table Styles */
 .celebrities-table {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 6px var(--shadow-color);
   overflow: hidden;
+  border: 1px solid var(--border-color);
 }
 
 .celebrities-table table {
@@ -612,13 +631,14 @@
 .celebrities-table td {
   padding: 1rem;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-primary);
 }
 
 .celebrities-table th {
-  background: #f9fafb;
+  background: var(--bg-secondary);
   font-weight: 600;
-  color: #374151;
+  color: var(--text-primary);
 }
 
 .table-image {

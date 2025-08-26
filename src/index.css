@@ -29,6 +29,7 @@
   --shadow-color: rgba(0, 0, 0, 0.1);
   --accent-color: #6366f1;
   --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --button-text: #ffffff;
   --success-color: #10b981;
   --error-color: #ef4444;
   --warning-color: #f59e0b;
@@ -87,6 +88,7 @@
   --input-placeholder: #9ca3af;
   --input-focus-border: #6366f1;
   --input-focus-shadow: rgba(99, 102, 241, 0.2);
+  --button-text: #ffffff;
   
   --gray-50: #1f2937;
   --gray-100: #374151;

@@ -7,14 +7,15 @@
   transition: all 0.3s ease;
 }
 
-/* Modern Hero Section */
+/* Modern Hero Section - Dark Mode Optimized */
 .page-header {
   position: relative;
-  background: var(--gradient-primary);
-  color: white;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   padding: 120px 0 80px;
   text-align: center;
   overflow: hidden;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .page-header::before {
@@ -24,7 +25,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--shadow-color);
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
   z-index: 1;
 }
 
@@ -38,13 +39,17 @@
   margin-bottom: 1.5rem;
   font-weight: 700;
   line-height: 1.2;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: var(--text-primary);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .page-header p {
   font-size: clamp(1.1rem, 2vw, 1.3rem);
   margin-bottom: 0;
-  opacity: 0.95;
+  color: var(--text-secondary);
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;

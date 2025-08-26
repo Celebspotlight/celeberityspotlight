@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './BookingModal.css';
-import { createPayment } from '../services/paymentService';
 import CryptoTutorial from './CryptoTutorial';
-import BitcoinPayment from './BitcoinPayment'; // ADD THIS IMPORT
+import BitcoinPayment from './BitcoinPayment';
 
 const BookingModal = ({ isOpen, onClose, celebrity }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
-  const [isConfirmed, setIsConfirmed] = useState(false);
+
   const [formData, setFormData] = useState({
     // Personal Information
     firstName: '',
@@ -233,13 +232,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     setShowBitcoinPayment(true);
   };
   
-  // ADD THIS FUNCTION
-  const handleConfirmBooking = () => {
-    if (!validateStep(4)) {
-      return;
-    }
-    setIsConfirmed(true);
-  };
+
   
   const handleCancelTransaction = () => {
     if (window.confirm('Are you sure you want to cancel this transaction? Your booking will be cancelled.')) {
@@ -272,34 +265,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     }
     
     try {
-      const bookingData = {
-        bookingId,
-        celebrityName: celebrity.name,
-        totalAmount: calculateTotal(),
-        email: formData.email,
-        selectedCrypto: formData.paymentMethod || 'btc',
-        customerInfo: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          phone: formData.phone,
-          country: formData.country
-        },
-        sessionDetails: {
-          package: formData.package,
-          date: formData.date,
-          time: formData.time,
-          location: formData.location,
-          language: formData.language
-        },
-        specialRequests: formData.specialRequests
-      };
-      
-      // Create payment
-      const payment = await createPayment(bookingData);
-      setPaymentData(payment);
-      
-      // Save booking to localStorage
+      // Save booking to localStorage without payment integration
       const fullBookingData = {
         id: bookingId,
         type: 'celebrity_experience',
@@ -307,9 +273,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
         formData: formData,
         total: calculateTotal(),
         status: 'pending_payment',
-        createdAt: new Date().toISOString(),
-        paymentId: payment.payment_id,
-        paymentUrl: payment.payment_url
+        createdAt: new Date().toISOString()
       };
       
       const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
@@ -319,12 +283,9 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
       // Clear the draft
       localStorage.removeItem(`booking-draft-${celebrity.id}`);
       
-      // Redirect to payment
-      if (payment.payment_url) {
-        window.open(payment.payment_url, '_blank');
-      } else {
-        throw new Error('Payment URL not received');
-      }
+      // Show simple confirmation message
+      alert(`Booking confirmed! Your booking ID is: ${bookingId}\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
+      onClose();
       
     } catch (error) {
       console.error('Booking submission failed:', error);
@@ -659,19 +620,11 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
             <div className="step-content">
               <h3>Confirm Your Booking</h3>
               
-              {!isConfirmed && (
-                <div className="review-notice">
-                  <p>📋 Please review your booking details below and confirm when ready.</p>
-                </div>
-              )}
+              <div className="review-notice">
+                <p>📋 Please review your booking details below. Use the payment options at the bottom to complete your booking.</p>
+              </div>
               
-              {isConfirmed && (
-                <div className="confirmed-notice">
-                  <p>✅ Booking details confirmed! Ready to proceed to secure payment.</p>
-                </div>
-              )}
-              
-              <div className={`booking-summary ${isConfirmed ? 'confirmed' : ''}`}>
+              <div className="booking-summary">
                 <div className="summary-section">
                   <h4>Session Details</h4>
                   <div className="summary-item">
@@ -765,34 +718,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
               <div className="payment-info">
                 <h5>Payment Options:</h5>
                 
-                {/* Show Bitcoin payment option when confirmed */}
-                {isConfirmed && (
-                  <div className="bitcoin-payment-section">
-                    <div className="bitcoin-payment-card">
-                      <div className="bitcoin-card-header">
-                        <span className="bitcoin-icon">₿</span>
-                        <h6>Alternative: Direct Bitcoin Payment</h6>
-                      </div>
-                      <div className="bitcoin-card-body">
-                        <p>Send Bitcoin directly to our wallet address</p>
-                        <ul>
-                          <li>Manual Bitcoin transfer</li>
-                          <li>Lower transaction fees</li>
-                          <li>24-48 hour manual verification</li>
-                        </ul>
-                      </div>
-                      <button 
-                        type="button" 
-                        className="btn-bitcoin-alt"
-                        onClick={handleBitcoinPayment}
-                      >
-                        ₿ Pay with Bitcoin
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Crypto Tutorial Section */}
+                {/* Crypto Tutorial Section - First Priority */}
                 <div className="payment-tutorial-section">
                   <div className="tutorial-highlight">
                     <span className="tutorial-icon">🚀</span>
@@ -810,18 +736,34 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                   </div>
                 </div>
                 
-                {!isConfirmed ? (
-                  <>
-                    <h5>Next Steps:</h5>
-                    <p>After confirming your booking, you can proceed with secure crypto payment or choose direct Bitcoin transfer.</p>
-                    <p><strong>New to Crypto?</strong> Watch our step-by-step tutorial above to learn how to make cryptocurrency payments safely.</p>
-                  </>
-                ) : (
-                  <>
-                    <h5>Ready to Complete Payment:</h5>
-                    <p>Use the "Proceed to Payment" button below for secure crypto payment, or choose the Bitcoin option above for direct transfer.</p>
-                  </>
-                )}
+                {/* Bitcoin Payment Section - Always Available */}
+                <div className="bitcoin-payment-section">
+                  <div className="bitcoin-payment-card">
+                    <div className="bitcoin-card-header">
+                      <span className="bitcoin-icon">₿</span>
+                      <h6>Bitcoin Payment</h6>
+                    </div>
+                    <div className="bitcoin-card-body">
+                      <p>Get Bitcoin wallet address and send payment directly</p>
+                      <ul>
+                        <li>Direct Bitcoin transfer</li>
+                        <li>Lower transaction fees</li>
+                        <li>24-48 hour manual verification</li>
+                      </ul>
+                    </div>
+                    <button 
+                      type="button" 
+                      className="btn-bitcoin-alt"
+                      onClick={handleBitcoinPayment}
+                    >
+                      ₿ Get Bitcoin Address
+                    </button>
+                  </div>
+                </div>
+                
+                <h5>Payment Instructions:</h5>
+                <p>Watch the crypto tutorial above to learn how to make Bitcoin payments, then use the Bitcoin payment option to get the wallet address and complete your payment.</p>
+                <p><strong>Simple Process:</strong> Tutorial → Copy Bitcoin Address → Send Payment</p>
               </div>
             </div>
           )}
@@ -860,7 +802,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                 
                 <div className="payment-status">
                   <p>⏳ <strong>Status:</strong> Awaiting Payment</p>
-                  <p>🔒 <strong>Security:</strong> Powered by NOWPayments</p>
+                  <p>🔒 <strong>Security:</strong> Secure Payment Processing</p>
                   <p>💰 <strong>Amount:</strong> ${calculateTotal()}</p>
                 </div>
               </div>
@@ -900,23 +842,6 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
               <button type="button" className="btn-primary" onClick={handleNext}>
                 Next Step
               </button>
-            ) : currentStep === 4 ? (
-              <div className="confirmation-buttons">
-                {!isConfirmed ? (
-                  <button type="button" className="btn-primary" onClick={handleConfirmBooking}>
-                    ✓ Confirm Details
-                  </button>
-                ) : (
-                  <>
-                    <button type="button" className="btn-secondary" onClick={() => setIsConfirmed(false)}>
-                      ← Edit Details
-                    </button>
-                    <button type="submit" className="btn-primary payment-btn">
-                      💳 Proceed to Payment
-                    </button>
-                  </>
-                )}
-              </div>
             ) : null}
           </div>
           

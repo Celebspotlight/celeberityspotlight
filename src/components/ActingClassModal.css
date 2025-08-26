@@ -21,13 +21,13 @@
 
 /* Modal Content - Centered */
 .modal-content {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   width: 100%;
   max-width: 600px;
   max-height: 90vh; /* Prevent overflow on small screens */
   overflow-y: auto; /* Allow internal scrolling if needed */
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 25px 50px -12px var(--shadow-color);
   animation: slideInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   transform-origin: center;
 }
@@ -99,13 +99,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 24px 24px 0;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 24px;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #333;
+  color: var(--text-primary);
   font-size: 1.5rem;
 }
 
@@ -114,7 +114,7 @@
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
+  color: var(--text-secondary);
   padding: 0;
   width: 30px;
   height: 30px;
@@ -126,8 +126,8 @@
 }
 
 .close-btn:hover {
-  background-color: #f5f5f5;
-  color: #333;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Modal Body */
@@ -191,32 +191,37 @@
 
 .form-group label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   font-size: 0.9rem;
 }
 
 .form-group input,
 .form-group textarea {
   padding: 12px 16px;
-  border: 2px solid #e1e5e9;
+  border: 2px solid var(--input-border);
   border-radius: 8px;
   font-size: 1rem;
-  transition: border-color 0.2s ease;
+  transition: all 0.3s ease;
+  background: var(--input-bg);
+  color: var(--input-text);
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--input-focus-border);
+  box-shadow: 0 0 0 4px var(--input-focus-shadow);
+  background: var(--input-bg) !important;
+  color: var(--input-text) !important;
 }
 
 .form-group input.error,
 .form-group textarea.error {
-  border-color: #e74c3c;
+  border-color: var(--error-color);
 }
 
 .error-text {
-  color: #e74c3c;
+  color: var(--error-color);
   font-size: 0.85rem;
   margin-top: 4px;
 }

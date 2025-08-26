@@ -624,7 +624,10 @@ const BookVideoPage = () => {
             >
               ×
             </button>
-            <CryptoTutorial onClose={() => setShowCryptoTutorial(false)} />
+            <CryptoTutorial 
+              onContinue={() => setShowCryptoTutorial(false)}
+              onSkip={() => setShowCryptoTutorial(false)}
+            />
           </div>
         </div>
       )}

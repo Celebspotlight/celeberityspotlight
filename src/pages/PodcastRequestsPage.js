@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './PodcastRequestsPage.css';
 import { createPayment } from '../services/paymentService';
 import BitcoinPayment from '../components/BitcoinPayment';
+import CryptoTutorial from '../components/CryptoTutorial';
 
 const PodcastRequestsPage = () => {
   const [celebrities, setCelebrities] = useState([]);
@@ -12,6 +13,7 @@ const PodcastRequestsPage = () => {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
+  const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
   const paymentModalRef = useRef(null);
   const [originalScrollPosition, setOriginalScrollPosition] = useState(0);
@@ -514,8 +516,12 @@ const PodcastRequestsPage = () => {
                 </div>
                 
                 <div className="payment-methods">
-                  <button type="submit" className="payment-btn regular">
-                    💳 Pay with Cryptocurrency
+                  <button 
+                    type="button" 
+                    className="payment-btn tutorial"
+                    onClick={() => setShowCryptoTutorial(true)}
+                  >
+                    🎥 Watch Crypto Tutorial
                   </button>
                   <button 
                     type="button" 
@@ -550,6 +556,22 @@ const PodcastRequestsPage = () => {
               amount={getPodcastPrice(selectedCelebrity, formData.podcastType)}
               onPaymentComplete={handleBitcoinPaymentComplete}
               onCancel={() => setShowBitcoinPayment(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Crypto Tutorial Modal */}
+      {showCryptoTutorial && (
+        <div className="modal-overlay" onClick={() => setShowCryptoTutorial(false)}>
+          <div className="modal-content crypto-tutorial-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Crypto Payment Tutorial</h2>
+              <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
+            </div>
+            <CryptoTutorial 
+              onContinue={() => setShowCryptoTutorial(false)}
+              onSkip={() => setShowCryptoTutorial(false)}
             />
           </div>
         </div>

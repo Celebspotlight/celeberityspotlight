@@ -21,8 +21,6 @@ const PaymentModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
-  const [debugMode, setDebugMode] = useState(false);
-
   // Check API connectivity on component mount
   useEffect(() => {
     const checkAPI = async () => {
@@ -95,15 +93,7 @@ const PaymentModal = ({
     }
   };
 
-  const toggleDebugMode = () => {
-    setDebugMode(!debugMode);
-  };
 
-  const viewDebugLogs = () => {
-    const logs = enhancedPaymentService.getPaymentDebugLogs();
-    console.log('Payment Debug Logs:', logs);
-    alert(`Debug logs (${logs.length} entries) have been logged to console. Press F12 to view.`);
-  };
 
   if (!isOpen) return null;
 
@@ -115,12 +105,7 @@ const PaymentModal = ({
       >
         <div className="modal-header">
           <h3>Complete Payment</h3>
-          <div className="header-controls">
-            <button onClick={toggleDebugMode} className="debug-btn" title="Toggle Debug Mode">
-              🔧
-            </button>
-            <button onClick={onClose} className="close-btn">×</button>
-          </div>
+          <button onClick={onClose} className="close-btn">×</button>
         </div>
         
         <div className="modal-body">
@@ -175,13 +160,6 @@ const PaymentModal = ({
           
           <div className="payment-methods">
             <button 
-              className="payment-btn regular"
-              onClick={() => handleSubmit('regular')}
-              disabled={isLoading}
-            >
-              {isLoading ? '⏳ Processing...' : '💳 Pay with Card/Crypto'}
-            </button>
-            <button 
               className="payment-btn bitcoin"
               onClick={() => handleSubmit('bitcoin')}
               disabled={isLoading}
@@ -190,33 +168,22 @@ const PaymentModal = ({
             </button>
           </div>
           
-          <div className="crypto-tutorial-link">
-            <p>New to crypto payments? <button className="tutorial-link-btn" onClick={onShowCryptoTutorial}>Watch our step-by-step tutorial</button></p>
-          </div>
-          
-          {/* Debug Panel */}
-          {debugMode && (
-            <div className="debug-panel">
-              <h4>Debug Information</h4>
-              <div className="debug-info">
-                <p><strong>Environment:</strong> {process.env.REACT_APP_ENVIRONMENT || 'development'}</p>
-                <p><strong>API Key:</strong> {process.env.REACT_APP_NOWPAYMENTS_API_KEY ? 'Configured' : 'Missing'}</p>
-                <p><strong>API Status:</strong> {apiStatus?.connected ? 'Connected' : 'Disconnected'}</p>
-                {apiStatus?.error && <p><strong>API Error:</strong> {apiStatus.error}</p>}
+          <div className="crypto-tutorial-section">
+            <div className="tutorial-highlight">
+              <span className="tutorial-icon">🚀</span>
+              <div className="tutorial-content">
+                <h6>New to Crypto Payments?</h6>
+                <p>Watch our 3-step video series to learn how to send cryptocurrency payments securely</p>
               </div>
-              <div className="debug-actions">
-                <button onClick={viewDebugLogs} className="debug-action-btn">
-                  View Debug Logs
-                </button>
-                <button 
-                  onClick={() => enhancedPaymentService.clearPaymentDebugLogs()} 
-                  className="debug-action-btn"
-                >
-                  Clear Logs
-                </button>
-              </div>
+              <button 
+                type="button"
+                className="btn-tutorial"
+                onClick={onShowCryptoTutorial}
+              >
+                🎥 Watch Crypto Tutorial
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

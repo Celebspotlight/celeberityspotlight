@@ -449,7 +449,10 @@ const DonationsPage = () => {
             >
               ×
             </button>
-            <CryptoTutorial />
+            <CryptoTutorial 
+                  onContinue={() => setShowCryptoTutorial(false)}
+                  onSkip={() => setShowCryptoTutorial(false)}
+                />
           </div>
         </div>
       )}

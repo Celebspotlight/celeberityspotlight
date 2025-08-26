@@ -26,7 +26,7 @@
   color: var(--text-primary);
   margin-bottom: 1rem;
   line-height: 1.2;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -66,13 +66,13 @@
 .feature-icon {
   width: 48px;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1rem;
-  color: white;
+  color: var(--button-text, white);
   font-size: 1.2rem;
 }
 
@@ -116,14 +116,14 @@
 }
 
 .cta-section .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--button-text, white);
   border-color: transparent;
 }
 
 .cta-section .btn-primary:hover {
   transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.25);
+  box-shadow: 0 6px 16px var(--accent-shadow);
 }
 
 .cta-section .btn-secondary {
@@ -142,8 +142,8 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--gradient-primary);
+  color: var(--button-text, white);
   padding: 1rem 2rem;
   border-radius: 12px;
   text-decoration: none;
@@ -151,14 +151,14 @@
   font-size: 1.1rem;
   transition: all 0.3s ease;
   border: 2px solid transparent;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px var(--accent-shadow);
 }
 
 .cta-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px var(--accent-shadow);
   border-color: var(--border-color);
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+  background: var(--gradient-secondary, var(--gradient-primary));
 }
 
 @media (max-width: 768px) {

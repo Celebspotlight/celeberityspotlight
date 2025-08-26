@@ -346,6 +346,25 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
                   </div>
                 </div>
                 
+                {/* Payment Tutorial Section - First Priority */}
+                <div className="payment-tutorial-section">
+                  <div className="tutorial-highlight">
+                    <div className="tutorial-icon">🚀</div>
+                    <div className="tutorial-content">
+                      <h4>New to Crypto Payments?</h4>
+                      <p>Watch our comprehensive 3-step video series to learn how to send cryptocurrency payments securely and confidently.</p>
+                      <button 
+                        type="button"
+                        className="tutorial-btn"
+                        onClick={() => setShowCryptoTutorial(true)}
+                      >
+                        🎥 Watch Crypto Tutorial
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Bitcoin Payment Option - Second Priority */}
                 <div className="payment-options">
                   <div className="payment-option-card bitcoin-payment">
                     <div className="payment-icon">🪙</div>
@@ -361,34 +380,8 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
                       className="select-payment-btn bitcoin"
                       onClick={handleBitcoinPayment}
                     >
-                      Pay with Bitcoin
+                      ₿ Pay with Bitcoin
                     </button>
-                  </div>
-                </div>
-                
-                <div className="payment-actions">
-                  <button 
-                    className="btn-primary"
-                    onClick={handleRegularPayment}
-                  >
-                    Proceed to Payment (${totalPrice})
-                  </button>
-                </div>
-                
-                    <div className="payment-tutorial-section">
-                  <div className="tutorial-highlight">
-                    <div className="tutorial-icon">🚀</div>
-                    <div className="tutorial-content">
-                      <h4>New to Crypto Payments?</h4>
-                      <p>Watch our comprehensive 3-step video series to learn how to send cryptocurrency payments securely and confidently.</p>
-                      <button 
-                        type="button"
-                        className="tutorial-btn"
-                        onClick={() => setShowCryptoTutorial(true)}
-                      >
-                        Watch Crypto Tutorial
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>

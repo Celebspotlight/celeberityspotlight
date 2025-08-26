@@ -25,7 +25,7 @@
 }
 
 .highlight {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -100,13 +100,13 @@
 .feature-icon {
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1.5rem;
-  color: white;
+  color: var(--button-text);
 }
 
 .feature-card h3 {
@@ -138,7 +138,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
+  background: linear-gradient(45deg, transparent 30%, var(--accent-bg) 50%, transparent 70%);
   animation: shimmer 3s ease-in-out infinite;
 }
 
@@ -152,6 +152,12 @@
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 2rem;
   margin: 3rem 0;
+}
+.stat-item {
+  background-color: var(--bg-primary) !important;
+}
+.page-header::before{
+  background-color: var(--bg-primary) !important;
 }
 
 .stat-card {

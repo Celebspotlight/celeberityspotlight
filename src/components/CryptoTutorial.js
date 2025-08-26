@@ -93,16 +93,15 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
         <p className="step-description">{currentStepData.description}</p>
 
         <div className="video-wrapper">
-          <iframe
+          <video
             width="100%"
             height="315"
-            src={currentStepData.videoUrl}
-            title={currentStepData.title}
-            frameBorder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
+            controls
             onEnded={() => handleVideoEnd(currentStep)}
-          ></iframe>
+          >
+            <source src={currentStepData.videoUrl} type="video/mp4" />
+            Your browser does not support the video tag.
+          </video>
         </div>
 
         {/* Step Navigation */}
@@ -141,7 +140,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
               <span className="option-icon">🔒</span>
               <h5>Crypto Payment (Recommended)</h5>
             </div>
-            <p>Secure, fast, and automated processing through NOWPayments</p>
+            <p>Secure, fast, and direct Bitcoin payment processing</p>
             <button 
               className={`btn-primary ${!allStepsCompleted ? 'disabled' : ''}`}
               onClick={onContinue}
@@ -173,8 +172,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
               <p>If you're having trouble with crypto payments, our support team is here to help!</p>
               
               <div className="contact-info">
-                <p><strong>📧 Email:</strong> support@yoursite.com</p>
-                <p><strong>📞 Phone:</strong> (555) 123-4567</p>
+                <p><strong>📧 Email:</strong> celebrityspotlight2024@gmail.com</p>
                 <p><strong>💬 Live Chat:</strong> Available 9AM-6PM EST</p>
                 <p><strong>⏰ Response Time:</strong> Within 2 hours during business hours</p>
               </div>

@@ -360,8 +360,9 @@
 .amount-input input:focus {
   outline: none;
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 2px var(--input-focus-shadow);
   background: var(--bg-primary);
+  color: var(--text-primary) !important;
 }
 
 .amount-input input::placeholder {

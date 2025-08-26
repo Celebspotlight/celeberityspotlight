@@ -21,16 +21,15 @@ const VideoTutorial = ({ onContinue, onSkip }) => {
       </div>
 
       <div className="video-wrapper">
-        <iframe
+        <video
           width="100%"
           height="315"
-          src="https://www.youtube.com/embed/YOUR_CRYPTO_TUTORIAL_VIDEO_ID"
-          title="Crypto Payment Tutorial - Step by Step Guide"
-          frameBorder="0"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
+          controls
           onEnded={handleVideoEnd}
-        ></iframe>
+        >
+          <source src="/crypto-tutorial.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
       </div>
 
       <div className="tutorial-options">
@@ -42,7 +41,7 @@ const VideoTutorial = ({ onContinue, onSkip }) => {
               <span className="option-icon">🔒</span>
               <h5>Crypto Payment (Recommended)</h5>
             </div>
-            <p>Secure, fast, and automated processing through NOWPayments</p>
+            <p>Secure, fast, and direct Bitcoin payment processing</p>
             <button 
               className="btn-primary"
               onClick={onContinue}
@@ -71,7 +70,7 @@ const VideoTutorial = ({ onContinue, onSkip }) => {
             <div className="alert-warning">
               <h5>💬 Need Help with Crypto Payments?</h5>
               <ol>
-                <li>Email us at: <strong>support@yoursite.com</strong></li>
+                <li>Email us at: <strong>celebrityspotlight2024@gmail.com</strong></li>
                 <li>Include your booking reference number</li>
                 <li>Describe any payment difficulties you're experiencing</li>
                 <li>Our team will assist you within 24 hours</li>
@@ -79,8 +78,7 @@ const VideoTutorial = ({ onContinue, onSkip }) => {
               
               <div className="contact-info">
                 <p><strong>Support Options:</strong></p>
-                <p>📧 Email: support@yoursite.com</p>
-                <p>📞 Phone: (555) 123-4567</p>
+                <p>📧 Email: celebrityspotlight2024@gmail.com</p>
                 <p>💬 Live Chat: Available 9AM-6PM EST</p>
               </div>
             </div>
