@@ -56,9 +56,9 @@
 [[functions]]
   directory = "netlify/functions"
 
-# Plugin configuration
-[[plugins]]
-  package = "@netlify/plugin-lighthouse"
+# Plugin configuration (disabled for now)
+# [[plugins]]
+#   package = "@netlify/plugin-lighthouse"
 
 # Build optimization
 [build.processing]
