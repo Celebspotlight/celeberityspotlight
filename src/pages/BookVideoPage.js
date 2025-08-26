@@ -581,7 +581,7 @@ const BookVideoPage = () => {
                   />
                   <span className="checkmark"></span>
                   <span className="terms-text">
-                    I agree to the <a href="#" className="terms-link">Terms of Service</a> and <a href="#" className="terms-link">Privacy Policy</a>
+                    I agree to the <button type="button" className="terms-link" onClick={() => window.open('/terms', '_blank')}>Terms of Service</button> and <button type="button" className="terms-link" onClick={() => window.open('/privacy', '_blank')}>Privacy Policy</button>
                   </span>
                 </label>
                 {formErrors.agreeToTerms && <span className="error-text">{formErrors.agreeToTerms}</span>}
