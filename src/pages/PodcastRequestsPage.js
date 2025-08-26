@@ -150,7 +150,7 @@ const PodcastRequestsPage = () => {
       
       const response = await createPayment(paymentRequestData);
       
-      if (response && response.invoice_url) {
+      if (response && response.payment_url) {
         const bookingData = {
           id: bookingId,
           type: 'podcast',
@@ -158,7 +158,7 @@ const PodcastRequestsPage = () => {
           podcastType: formData.podcastType,
           price: totalAmount,
           formData: { ...formData, ...paymentFormData },
-          paymentUrl: response.invoice_url,
+          paymentUrl: response.payment_url,
           status: 'pending_payment',
           createdAt: new Date().toISOString()
         };
@@ -167,7 +167,7 @@ const PodcastRequestsPage = () => {
         existingBookings.push(bookingData);
         localStorage.setItem('bookings', JSON.stringify(existingBookings));
         
-        window.open(response.invoice_url, '_blank');
+        window.open(response.payment_url, '_blank');
         handleCloseModal();
       }
     } catch (error) {

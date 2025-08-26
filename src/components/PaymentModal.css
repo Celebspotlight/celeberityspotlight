@@ -156,6 +156,8 @@
   background: #5a67d8;
   transform: translateY(-1px);
 }
+
+.modal-header {
   border-bottom: 1px solid #f3f4f6;
   background: #fafafa;
   border-radius: 16px 16px 0 0;

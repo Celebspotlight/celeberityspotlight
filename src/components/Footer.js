@@ -60,7 +60,7 @@ const Footer = () => {
       <div className="footer-bottom">
         <div className="container">
           <div className="footer-bottom-content">
-            <p>&copy; 2024 Celebrity Spotlight. All rights reserved.</p>
+            <p>&copy; 2025 Celebrity Spotlight. All rights reserved.</p>
             <div className="footer-links">
               <a href="/privacy">Privacy Policy</a>
               <a href="/terms">Terms of Service</a>
