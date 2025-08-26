@@ -7,7 +7,7 @@
   NPM_VERSION = "8"
 
 # Environment variables should be set in Netlify Dashboard
-# Go to Site Settings → Environment Variables and add:
+# Go to Site Settings -> Environment Variables and add:
 # REACT_APP_NOWPAYMENTS_API_KEY
 # REACT_APP_ADMIN_ROUTE
 # REACT_APP_ENVIRONMENT
