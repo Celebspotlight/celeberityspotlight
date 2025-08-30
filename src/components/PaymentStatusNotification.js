@@ -5,7 +5,6 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
   const [currentStatus, setCurrentStatus] = useState('submitted');
   const [progress, setProgress] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [estimatedTime, setEstimatedTime] = useState(180); // 3 minutes
   const [transactionHash, setTransactionHash] = useState('');
   const [confirmations, setConfirmations] = useState(0);
   const [requiredConfirmations] = useState(3);
