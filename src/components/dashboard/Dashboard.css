@@ -329,24 +329,12 @@
   .user-avatar {
     width: 80px;
     height: 80px;
-    margin-right: 1rem;
   }
   
   .avatar-circle {
     font-size: 1.5rem;
     border: 3px solid white;
     box-shadow: 0 6px 24px rgba(102, 126, 234, 0.3);
-  }
-  
-  .loading-spinner {
-    width: 35px;
-    height: 35px;
-    border: 3px solid #e2e8f0;
-    border-top: 3px solid #667eea;
-  }
-  
-  .loading-state {
-    padding: 40px 15px;
   }
   
   .user-greeting {
@@ -400,27 +388,6 @@
   .user-avatar {
     width: 70px;
     height: 70px;
-    margin-right: 0.75rem;
-  }
-  
-  .avatar-circle {
-    font-size: 1.3rem;
-    border: 2px solid white;
-  }
-  
-  .loading-spinner {
-    width: 30px;
-    height: 30px;
-    border: 2px solid #e2e8f0;
-    border-top: 2px solid #667eea;
-  }
-  
-  .loading-state {
-    padding: 30px 10px;
-  }
-  
-  .loading-state p {
-    font-size: 14px;
   }
   
   .avatar-circle {
