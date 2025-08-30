@@ -315,7 +315,6 @@ const PodcastRequestsPage = () => {
                   <h3>{celebrity.name}</h3>
                   <p className="category">{celebrity.category}</p>
                   <div className="pricing">
-                    <span className="price-label">From:</span>
                     <span className="price">${getPodcastPrice(celebrity, 'interview')}</span>
                   </div>
                   <button 
@@ -556,6 +555,7 @@ const PodcastRequestsPage = () => {
               amount={getPodcastPrice(selectedCelebrity, formData.podcastType)}
               onPaymentComplete={handleBitcoinPaymentComplete}
               onCancel={() => setShowBitcoinPayment(false)}
+              bookingId={`PC-${Date.now()}`}
             />
           </div>
         </div>

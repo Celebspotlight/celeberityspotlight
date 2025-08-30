@@ -263,7 +263,7 @@ const PersonalizedVideos = () => {
       </section>
 
       {/* Personalized Video Modal */}
-      {selectedCelebrity && (
+      {selectedCelebrity && isModalOpen && (
         <PersonalizedVideoModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}

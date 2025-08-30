@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Users collection - secure access rules
+    match /users/{userId} {
+      // Users can read and write their own data
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Allow authenticated users to read basic user info for bookings
+      allow read: if request.auth != null;
+      // Allow admins to read all users (when admin claims are implemented)
+      allow read: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Bookings collection - secure access rules
+    match /bookings/{bookingId} {
+      // Users can create new bookings when authenticated
+      allow create: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Users can read and update their own bookings
+      allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
+      // Allow admins to read and update all bookings for management
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Celebrities collection - read-only for users, write for admins
+    match /celebrities/{celebrityId} {
+      // Anyone can read celebrity data (for browsing)
+      allow read: if true;
+      // Only admins can modify celebrity data
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Acting coaches collection - read-only for users, write for admins
+    match /actingCoaches/{coachId} {
+      // Anyone can read acting coach data (for browsing)
+      allow read: if true;
+      // Only admins can modify acting coach data
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Admin-specific collections
+    match /admin/{document} {
+      // Only admins can access admin-specific data
+      allow read, write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Analytics and visitor tracking (if needed)
+    match /analytics/{document} {
+      // Allow read/write for analytics tracking
+      allow read, write: if request.auth != null;
+    }
+    
+    // Public data that anyone can read
+    match /public/{document} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+  }
+}

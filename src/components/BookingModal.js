@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../services/firebase';
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import './BookingModal.css';
 import CryptoTutorial from './CryptoTutorial';
 import BitcoinPayment from './BitcoinPayment';
 
 const BookingModal = ({ isOpen, onClose, celebrity }) => {
+  const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [bitcoinPaymentStep, setBitcoinPaymentStep] = useState(1); // 1: details, 2: payment, 3: confirmation
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -188,6 +196,12 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      // Check authentication before proceeding to payment step (step 4)
+      if (currentStep === 3 && !currentUser) {
+        alert('Please sign in to continue with your booking.');
+        navigate('/login');
+        return;
+      }
       setCurrentStep(prev => Math.min(prev + 1, 5)); // Changed from 4 to 5
     }
   };
@@ -201,8 +215,15 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     return basePrice;
   };
   
-  // ADD THIS FUNCTION
+  // Modified Bitcoin payment function for multi-step flow
   const handleBitcoinPayment = () => {
+    // Check authentication before proceeding with payment
+    if (!currentUser) {
+      alert('Please sign in to complete your payment.');
+      navigate('/login');
+      return;
+    }
+    
     if (!validateForm()) {
       return;
     }
@@ -229,7 +250,118 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     localStorage.removeItem(`booking-draft-${celebrity.id}`);
     
     setBookingId(bookingId);
-    setShowBitcoinPayment(true);
+    setCurrentStep(5); // Move to Bitcoin payment step
+    setBitcoinPaymentStep(1);
+  };
+  
+  // Handle Bitcoin payment completion
+  const handleBitcoinPaymentComplete = async () => {
+    setBitcoinPaymentStep(3);
+    
+    try {
+      // Update booking status to pending (awaiting admin approval)
+      const bookingData = {
+        bookingId: bookingId,
+        userId: currentUser?.uid || 'guest',
+        userEmail: currentUser?.email || formData.email,
+        type: 'celebrity_experience',
+        service: `${celebrity.name} - ${packages[formData.package]?.name || 'Meet & Greet'}`,
+        celebrity: {
+          id: celebrity.id,
+          name: celebrity.name,
+          image: celebrity.image,
+          price: celebrity.price
+        },
+        personalInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          dateOfBirth: formData.dateOfBirth,
+          country: formData.country,
+          city: formData.city
+        },
+        sessionDetails: {
+          package: formData.package,
+          packageName: packages[formData.package]?.name || 'Standard Package',
+          date: formData.date,
+          time: formData.time,
+          location: formData.location,
+          language: formData.language
+        },
+        specialRequests: {
+          requests: formData.specialRequests,
+          giftFor: formData.giftFor,
+          occasion: formData.occasion,
+          accessibilityNeeds: formData.accessibilityNeeds
+        },
+        pricing: {
+          basePrice: packages[formData.package]?.price || celebrity.price,
+          total: calculateTotal()
+        },
+        status: 'pending', // Pending admin approval
+        paymentMethod: 'bitcoin',
+        paymentStatus: 'pending', // Keep as pending for admin panel visibility
+        agreements: {
+          termsAccepted: formData.agreeToTerms,
+          privacyAccepted: formData.agreeToPrivacy,
+          marketingConsent: formData.marketingConsent
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage for immediate display in dashboard
+      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      const existingIndex = existingBookings.findIndex(b => b.bookingId === bookingId);
+      
+      if (existingIndex >= 0) {
+        existingBookings[existingIndex] = { ...existingBookings[existingIndex], ...bookingData };
+      } else {
+        existingBookings.push(bookingData);
+      }
+      
+      localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      
+      // Update Firebase record with payment completion
+      try {
+        if (bookingData.id) {
+          const bookingRef = doc(db, 'bookings', bookingData.id);
+          await updateDoc(bookingRef, {
+            paymentStatus: 'pending', // Keep as pending for admin visibility
+            paymentMethod: 'bitcoin',
+            updatedAt: serverTimestamp()
+          });
+          console.log('Firebase booking updated with payment completion');
+        }
+      } catch (firebaseError) {
+        console.error('Error updating Firebase booking:', firebaseError);
+      }
+      
+      // Show notification
+      const notification = {
+        id: Date.now(),
+        type: 'payment_reminder',
+        title: 'Payment Submitted Successfully!',
+        message: 'Your Bitcoin payment has been submitted. Check your User Management section to track approval status.',
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      const existingNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+      existingNotifications.unshift(notification);
+      localStorage.setItem('notifications', JSON.stringify(existingNotifications));
+      
+    } catch (error) {
+      console.error('Error saving booking:', error);
+      alert('Booking saved locally but there was an issue with cloud sync. Your booking is still valid.');
+    }
+    
+    // Auto-redirect after 3 seconds
+    setTimeout(() => {
+      onClose();
+      navigate('/dashboard');
+    }, 3000);
   };
   
 
@@ -263,33 +395,97 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     if (!validateForm()) {
       return;
     }
+
+    // Check if user is authenticated
+    if (!currentUser) {
+      alert('Please sign in to complete your booking.');
+      navigate('/login');
+      return;
+    }
+    
+    setIsSubmitting(true);
     
     try {
-      // Save booking to localStorage without payment integration
+      // Save booking to Firebase Firestore
       const fullBookingData = {
-        id: bookingId,
+        bookingId: bookingId,
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
         type: 'celebrity_experience',
-        celebrity: celebrity,
-        formData: formData,
-        total: calculateTotal(),
-        status: 'pending_payment',
+        celebrity: {
+          id: celebrity.id,
+          name: celebrity.name,
+          image: celebrity.image,
+          price: celebrity.price
+        },
+        personalInfo: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          dateOfBirth: formData.dateOfBirth,
+          country: formData.country,
+          city: formData.city
+        },
+        sessionDetails: {
+          package: formData.package,
+          packageName: packages[formData.package].name,
+          date: formData.date,
+          time: formData.time,
+          location: formData.location,
+          language: formData.language
+        },
+        specialRequests: {
+          requests: formData.specialRequests,
+          giftFor: formData.giftFor,
+          occasion: formData.occasion,
+          accessibilityNeeds: formData.accessibilityNeeds
+        },
+        pricing: {
+          basePrice: packages[formData.package].price,
+          total: calculateTotal()
+        },
+        status: 'pending',
+        paymentStatus: 'pending',
+        paymentMethod: formData.paymentMethod,
+        agreements: {
+          termsAccepted: formData.agreeToTerms,
+          privacyAccepted: formData.agreeToPrivacy,
+          marketingConsent: formData.marketingConsent
+        },
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      
+      // Add booking to Firestore
+      const docRef = await addDoc(collection(db, 'bookings'), fullBookingData);
+      
+      // Also save to localStorage as backup
+      const localBookingData = {
+        ...fullBookingData,
+        id: docRef.id,
         createdAt: new Date().toISOString()
       };
       
       const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push(fullBookingData);
+      existingBookings.push(localBookingData);
       localStorage.setItem('bookings', JSON.stringify(existingBookings));
       
       // Clear the draft
       localStorage.removeItem(`booking-draft-${celebrity.id}`);
       
-      // Show simple confirmation message
-      alert(`Booking confirmed! Your booking ID is: ${bookingId}\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
+      // Show success message
+      alert(`Booking confirmed! Your booking ID is: ${bookingId}\n\nYou can view and manage your booking in your dashboard.\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
+      
+      // Navigate to dashboard
       onClose();
+      navigate('/dashboard');
       
     } catch (error) {
       console.error('Booking submission failed:', error);
-      alert('Booking failed. Please try again.');
+      alert('Booking failed. Please try again. If the problem persists, please contact support.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -343,6 +539,26 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
           <h2>Book {celebrity?.name}</h2>
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
+        
+        {/* Authentication Notice */}
+        {!currentUser && (
+          <div className="auth-notice">
+            <div className="auth-notice-content">
+              <span className="auth-icon">👤</span>
+              <div className="auth-text">
+                <h4>Sign in for a better experience</h4>
+                <p>Create an account or sign in to track your bookings and get personalized recommendations.</p>
+              </div>
+              <button 
+                type="button" 
+                className="btn-auth-notice"
+                onClick={() => navigate('/login')}
+              >
+                Sign In
+              </button>
+            </div>
+          </div>
+        )}
     
         <div className="progress-bar" data-step={currentStep}>
           <div className={`step ${
@@ -768,65 +984,125 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
             </div>
           )}
           
-          {/* Step 5: Payment Redirect */}
+          {/* Step 5: Bitcoin Payment Flow */}
           {currentStep === 5 && (
-            <div className="step-content payment-redirect-step">
-              <div className="payment-icon">💳</div>
-              <h3>Opening Payment in New Tab...</h3>
-              
-              <div className="booking-id-highlight">
-                <h4>Your Booking ID</h4>
-                <div className="booking-id-display">
-                  <span className="booking-id-text">{bookingId}</span>
-                  <button 
-                    onClick={() => copyToClipboard(bookingId)}
-                    className="copy-id-btn"
-                    title="Copy to clipboard"
-                  >
-                    📋 Copy
-                  </button>
+            <div className="step-content bitcoin-payment-flow">
+              {bitcoinPaymentStep === 1 && (
+                <div className="bitcoin-step booking-details">
+                  <div className="step-header">
+                    <h3>📋 Booking Details</h3>
+                    <p>Review your booking before payment</p>
+                  </div>
+                  
+                  <div className="booking-summary-card">
+                    <div className="celebrity-info">
+                      <img src={celebrity.image} alt={celebrity.name} className="celebrity-avatar" />
+                      <div>
+                        <h4>{celebrity.name}</h4>
+                        <p>{packages[formData.package].name}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="booking-details-grid">
+                      <div className="detail-item">
+                        <span className="label">Package:</span>
+                        <span className="value">{packages[formData.package].name}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Duration:</span>
+                        <span className="value">{packages[formData.package].duration}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Date & Time:</span>
+                        <span className="value">{formData.date} at {formData.time}</span>
+                      </div>
+                      <div className="detail-item">
+                        <span className="label">Total Amount:</span>
+                        <span className="value total-amount">${calculateTotal()}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="booking-id-section">
+                      <h5>Your Booking ID</h5>
+                      <div className="booking-id-display">
+                        <span className="booking-id-text">{bookingId}</span>
+                        <button 
+                          onClick={() => copyToClipboard(bookingId)}
+                          className="copy-id-btn"
+                          title="Copy to clipboard"
+                        >
+                          📋 Copy
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="step-actions">
+                    <button 
+                      type="button" 
+                      className="btn-secondary" 
+                      onClick={() => setCurrentStep(4)}
+                    >
+                      ← Back to Review
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn-primary" 
+                      onClick={() => setBitcoinPaymentStep(2)}
+                    >
+                      Continue to Payment →
+                    </button>
+                  </div>
                 </div>
-                <p className="booking-id-note">
-                  <strong>Important:</strong> Save this Booking ID! You'll need it to track your booking.
-                </p>
-              </div>
+              )}
               
-              <div className="payment-instructions">
-                <h4>Payment Instructions:</h4>
-                <ol>
-                  <li>A new tab will open with our secure payment processor</li>
-                  <li>Complete your cryptocurrency payment in the new tab</li>
-                  <li>Keep this tab open to return after payment</li>
-                  <li>Check your email for booking confirmation</li>
-                </ol>
-                
-                <div className="payment-status">
-                  <p>⏳ <strong>Status:</strong> Awaiting Payment</p>
-                  <p>🔒 <strong>Security:</strong> Secure Payment Processing</p>
-                  <p>💰 <strong>Amount:</strong> ${calculateTotal()}</p>
+              {bitcoinPaymentStep === 2 && (
+                <div className="bitcoin-step payment-instructions">
+                  <div className="step-header">
+                    <h3>₿ Bitcoin Payment</h3>
+                    <p>Send Bitcoin to complete your booking</p>
+                  </div>
+                  
+                  <BitcoinPayment
+                    amount={calculateTotal()}
+                    onPaymentComplete={handleBitcoinPaymentComplete}
+                    onCancel={() => setBitcoinPaymentStep(1)}
+                    bookingId={bookingId}
+                  />
                 </div>
-              </div>
+              )}
               
-              <div className="payment-actions">
-                <button 
-                  onClick={() => copyToClipboard(bookingId)}
-                  className="btn-secondary"
-                >
-                  📋 Copy Booking ID
-                </button>
-                <button 
-                  onClick={handleGoBackToPayment}
-                  className="btn-primary"
-                >
-                  🔗 Open Payment (Manual)
-                </button>
-                <button 
-                  onClick={handleCancelTransaction}
-                  className="btn-danger"
-                >
-                  ❌ Cancel Transaction
-                </button>
-              </div>
+              {bitcoinPaymentStep === 3 && (
+                <div className="bitcoin-step payment-confirmation">
+                  <div className="confirmation-content">
+                    <div className="success-icon">✅</div>
+                    <h3>Payment Submitted Successfully!</h3>
+                    <p>Your Bitcoin payment has been received and is being processed.</p>
+                    
+                    <div className="next-steps">
+                      <h4>What happens next?</h4>
+                      <ul>
+                        <li>We'll verify your Bitcoin transaction (usually within 24-48 hours)</li>
+                        <li>You'll receive an email confirmation once verified</li>
+                        <li>Check your User Management section to track booking status</li>
+                        <li>You'll be redirected to your dashboard in a few seconds</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="booking-reference">
+                      <h5>Booking Reference: {bookingId}</h5>
+                    </div>
+                    
+                    <div className="notification-alert">
+                      <div className="alert-icon">🔔</div>
+                      <div className="alert-content">
+                        <h6>Reminder Set!</h6>
+                        <p>We've added a reminder to check your booking status within the next hour.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -844,27 +1120,6 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
               </button>
             ) : null}
           </div>
-          
-          {/* Bitcoin Payment Modal */}
-          {showBitcoinPayment && (
-            <div className="modal-overlay bitcoin-modal" style={{zIndex: 1000000}}>
-              <div className="modal-content bitcoin-modal-content" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
-                  <h2>Bitcoin Payment</h2>
-                  <button className="close-btn" onClick={() => setShowBitcoinPayment(false)}>&times;</button>
-                </div>
-                <BitcoinPayment
-                  amount={calculateTotal()}
-                  onPaymentComplete={() => {
-                    setShowBitcoinPayment(false);
-                    alert('Payment confirmation received! We will verify your Bitcoin transaction and send you a confirmation email within 24-48 hours.');
-                    onClose();
-                  }}
-                  onCancel={() => setShowBitcoinPayment(false)}
-                />
-              </div>
-            </div>
-          )}
           
           {/* Crypto Tutorial Modal */}
           {showCryptoTutorial && (

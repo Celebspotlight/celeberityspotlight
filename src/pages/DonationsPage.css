@@ -2,15 +2,34 @@
 
 .donations-page {
   min-height: 100vh;
-  background: var(--gradient-primary);
+  background: var(--bg-primary);
   color: var(--text-primary);
   transition: all 0.3s ease;
 }
 
 .hero-section {
-  padding: 60px 0 40px;
+  position: relative;
+  background: var(--gradient-primary);
+  padding: 120px 0 80px;
   text-align: center;
   color: white;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--shadow-color);
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
 }
 
 .hero-content h1 {

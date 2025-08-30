@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import ScrollToTop from './components/ScrollToTop';
 import Loader from './components/Loader';
 import PageTransition from './components/PageTransition';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Login from './components/auth/Login';
+import Signup from './components/auth/Signup';
+import ForgotPassword from './components/auth/ForgotPassword';
+import Dashboard from './components/dashboard/Dashboard';
 import Home from './pages/Home';
 import CelebritiesPage from './pages/CelebritiesPage';
 import ServicesPage from './pages/ServicesPage';
@@ -24,6 +31,9 @@ import CookieConsent from './components/CookieConsent';
 import BookingSuccess from './pages/BookingSuccess';
 import BookingCancelled from './pages/BookingCancelled';
 import ActingClasses from './pages/ActingClasses';
+import './utils/testUserRegistration'; // Import test function for browser console
+import './utils/debugUserIssue';
+import './utils/testUserCreation'; // Import user creation test
 
 function AppContent() {
   const location = useLocation();
@@ -49,6 +59,31 @@ function AppContent() {
             <Route path="/book-video" element={<BookVideoPage />} />
             <Route path="/booking-success" element={<BookingSuccess />} />
             <Route path="/booking-cancelled" element={<BookingCancelled />} />
+            
+            {/* Authentication Routes */}
+            <Route path="/login" element={
+              <ProtectedRoute requireAuth={false}>
+                <Login />
+              </ProtectedRoute>
+            } />
+            <Route path="/signup" element={
+              <ProtectedRoute requireAuth={false}>
+                <Signup />
+              </ProtectedRoute>
+            } />
+            <Route path="/forgot-password" element={
+              <ProtectedRoute requireAuth={false}>
+                <ForgotPassword />
+              </ProtectedRoute>
+            } />
+            
+            {/* Protected Routes */}
+            <Route path="/dashboard" element={
+              <ProtectedRoute requireAuth={true}>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            
             <Route path={adminRoute} element={<AdminPage />} />
           </Routes>
         </PageTransition>
@@ -90,15 +125,19 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Loader isLoading={isLoading}>
-        <Router>
-          <AppContent />
-          <CookieConsent 
-            onAccept={handleCookieAccept}
-            onDecline={handleCookieDecline}
-          />
-        </Router>
-      </Loader>
+      <ToastProvider>
+        <AuthProvider>
+          <Loader isLoading={isLoading}>
+            <Router>
+              <AppContent />
+              <CookieConsent 
+                onAccept={handleCookieAccept}
+                onDecline={handleCookieDecline}
+              />
+            </Router>
+          </Loader>
+        </AuthProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }

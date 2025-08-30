@@ -2,8 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import './PersonalizedVideoModal.css';
 import BitcoinPayment from './BitcoinPayment';
 import CryptoTutorial from './CryptoTutorial';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../services/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, getCelebrityVideoPrice, clickPosition }) => {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     videoType: 'birthday',
     recipientName: '',
@@ -19,17 +23,12 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
   const [, setSelectedPaymentMethod] = useState(null);
-  const [originalScrollPosition, setOriginalScrollPosition] = useState(0);
   const modalRef = useRef(null);
 
-  // Auto-scroll functionality
+  // Simple modal management like BookingModal
   useEffect(() => {
     if (isOpen) {
-      // Save current scroll position immediately when modal opens
-      const currentScrollPosition = window.pageYOffset;
-      setOriginalScrollPosition(currentScrollPosition);
-      
-      // Scroll to top smoothly
+      // Scroll to top when modal opens
       window.scrollTo({
         top: 0,
         behavior: 'smooth'
@@ -37,26 +36,11 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
       
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
+    } else {
+      // Restore body scroll when modal closes
+      document.body.style.overflow = 'unset';
     }
-
-    // Cleanup function when modal closes
-    return () => {
-      if (!isOpen) {
-        // Restore body scroll
-        document.body.style.overflow = 'unset';
-        
-        // Restore original scroll position when modal closes
-        if (originalScrollPosition > 0) {
-          setTimeout(() => {
-            window.scrollTo({
-              top: originalScrollPosition,
-              behavior: 'smooth'
-            });
-          }, 100); // Small delay to ensure modal is fully closed
-        }
-      }
-    };
-  }, [isOpen, originalScrollPosition]);
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -128,18 +112,10 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     setCurrentStep(1);
     setSelectedPaymentMethod(null);
     setShowBitcoinPayment(false);
+    setShowCryptoTutorial(false);
     setFormErrors({});
     
-    document.body.style.overflow = 'unset';
-    if (originalScrollPosition > 0) {
-      setTimeout(() => {
-        window.scrollTo({
-          top: originalScrollPosition,
-          behavior: 'smooth'
-        });
-      }, 100);
-    }
-    
+    // Call the parent's onClose function to properly close the modal
     onClose();
   };
 
@@ -362,8 +338,115 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
           </>
         ) : (
           <BitcoinPayment 
-            amount={totalPrice}
-            onClose={() => setShowBitcoinPayment(false)}
+          amount={totalPrice}
+          onPaymentComplete={async () => {
+            // Prevent multiple saves with a flag
+            if (window.personalizedVideoSaving) {
+              console.log('Booking save already in progress, skipping duplicate save.');
+              return;
+            }
+            
+            window.personalizedVideoSaving = true;
+            
+            try {
+              // Handle payment completion with proper data persistence
+              const bookingId = `PV-${Date.now()}`;
+              
+              // Create comprehensive booking data
+              const bookingData = {
+                bookingId: bookingId,
+                userId: currentUser?.uid || 'guest',
+                userEmail: currentUser?.email || formData.email,
+                type: 'personalized_video',
+                service: `${celebrity.name} - ${videoServices[formData.videoType]?.name || 'Personalized Video'}`,
+                celebrity: {
+                  id: celebrity.id,
+                  name: celebrity.name,
+                  image: celebrity.image,
+                  price: getCelebrityVideoPrice(celebrity, formData.videoType)
+                },
+                personalInfo: {
+                  senderName: formData.senderName,
+                  email: formData.email,
+                  recipientName: formData.recipientName
+                },
+                videoDetails: {
+                  videoType: formData.videoType,
+                  videoTypeName: videoServices[formData.videoType]?.name || 'Standard Video',
+                  customInstructions: formData.customInstructions,
+                  urgentDelivery: formData.urgentDelivery
+                },
+                pricing: {
+                  basePrice: getCelebrityVideoPrice(celebrity, formData.videoType),
+                  urgentDeliveryFee: formData.urgentDelivery ? 50 : 0,
+                  total: totalPrice
+                },
+                status: 'pending', // Pending admin approval
+                paymentMethod: 'bitcoin',
+                paymentStatus: 'pending', // Keep as pending for admin panel visibility
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+              };
+              
+              // Check if this booking already exists to prevent duplicates
+              const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+              const isDuplicate = existingBookings.some(booking => 
+                booking.celebrity?.id === celebrity.id && 
+                booking.userEmail === (currentUser?.email || formData.email) &&
+                booking.type === 'personalized_video' &&
+                Math.abs(new Date(booking.createdAt).getTime() - new Date().getTime()) < 30000 // Within 30 seconds
+              );
+              
+              if (isDuplicate) {
+                console.log('Duplicate booking detected, skipping save.');
+                return;
+              }
+              
+              // Save to localStorage for immediate display in dashboard
+              existingBookings.push(bookingData);
+              localStorage.setItem('bookings', JSON.stringify(existingBookings));
+              
+              // Save to Firebase database for admin panel visibility
+              try {
+                const bookingsCollection = collection(db, 'bookings');
+                const docRef = await addDoc(bookingsCollection, {
+                  ...bookingData,
+                  createdAt: serverTimestamp(),
+                  updatedAt: serverTimestamp()
+                });
+                console.log('Personalized video booking saved to Firebase with ID:', docRef.id);
+              } catch (firebaseError) {
+                console.error('Error saving to Firebase:', firebaseError);
+                // Don't fail the entire process if Firebase save fails
+              }
+              
+              // Show success notification
+              console.log('Payment confirmed! Personalized video booking saved successfully.');
+              
+              console.log('Personalized video booking saved:', bookingData);
+            } catch (error) {
+              console.error('Error saving personalized video booking:', error);
+              console.log('Payment confirmed, but there was an issue saving your booking data.');
+            } finally {
+              // Reset the saving flag after a delay
+              setTimeout(() => {
+                window.personalizedVideoSaving = false;
+              }, 5000);
+            }
+            
+            // Reset all modal states before closing
+            setShowBitcoinPayment(false);
+            setShowCryptoTutorial(false);
+            setCurrentStep(1);
+            setSelectedPaymentMethod(null);
+            setFormErrors({});
+            // Close the modal
+            onClose();
+          }}
+            onCancel={() => {
+              setShowBitcoinPayment(false);
+            }}
+            bookingId={`PV-${Date.now()}`}
           />
         )}
         

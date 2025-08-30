@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { checkPaymentStatus } from '../services/paymentService';
+import { db } from '../services/firebase';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 import './BookingSuccess.css';
 
 const BookingSuccess = () => {
@@ -28,11 +30,28 @@ const BookingSuccess = () => {
         const booking = bookings.find(b => b.paymentId === paymentId);
         setBookingDetails(booking);
         
-        // Update booking status in localStorage
+        // Update booking status in Firebase only (keep localStorage unchanged)
         if (booking && status.payment_status === 'finished') {
-          booking.paymentStatus = 'completed';
-          booking.status = 'confirmed';
-          localStorage.setItem('bookings', JSON.stringify(bookings));
+          // Also update in Firebase
+          try {
+            const bookingsCollection = collection(db, 'bookings');
+            const bookingQuery = query(
+              bookingsCollection,
+              where('paymentId', '==', paymentId)
+            );
+            const querySnapshot = await getDocs(bookingQuery);
+            
+            if (!querySnapshot.empty) {
+              const bookingDoc = querySnapshot.docs[0];
+              await updateDoc(doc(db, 'bookings', bookingDoc.id), {
+                paymentReceived: true,
+                paymentVerifiedAt: new Date()
+              });
+              console.log('Payment verified but status remains pending for admin approval');
+            }
+          } catch (firebaseError) {
+            console.error('Failed to update booking in Firebase:', firebaseError);
+          }
         }
       } catch (error) {
         console.error('Payment verification failed:', error);

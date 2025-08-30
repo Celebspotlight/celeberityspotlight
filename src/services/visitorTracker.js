@@ -65,17 +65,8 @@ class VisitorTracker {
 
     localStorage.setItem('visitorData', JSON.stringify(data));
 
-    // Also track in database
-    try {
-      await this.databaseTracker.trackSession({
-        sessionId: this.sessionId,
-        startTime: new Date(this.sessionStartTime).toISOString(),
-        pages: [window.location.pathname],
-        isNewVisitor
-      });
-    } catch (error) {
-      console.warn('Database session tracking failed:', error);
-    }
+    // Database tracking is handled by the databaseTracker's own initialization
+    // No need to call a separate trackSession method
   }
 
   async trackPageView(page) {
@@ -99,13 +90,7 @@ class VisitorTracker {
 
     // Also track in database
     try {
-      await this.databaseTracker.trackVisit({
-        sessionId: this.sessionId,
-        timestamp: new Date(visit.timestamp).toISOString(),
-        page: page,
-        userAgent: navigator.userAgent,
-        referrer: document.referrer || 'direct'
-      });
+      await this.databaseTracker.trackPageView(page);
     } catch (error) {
       console.warn('Database visit tracking failed:', error);
     }

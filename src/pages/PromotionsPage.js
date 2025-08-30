@@ -326,6 +326,7 @@ const PromotionsPage = () => {
               amount={selectedService?.price}
               onPaymentComplete={handleBitcoinPaymentComplete}
               onCancel={() => setShowBitcoinPayment(false)}
+              bookingId={`PR-${Date.now()}`}
             />
           </div>
         </div>

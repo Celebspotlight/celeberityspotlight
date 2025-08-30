@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import './AdminPage.css';
+import '../styles/ModernTable.css';
+import '../styles/UserSidebar.css';
+import '../styles/PaymentsTable.css';
 import visitorTracker from '../services/visitorTracker';
 import LiveVisitorTracker from '../components/LiveVisitorTracker';
+import { db } from '../services/firebase';
+import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import authService from '../services/authService';
 // import { createPayment } from '../services/paymentService';
 
 const getDefaultCelebrities = () => {
@@ -119,6 +125,46 @@ const getDefaultCelebrities = () => {
 };
 
 const AdminPage = () => {
+  // Clean up old localStorage data on component mount
+  const cleanupOldData = () => {
+    try {
+      const currentTime = Date.now();
+      const thirtyDaysAgo = currentTime - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
+      
+      // Note: Bookings are now managed exclusively through Firebase database
+      
+      // Clean old booking drafts
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('booking-draft-')) {
+          const draftData = localStorage.getItem(key);
+          try {
+            const draft = JSON.parse(draftData);
+            if (draft.lastModified && new Date(draft.lastModified).getTime() < thirtyDaysAgo) {
+              localStorage.removeItem(key);
+            }
+          } catch (e) {
+            // Remove invalid draft data
+            localStorage.removeItem(key);
+          }
+        }
+      });
+      
+      // Clean old payment debug logs
+      const debugLogs = JSON.parse(localStorage.getItem('paymentDebugLogs') || '[]');
+      const recentLogs = debugLogs.filter(log => {
+        const logTime = new Date(log.timestamp).getTime();
+        return logTime > thirtyDaysAgo;
+      });
+      
+      if (recentLogs.length !== debugLogs.length) {
+        localStorage.setItem('paymentDebugLogs', JSON.stringify(recentLogs));
+      }
+      
+    } catch (error) {
+      console.error('Error cleaning up localStorage:', error);
+    }
+  };
+  
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
   const [celebrities, setCelebrities] = useState([]);
@@ -185,6 +231,24 @@ const AdminPage = () => {
     image: null
   });
 
+  // USER MANAGEMENT STATE VARIABLES:
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [showUsers, setShowUsers] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  
+  // PAYMENT CONFIRMATION STATE VARIABLES:
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [filteredPendingPayments, setFilteredPendingPayments] = useState([]);
+  const [showPendingPayments, setShowPendingPayments] = useState(false);
+  const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingPayments, setLoadingPayments] = useState(false);
+  const [expandedUserRows, setExpandedUserRows] = useState(new Set());
+  const [expandedPaymentRows, setExpandedPaymentRows] = useState(new Set());
+
   // Add the useEffect for modal focus management here
   useEffect(() => {
     if (editingCelebrity && modalJustOpened) {
@@ -209,19 +273,25 @@ const AdminPage = () => {
 
   // Load visitor tracking states here
   useEffect(() => {
+    // Clean up old data first
+    cleanupOldData();
+    
     const savedCelebrities = localStorage.getItem('celebrities');
     if (savedCelebrities) {
       const parsed = JSON.parse(savedCelebrities);
       setCelebrities(parsed);
+    } else {
+      // Initialize with default celebrities if none exist
+      const defaultCelebrities = getDefaultCelebrities();
+      setCelebrities(defaultCelebrities);
+      localStorage.setItem('celebrities', JSON.stringify(defaultCelebrities));
     }
-    // Remove the else block that auto-resets to default celebrities
-    // This allows the admin to start with an empty list if needed
 
-    // Load bookings
-    const savedBookings = localStorage.getItem('bookings');
-    if (savedBookings) {
-      setBookings(JSON.parse(savedBookings));
-    }
+    // Load all bookings from both localStorage and Firebase
+    loadAllBookings();
+    
+    // Load pending payments on component mount
+    loadPendingPayments();
   }, []);
 
   // Auto-refresh visitor stats every 30 seconds when viewing stats
@@ -301,17 +371,22 @@ const AdminPage = () => {
 
   // Load personalized videos from separate localStorage
   useEffect(() => {
-    const savedPersonalizedVideos = localStorage.getItem('celebrities');
+    const savedPersonalizedVideos = localStorage.getItem('personalizedVideos');
     if (savedPersonalizedVideos) {
       const parsed = JSON.parse(savedPersonalizedVideos);
       setPersonalizedVideos(parsed);
+    } else {
+      // Initialize with default celebrities for personalized videos if none exist
+      const defaultCelebrities = getDefaultCelebrities();
+      setPersonalizedVideos(defaultCelebrities);
+      localStorage.setItem('personalizedVideos', JSON.stringify(defaultCelebrities));
     }
   }, []);
 
   // Save personalized videos to separate localStorage
   useEffect(() => {
     if (personalizedVideos.length > 0) {
-      localStorage.setItem('celebrities', JSON.stringify(personalizedVideos));
+      localStorage.setItem('personalizedVideos', JSON.stringify(personalizedVideos));
     }
   }, [personalizedVideos]);
 
@@ -511,6 +586,26 @@ const AdminPage = () => {
     });
   };
 
+  const toggleUserRow = (userId) => {
+    const newExpanded = new Set(expandedUserRows);
+    if (newExpanded.has(userId)) {
+      newExpanded.delete(userId);
+    } else {
+      newExpanded.add(userId);
+    }
+    setExpandedUserRows(newExpanded);
+  };
+
+  const togglePaymentRow = (paymentId) => {
+    const newExpanded = new Set(expandedPaymentRows);
+    if (newExpanded.has(paymentId)) {
+      newExpanded.delete(paymentId);
+    } else {
+      newExpanded.add(paymentId);
+    }
+    setExpandedPaymentRows(newExpanded);
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedCategory('All');
@@ -644,6 +739,376 @@ const AdminPage = () => {
     }
   };
 
+  // USER MANAGEMENT FUNCTIONS
+  const loadUsers = async () => {
+    console.log('🔍 Loading users from Firebase...');
+    setLoadingUsers(true);
+    try {
+      const usersCollection = collection(db, 'users');
+      console.log('📊 Querying users collection...');
+      console.log('🔧 Database instance:', db);
+      console.log('🔧 Collection reference:', usersCollection);
+      
+      const usersSnapshot = await getDocs(usersCollection);
+      console.log('📋 Users snapshot size:', usersSnapshot.size);
+      console.log('📋 Users snapshot empty?', usersSnapshot.empty);
+      
+      if (usersSnapshot.empty) {
+        console.log('⚠️ No users found in Firestore!');
+        console.log('💡 This could mean:');
+        console.log('   1. No users have been registered yet');
+        console.log('   2. Firestore security rules are blocking reads');
+        console.log('   3. Wrong collection name or database');
+        console.log('   4. Network/permission issues');
+      }
+      
+      const usersList = await Promise.all(usersSnapshot.docs.map(async (doc) => {
+        const data = doc.data();
+        const userData = {
+          id: doc.id,
+          ...data,
+          // Handle both Timestamp and ISO string formats
+          createdAt: data.createdAt?.toDate ? data.createdAt : data.createdAt
+        };
+        
+        // Load user's latest booking status
+        try {
+          const bookingsCollection = collection(db, 'bookings');
+          const userBookingsQuery = query(
+            bookingsCollection,
+            where('userId', '==', doc.id)
+          );
+          const userBookingsSnapshot = await getDocs(userBookingsQuery);
+          
+          if (!userBookingsSnapshot.empty) {
+            // Sort by createdAt and get the latest booking (client-side)
+            const userBookings = userBookingsSnapshot.docs.map(doc => doc.data())
+              .sort((a, b) => {
+                const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
+                const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
+                return dateB - dateA;
+              });
+            const latestBooking = userBookings[0];
+            // Check both status and paymentStatus to determine the latest booking status
+            // Priority: completed > confirmed > pending
+            if (latestBooking.status === 'completed' || latestBooking.bookingStatus === 'completed') {
+              userData.latestBookingStatus = 'completed';
+            } else if (latestBooking.status === 'confirmed' || latestBooking.paymentStatus === 'confirmed') {
+              userData.latestBookingStatus = 'confirmed';
+            } else {
+              userData.latestBookingStatus = latestBooking.paymentStatus || latestBooking.status || 'pending';
+            }
+            userData.hasBookings = true;
+          } else {
+            userData.latestBookingStatus = 'no-bookings';
+            userData.hasBookings = false;
+          }
+        } catch (error) {
+          console.error('Error loading booking status for user:', doc.id, error);
+          userData.latestBookingStatus = 'error';
+          userData.hasBookings = false;
+        }
+        
+        console.log('👤 User found:', userData);
+        return userData;
+      }));
+      
+      console.log('✅ Total users loaded:', usersList.length);
+      setUsers(usersList);
+      
+      if (usersList.length === 0) {
+        console.log('🧪 To test user creation, run in browser console:');
+        console.log('   window.testUserCreationAndVerification()');
+        console.log('   or');
+        console.log('   window.checkUsersInFirestore()');
+      }
+    } catch (error) {
+      console.error('❌ Error loading users:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Provide specific troubleshooting based on error type
+      if (error.code === 'permission-denied') {
+        console.error('🚫 PERMISSION DENIED - Firestore security rules are blocking access');
+        console.error('💡 SOLUTION: Update Firestore rules to allow read access');
+      } else if (error.code === 'unavailable') {
+        console.error('🌐 NETWORK ERROR - Cannot connect to Firestore');
+        console.error('💡 SOLUTION: Check internet connection and Firebase config');
+      }
+      
+      alert('Failed to load users from Firebase: ' + error.message + '\n\nCheck console for detailed troubleshooting.');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  const deleteUser = async (userId, userEmail) => {
+    if (!window.confirm(`Are you sure you want to delete user ${userEmail}? This action cannot be undone and will remove all associated data including bookings.`)) {
+      return;
+    }
+
+    try {
+      console.log('🗑️ Deleting user:', userId);
+      
+      // Delete user account and all associated data
+      const result = await authService.deleteUserAccount(userId);
+      
+      if (result.success) {
+        console.log('✅ User deleted successfully');
+        alert('User account and all associated data have been deleted successfully.');
+        
+        // Refresh the users list
+        await loadUsers();
+        
+        // Also refresh bookings and pending payments to reflect changes
+        await loadAllBookings();
+        await loadPendingPayments();
+      } else {
+        console.error('❌ Failed to delete user:', result.error);
+        alert('Failed to delete user: ' + result.error);
+      }
+    } catch (error) {
+      console.error('❌ Error deleting user:', error);
+      alert('Error deleting user: ' + error.message);
+    }
+  };
+
+  const loadAllBookings = async () => {
+    try {
+      // Load only from Firebase database
+      const bookingsCollection = collection(db, 'bookings');
+      const bookingsSnapshot = await getDocs(bookingsCollection);
+      const firebaseBookings = bookingsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.() || new Date()
+      })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      // Update both bookings and pending payments from database only
+      setBookings(firebaseBookings);
+      setPendingPayments(firebaseBookings.filter(b => b.paymentStatus === 'pending'));
+      
+      console.log(`Loaded ${firebaseBookings.length} bookings from database`);
+    } catch (error) {
+      console.error('Error loading bookings from database:', error);
+      // Set empty arrays if database fails
+      setBookings([]);
+      setPendingPayments([]);
+    }
+  };
+
+  // Temporary function to reset all bookings to pending status
+  // eslint-disable-next-line no-unused-vars
+  const resetAllBookingsToPending = async () => {
+    try {
+      const bookingsCollection = collection(db, 'bookings');
+      const allBookingsSnapshot = await getDocs(bookingsCollection);
+      
+      const updatePromises = allBookingsSnapshot.docs.map(async (docSnapshot) => {
+        const bookingData = docSnapshot.data();
+        if (bookingData.paymentStatus !== 'pending') {
+          await updateDoc(doc(db, 'bookings', docSnapshot.id), {
+            paymentStatus: 'pending'
+          });
+        }
+      });
+      
+      await Promise.all(updatePromises);
+      console.log('All bookings reset to pending status');
+      
+      // Reload data
+      await loadAllBookings();
+      await loadPendingPayments();
+    } catch (error) {
+      console.error('Error resetting bookings:', error);
+    }
+  };
+
+  // Function to clear all existing pending payments from Firebase
+  const clearAllPendingPayments = async () => {
+    if (!window.confirm('Are you sure you want to DELETE ALL existing pending payments? This action cannot be undone!')) {
+      return;
+    }
+    
+    try {
+      const bookingsCollection = collection(db, 'bookings');
+      const pendingQuery = query(
+        bookingsCollection,
+        where('paymentStatus', '==', 'pending')
+      );
+      const pendingSnapshot = await getDocs(pendingQuery);
+      
+      const deletePromises = pendingSnapshot.docs.map(async (docSnapshot) => {
+        await deleteDoc(doc(db, 'bookings', docSnapshot.id));
+        console.log(`Deleted pending booking: ${docSnapshot.id}`);
+      });
+      
+      await Promise.all(deletePromises);
+      console.log(`Deleted ${pendingSnapshot.docs.length} pending payments from Firebase`);
+      
+      // Reload data
+      await loadAllBookings();
+      await loadPendingPayments();
+      
+      alert(`Successfully deleted ${pendingSnapshot.docs.length} pending payments from Firebase`);
+    } catch (error) {
+      console.error('Error clearing pending payments:', error);
+      alert('Error clearing pending payments. Check console for details.');
+    }
+  };
+
+  const loadPendingPayments = async () => {
+    setLoadingPayments(true);
+    try {
+      // Load only from Firebase database
+      const bookingsCollection = collection(db, 'bookings');
+      const pendingQuery = query(
+        bookingsCollection,
+        where('paymentStatus', '==', 'pending')
+      );
+      const bookingsSnapshot = await getDocs(pendingQuery);
+      const firebaseBookings = bookingsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        console.log('Pending booking data:', { id: doc.id, ...data }); // Debug log
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.() || new Date()
+        };
+      }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setPendingPayments(firebaseBookings);
+      console.log(`Loaded ${firebaseBookings.length} pending payments from database`);
+      console.log('Pending payments data:', firebaseBookings); // Debug log
+    } catch (error) {
+      console.error('Error loading pending payments from database:', error);
+      setPendingPayments([]);
+    } finally {
+      setLoadingPayments(false);
+    }
+  };
+
+  // Notification function for payment approval
+  const sendPaymentApprovalNotification = async (booking) => {
+    try {
+      // Add notification to Firebase for in-app notifications
+      const notificationData = {
+        userId: booking.userId,
+        type: 'payment_approved',
+        title: 'Payment Approved!',
+        message: `Your payment for ${booking.celebrity?.name || 'your booking'} has been approved. Your booking is now confirmed!`,
+        bookingId: booking.id,
+        createdAt: new Date(),
+        read: false
+      };
+      
+      // Store notification in Firebase
+      await addDoc(collection(db, 'notifications'), notificationData);
+      
+      console.log('Payment approval notification sent successfully');
+    } catch (error) {
+      console.error('Error sending payment approval notification:', error);
+    }
+  };
+
+  const confirmPayment = async (paymentId) => {
+    if (!window.confirm('Are you sure you want to approve this payment?')) return;
+    
+    try {
+      // Get booking details before updating
+      const bookingDoc = doc(db, 'bookings', paymentId);
+      const bookingSnapshot = await getDoc(bookingDoc);
+      const bookingData = bookingSnapshot.data();
+      
+      // Update in Firebase database
+      await updateDoc(bookingDoc, {
+        paymentStatus: 'confirmed',
+        bookingStatus: 'confirmed',
+        status: 'confirmed',
+        confirmedAt: new Date(),
+        confirmedBy: 'admin'
+      });
+      
+      // Send notification to user
+      if (bookingData) {
+        await sendPaymentApprovalNotification({ id: paymentId, ...bookingData });
+      }
+      
+      // Refresh all data to reflect changes
+      await loadAllBookings();
+      await loadPendingPayments();
+      await loadUsers();
+      
+      alert('Payment approved successfully! The booking is now confirmed and notification sent to user.');
+    } catch (error) {
+      console.error('Error approving payment:', error);
+      alert('Failed to approve payment. Please try again.');
+    }
+  };
+
+  const markOrderCompleted = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to mark this order as completed?')) return;
+    
+    try {
+      // Update in Firebase database
+      const bookingDoc = doc(db, 'bookings', bookingId);
+      await updateDoc(bookingDoc, {
+        status: 'completed',
+        bookingStatus: 'completed',
+        completedAt: new Date(),
+        completedBy: 'admin'
+      });
+      
+      // Refresh all data to reflect changes
+      await loadAllBookings();
+      await loadUsers();
+      
+      alert('Order marked as completed successfully!');
+    } catch (error) {
+      console.error('Error marking order as completed:', error);
+      alert('Failed to mark order as completed. Please try again.');
+    }
+  };
+
+  // Removed unused viewUserDetails function
+
+  const closeUserModal = () => {
+    setShowUserModal(false);
+    setSelectedUser(null);
+  };
+
+
+
+  // Filter users based on search
+  useEffect(() => {
+    let filtered = users.filter(user => {
+      const searchLower = userSearchTerm.toLowerCase();
+      return (
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.displayName?.toLowerCase().includes(searchLower) ||
+        user.firstName?.toLowerCase().includes(searchLower) ||
+        user.lastName?.toLowerCase().includes(searchLower)
+      );
+    });
+    setFilteredUsers(filtered);
+  }, [userSearchTerm, users]);
+
+  // Filter pending payments based on search
+  useEffect(() => {
+    let filtered = pendingPayments.filter(payment => {
+      const searchLower = paymentSearchTerm.toLowerCase();
+      return (
+        payment.celebrityName?.toLowerCase().includes(searchLower) ||
+        payment.userEmail?.toLowerCase().includes(searchLower) ||
+        payment.id?.toLowerCase().includes(searchLower)
+      );
+    });
+    setFilteredPendingPayments(filtered);
+  }, [paymentSearchTerm, pendingPayments]);
+
   // Get unique categories for filter dropdown
   const categories = ['All', ...new Set(celebrities.map(celeb => celeb.category))];
 
@@ -690,9 +1155,40 @@ const AdminPage = () => {
   return (
     <div className="admin-page">
       <div className="admin-header">
-        <h1>Celebrity Management Dashboard</h1>
-        <div className="header-actions">
-          <button onClick={handleLogout} className="logout-btn">Logout</button>
+        <div className="admin-header-content">
+          <div className="admin-title-section">
+            <div className="admin-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                <path d="M2 17l10 5 10-5"/>
+                <path d="M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div className="admin-title-text">
+              <h1>Celebrity Management Dashboard</h1>
+              <p className="admin-subtitle">Manage your celebrity roster, bookings, and analytics</p>
+            </div>
+          </div>
+          <div className="header-actions">
+            <div className="admin-stats-quick">
+              <div className="quick-stat">
+                <span className="stat-number">{celebrities.length}</span>
+                <span className="stat-label">Celebrities</span>
+              </div>
+              <div className="quick-stat">
+                <span className="stat-number">{bookings.length}</span>
+                <span className="stat-label">Bookings</span>
+              </div>
+            </div>
+            <button onClick={handleLogout} className="logout-btn">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
+                <polyline points="16,17 21,12 16,7"/>
+                <path d="M21 12H9"/>
+              </svg>
+              Logout
+            </button>
+          </div>
         </div>
       </div>
 
@@ -705,8 +1201,10 @@ const AdminPage = () => {
               setShowBookings(false);
               setShowActingCoaches(false);
               setShowPersonalizedVideos(false);
+              setShowUsers(false);
+              setShowPendingPayments(false);
             }}
-            className={`nav-tab ${!showVisitorStats && !showBookings && !showActingCoaches && !showPersonalizedVideos ? 'active' : ''}`}
+            className={`nav-tab ${!showVisitorStats && !showBookings && !showActingCoaches && !showPersonalizedVideos && !showUsers && !showPendingPayments ? 'active' : ''}`}
           >
             <span className="nav-icon">👥</span>
             <span className="nav-label">Celebrities</span>
@@ -715,10 +1213,13 @@ const AdminPage = () => {
           
           <button 
             onClick={() => {
-              setShowBookings(!showBookings);
+              setShowBookings(true);
               setShowVisitorStats(false);
               setShowActingCoaches(false);
               setShowPersonalizedVideos(false);
+              setShowUsers(false);
+              setShowPendingPayments(false);
+              loadAllBookings();
             }}
             className={`nav-tab ${showBookings ? 'active' : ''}`}
           >
@@ -733,6 +1234,8 @@ const AdminPage = () => {
               setShowBookings(false);
               setShowVisitorStats(false);
               setShowPersonalizedVideos(false);
+              setShowUsers(false);
+              setShowPendingPayments(false);
             }}
             className={`nav-tab ${showActingCoaches ? 'active' : ''}`}
           >
@@ -747,6 +1250,8 @@ const AdminPage = () => {
               setShowBookings(false);
               setShowVisitorStats(false);
               setShowActingCoaches(false);
+              setShowUsers(false);
+              setShowPendingPayments(false);
             }}
             className={`nav-tab ${showPersonalizedVideos ? 'active' : ''}`}
           >
@@ -757,10 +1262,47 @@ const AdminPage = () => {
           
           <button 
             onClick={() => {
+              setShowUsers(true);
+              setShowBookings(false);
+              setShowVisitorStats(false);
+              setShowActingCoaches(false);
+              setShowPersonalizedVideos(false);
+              setShowPendingPayments(false);
+              console.log('📱 Users tab clicked - calling loadUsers()');
+              loadUsers();
+            }}
+            className={`nav-tab ${showUsers ? 'active' : ''}`}
+          >
+            <span className="nav-icon">👤</span>
+            <span className="nav-label">Users</span>
+            <span className="nav-count">{users.length}</span>
+          </button>
+          
+          <button 
+            onClick={() => {
+              setShowPendingPayments(true);
+              setShowBookings(false);
+              setShowVisitorStats(false);
+              setShowActingCoaches(false);
+              setShowPersonalizedVideos(false);
+              setShowUsers(false);
+              loadPendingPayments();
+            }}
+            className={`nav-tab ${showPendingPayments ? 'active' : ''}`}
+          >
+            <span className="nav-icon">💳</span>
+            <span className="nav-label">Pending Payments</span>
+            <span className="nav-count">{pendingPayments.length}</span>
+          </button>
+          
+          <button 
+            onClick={() => {
               setShowVisitorStats(!showVisitorStats);
               setShowBookings(false);
               setShowActingCoaches(false);
               setShowPersonalizedVideos(false);
+              setShowUsers(false);
+              setShowPendingPayments(false);
             }}
             className={`nav-tab ${showVisitorStats ? 'active' : ''}`}
           >
@@ -878,7 +1420,7 @@ const AdminPage = () => {
         </div>
       )}
 
-      {!showBookings && !showVisitorStats && !showActingCoaches && !showPersonalizedVideos ? (
+      {!showBookings && !showPendingPayments && !showActingCoaches && !showPersonalizedVideos && !showUsers && !showVisitorStats ? (
         <>
           <div className="admin-controls">
             <button 
@@ -944,6 +1486,53 @@ const AdminPage = () => {
           {/* Results Count */}
           <div className="results-info">
             <p>Showing {filteredCelebrities.length} of {celebrities.length} celebrities</p>
+          </div>
+
+          {/* Celebrities Grid */}
+          <div className="celebrities-table">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Category</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Type</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredCelebrities.map((celebrity) => (
+                  <tr key={celebrity.id}>
+                    <td>{celebrity.name}</td>
+                    <td>{celebrity.category}</td>
+                    <td>${celebrity.price}</td>
+                    <td>
+                      <span className={`status ${celebrity.available ? 'available' : 'unavailable'}`}>
+                        {celebrity.available ? 'Available' : 'Unavailable'}
+                      </span>
+                    </td>
+                    <td>
+                      {celebrity.is_acting_coach ? (
+                        <span className="type-badge acting-coach">Acting Coach</span>
+                      ) : (
+                        <span className="type-badge celebrity">Celebrity</span>
+                      )}
+                    </td>
+                    <td>
+                      <button onClick={() => handleEditCelebrity(celebrity)} className="edit-btn">Edit</button>
+                      <button onClick={() => deleteCelebrity(celebrity.id)} className="delete-btn">Delete</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            
+            {filteredCelebrities.length === 0 && (
+              <div className="no-results">
+                <p>No celebrities found.</p>
+              </div>
+            )}
           </div>
         </>
       ) : showActingCoaches ? (
@@ -1489,7 +2078,7 @@ const AdminPage = () => {
             </div>
           )}
         </div>
-      ) : (
+      ) : showBookings ? (
         <div className="bookings-section">
           <h2>Booking Management</h2>
           <div className="bookings-stats">
@@ -1548,7 +2137,18 @@ const AdminPage = () => {
                       </span>
                     </td>
                     <td>
-                      <button className="view-btn">View Details</button>
+                      <div className="booking-actions">
+                        <button className="view-btn">View Details</button>
+                        {booking.status !== 'completed' && booking.bookingStatus !== 'completed' && (
+                          <button 
+                            onClick={() => markOrderCompleted(booking.id)}
+                            className="complete-btn"
+                            title="Mark as completed"
+                          >
+                            Complete
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1559,6 +2159,442 @@ const AdminPage = () => {
                 <p>No bookings found.</p>
               </div>
             )}
+          </div>
+        </div>
+      ) : showUsers ? (
+        <div className="users-section">
+          <h2>User Management</h2>
+          <div className="users-stats">
+            <span>Total Users: {users.length}</span>
+            <span>Active: {users.filter(u => u.isActive !== false).length}</span>
+            <span>Inactive: {users.filter(u => u.isActive === false).length}</span>
+          </div>
+          
+          <div className="search-filters">
+            <div className="search-bar">
+              <input
+                type="text"
+                placeholder="Search users by name or email..."
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+                className="search-input"
+              />
+            </div>
+          </div>
+          
+          {loadingUsers ? (
+            <div className="loading">Loading users...</div>
+          ) : (
+            <div className="users-table modern-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User Info</th>
+                    <th>Contact</th>
+                    <th>Registration</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user) => (
+                    <React.Fragment key={user.id}>
+                      <tr className={`user-row ${expandedUserRows.has(user.id) ? 'expanded' : ''}`}>
+                        <td>
+                          <div className="user-info-cell">
+                            <div className="user-avatar">
+                              {user.firstName?.charAt(0) || 'U'}{user.lastName?.charAt(0) || ''}
+                            </div>
+                            <div className="user-details">
+                              <strong className="user-name">{user.firstName} {user.lastName}</strong>
+                              <div className="user-id">ID: {user.id.substring(0, 8)}...</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="contact-cell">
+                            <div className="email">{user.email}</div>
+                            <div className="phone">{user.phone || 'No phone'}</div>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="registration-cell">
+                            <div className="date">
+                              {user.createdAt ? (
+                                user.createdAt.seconds ? 
+                                  new Date(user.createdAt.seconds * 1000).toLocaleDateString() :
+                                  new Date(user.createdAt).toLocaleDateString()
+                              ) : 'N/A'}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`status-badge ${
+                            user.latestBookingStatus === 'confirmed' ? 'confirmed' :
+                            user.latestBookingStatus === 'pending' ? 'pending' :
+                            user.latestBookingStatus === 'completed' ? 'completed' :
+                            user.latestBookingStatus === 'no-bookings' ? 'no-bookings' :
+                            user.isActive !== false ? 'active' : 'inactive'
+                          }`}>
+                            {
+                              user.latestBookingStatus === 'confirmed' ? 'Payment Approved' :
+                              user.latestBookingStatus === 'pending' ? 'Awaiting Approval' :
+                              user.latestBookingStatus === 'completed' ? 'Order Completed' :
+                              user.latestBookingStatus === 'no-bookings' ? 'No Bookings' :
+                              user.isActive !== false ? 'Active' : 'Inactive'
+                            }
+                          </span>
+                        </td>
+                        <td>
+                          <div className="user-actions">
+                            <button 
+                              onClick={() => toggleUserRow(user.id)} 
+                              className="expand-btn"
+                              title={expandedUserRows.has(user.id) ? 'Collapse details' : 'Expand details'}
+                            >
+                              {expandedUserRows.has(user.id) ? '▼' : '▶'}
+                            </button>
+                            <button 
+                              onClick={() => deleteUser(user.id, user.email)} 
+                              className="delete-btn"
+                              title="Delete user account and all data"
+                            >
+                              🗑️
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                      {expandedUserRows.has(user.id) && (
+                        <tr className="expanded-details">
+                          <td colSpan="5">
+                            <div className="user-expanded-content">
+                              <div className="details-grid">
+                                <div className="detail-section">
+                                  <h4>Personal Information</h4>
+                                  <div className="detail-item">
+                                    <span className="label">Full Name:</span>
+                                    <span className="value">{user.firstName} {user.lastName}</span>
+                                  </div>
+                                  <div className="detail-item">
+                                    <span className="label">Email:</span>
+                                    <span className="value">{user.email}</span>
+                                    <button onClick={() => copyToClipboard(user.email)} className="copy-btn-small">📋</button>
+                                  </div>
+                                  <div className="detail-item">
+                                    <span className="label">Phone:</span>
+                                    <span className="value">{user.phone || 'Not provided'}</span>
+                                  </div>
+                                  <div className="detail-item">
+                                    <span className="label">User ID:</span>
+                                    <span className="value">{user.id}</span>
+                                    <button onClick={() => copyToClipboard(user.id)} className="copy-btn-small">📋</button>
+                                  </div>
+                                </div>
+                                <div className="detail-section">
+                                  <h4>Account Details</h4>
+                                  <div className="detail-item">
+                                    <span className="label">Registration Date:</span>
+                                    <span className="value">
+                                      {user.createdAt ? (
+                                        user.createdAt.seconds ? 
+                                          new Date(user.createdAt.seconds * 1000).toLocaleString() :
+                                          new Date(user.createdAt).toLocaleString()
+                                      ) : 'N/A'}
+                                    </span>
+                                  </div>
+                                  <div className="detail-item">
+                                    <span className="label">Account Status:</span>
+                                    <span className={`value status-badge ${user.isActive !== false ? 'active' : 'inactive'}`}>
+                                      {user.isActive !== false ? 'Active' : 'Inactive'}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="detail-section">
+                                  <h4>Booking History</h4>
+                                  {user.bookingError ? (
+                                    <div className="booking-error">
+                                      <p className="error-message">⚠️ {user.bookingError}</p>
+                                      <p className="error-help">Please check your Firebase connection and try refreshing the page.</p>
+                                    </div>
+                                  ) : user.bookings && user.bookings.length > 0 ? (
+                                    <div className="booking-history-table">
+                                      <table className="bookings-table">
+                                        <thead>
+                                          <tr>
+                                            <th>Booking ID</th>
+                                            <th>Celebrity</th>
+                                            <th>Date</th>
+                                            <th>Package</th>
+                                            <th>Amount</th>
+                                            <th>Status</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {user.bookings.slice(0, 5).map((booking, index) => (
+                                            <tr key={booking.id || booking.bookingId || index}>
+                                              <td>#{(booking.id || booking.bookingId || 'N/A').substring(0, 8)}</td>
+                                              <td>{booking.celebrity?.name || 'N/A'}</td>
+                                              <td>{booking.sessionDetails?.date || booking.date || 'N/A'}</td>
+                                              <td>{booking.package || booking.podcastType || 'Standard'}</td>
+                                              <td>${booking.pricing?.total || booking.total || 0}</td>
+                                              <td>
+                                                <span className={`status ${booking.paymentStatus || 'pending'}`}>
+                                                  {booking.paymentStatus || 'pending'}
+                                                </span>
+                                              </td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                      {user.bookings.length > 5 && (
+                                        <div className="booking-count-note">
+                                          Showing 5 of {user.bookings.length} bookings
+                                        </div>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <div className="no-bookings">
+                                      <p>No booking history available</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+              {filteredUsers.length === 0 && (
+                <div className="no-users">
+                  <p>No users found.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : showPendingPayments ? (
+        <div className="pending-payments-section">
+          <div className="payments-header">
+            <h2>Pending Payments</h2>
+            <div className="payments-summary">
+              <div className="summary-card">
+                <div className="summary-number">{pendingPayments.length}</div>
+                <div className="summary-label">Pending</div>
+              </div>
+              <div className="summary-card">
+                <div className="summary-number">${pendingPayments.reduce((sum, p) => sum + (p.total || p.price || 0), 0).toLocaleString()}</div>
+                <div className="summary-label">Total Value</div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="payments-controls">
+            <button 
+              onClick={resetAllBookingsToPending}
+              className="reset-btn"
+              style={{marginBottom: '10px', backgroundColor: '#ff6b6b', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '10px'}}
+            >
+              Reset All to Pending (Debug)
+            </button>
+            <button 
+              onClick={clearAllPendingPayments}
+              className="clear-btn"
+              style={{marginBottom: '10px', backgroundColor: '#dc3545', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+            >
+              Clear All Pending Payments
+            </button>
+            <div className="search-container">
+              <input
+                type="text"
+                placeholder="Search by customer name or booking ID..."
+                value={paymentSearchTerm}
+                onChange={(e) => setPaymentSearchTerm(e.target.value)}
+                className="search-input-modern"
+              />
+            </div>
+          </div>
+          
+          {loadingPayments ? (
+            <div className="loading-state">
+              <div className="loading-spinner"></div>
+              <p>Loading payments...</p>
+            </div>
+          ) : (
+            <div className="payments-container">
+              {(() => {
+                // Group payments by customer
+                const groupedPayments = filteredPendingPayments.reduce((groups, payment) => {
+                  const customerKey = `${payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || 'Unknown'} ${payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || 'Customer'}`;
+                  if (!groups[customerKey]) {
+                    groups[customerKey] = {
+                      customer: {
+                        name: customerKey,
+                        email: payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A',
+                        phone: payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A'
+                      },
+                      payments: []
+                    };
+                  }
+                  groups[customerKey].payments.push(payment);
+                  return groups;
+                }, {});
+                
+                return Object.entries(groupedPayments).map(([customerKey, group]) => (
+                  <div key={customerKey} className="customer-payment-group">
+                    <div className="customer-header">
+                      <div className="customer-info">
+                        <h3 className="customer-name">{group.customer.name}</h3>
+                        <div className="customer-details">
+                          <span className="customer-email">{group.customer.email}</span>
+                          {group.customer.phone !== 'N/A' && (
+                            <span className="customer-phone">{group.customer.phone}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="customer-summary">
+                        <div className="payment-count">{group.payments.length} booking{group.payments.length > 1 ? 's' : ''}</div>
+                        <div className="total-amount">${group.payments.reduce((sum, p) => sum + (p.pricing?.total || p.total || p.price || 0), 0).toLocaleString()}</div>
+                      </div>
+                    </div>
+                    
+                    <div className="customer-payments">
+                      {group.payments.map((payment) => (
+                        <div key={payment.id} className="payment-item">
+                          <div className="payment-main">
+                            <div className="payment-info">
+                              <div className="booking-reference">#{payment.id.substring(0, 8)}</div>
+                              <div className="celebrity-name">{payment.celebrity?.name || 'N/A'}</div>
+                              <div className="session-details">
+                                <span className="package-type">{payment.sessionDetails?.package || payment.formData?.package || payment.package || payment.podcastType || 'Standard'}</span>
+                                <span className="session-date">{payment.sessionDetails?.date || payment.formData?.date || payment.date || 'TBD'}</span>
+                              </div>
+                            </div>
+                            <div className="payment-actions">
+                              <div className="payment-amount">${payment.pricing?.total || payment.total || payment.price || 0}</div>
+                              <button 
+                                className="approve-payment-btn"
+                                onClick={() => confirmPayment(payment.id)}
+                                title="Approve Payment"
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                className="view-details-btn"
+                                onClick={() => togglePaymentRow(payment.id)}
+                                title={expandedPaymentRows.has(payment.id) ? 'Hide details' : 'View details'}
+                              >
+                                {expandedPaymentRows.has(payment.id) ? 'Less' : 'More'}
+                              </button>
+                            </div>
+                          </div>
+                          
+                          {expandedPaymentRows.has(payment.id) && (
+                            <div className="payment-details">
+                              <div className="details-row">
+                                <div className="detail-group">
+                                  <label>Session Time</label>
+                                  <span>{payment.sessionDetails?.time || payment.formData?.time || payment.time || 'TBD'}</span>
+                                </div>
+                                <div className="detail-group">
+                                  <label>Duration</label>
+                                  <span>{payment.sessionDetails?.duration ? `${payment.sessionDetails.duration} min` : 'Standard'}</span>
+                                </div>
+                                <div className="detail-group">
+                                  <label>Location</label>
+                                  <span>{payment.sessionDetails?.location || 'Virtual'}</span>
+                                </div>
+                                <div className="detail-group">
+                                  <label>Payment Method</label>
+                                  <span>{payment.paymentMethod || 'Credit Card'}</span>
+                                </div>
+                              </div>
+                              
+                              {(payment.specialRequests?.requests || payment.formData?.specialRequests) && (
+                                <div className="special-requests-section">
+                                  <label>Special Requests</label>
+                                  <p>{payment.specialRequests?.requests || payment.formData?.specialRequests}</p>
+                                </div>
+                              )}
+                              
+                              <div className="booking-metadata">
+                                <span>Booking ID: {payment.id}</span>
+                                <span>Created: {payment.createdAt ? (
+                                  payment.createdAt.seconds ? 
+                                    new Date(payment.createdAt.seconds * 1000).toLocaleDateString() :
+                                    new Date(payment.createdAt).toLocaleDateString()
+                                ) : 'N/A'}</span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+              
+              {filteredPendingPayments.length === 0 && (
+                <div className="empty-state">
+                  <div className="empty-icon">💳</div>
+                  <h3>No pending payments</h3>
+                  <p>All payments have been processed or no bookings require approval.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {/* User Details Modal */}
+      {showUserModal && selectedUser && (
+        <div className="modal-overlay" onClick={() => setShowUserModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>User Details</h3>
+            <div className="user-details">
+              <div className="detail-row">
+                <span className="detail-label">Name:</span>
+                <span className="detail-value">{selectedUser.firstName} {selectedUser.lastName}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Email:</span>
+                <span className="detail-value">{selectedUser.email}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Phone:</span>
+                <span className="detail-value">{selectedUser.phone || 'N/A'}</span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Registration Date:</span>
+                <span className="detail-value">
+                  {selectedUser.createdAt ? (
+                    selectedUser.createdAt.seconds ? 
+                      new Date(selectedUser.createdAt.seconds * 1000).toLocaleString() :
+                      new Date(selectedUser.createdAt).toLocaleString()
+                  ) : 'N/A'}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">Status:</span>
+                <span className={`detail-value status ${selectedUser.isActive !== false ? 'active' : 'inactive'}`}>
+                  {selectedUser.isActive !== false ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+              <div className="detail-row">
+                <span className="detail-label">User ID:</span>
+                <span className="detail-value">{selectedUser.id}</span>
+              </div>
+            </div>
+            <div className="modal-actions">
+              <button 
+                onClick={() => setShowUserModal(false)} 
+                className="cancel-btn"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1989,74 +3025,88 @@ const AdminPage = () => {
         </div>
       )}
 
-      {/* Celebrities Table */}
-      {!showBookings && !showActingCoaches && (
-        <div className="celebrities-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Image</th>
-                <th>Name</th>
-                <th>Category</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredCelebrities.map((celebrity) => (
-                <tr key={celebrity.id}>
-                  <td>
-                    {celebrity.image ? (
-                      <img src={celebrity.image} alt={celebrity.name} className="table-image" />
-                      
-                    ) : (
-                      
-                      <div className="table-profile-icon" style={{
-                        backgroundColor: generateProfileIcon(celebrity.name, celebrity.category).backgroundColor,
-                        color: 'white'
-                      }}>
-                        {generateProfileIcon(celebrity.name, celebrity.category).letter}
-                      </div>
-                    )}
-                  </td>
-                  <td>{celebrity.name}</td>
-                  <td>{celebrity.category}</td>
-                  <td>${celebrity.price}</td>
-                  <td>
-                    <span className={`status ${celebrity.available ? 'available' : 'sold-out'}`}>
-                      {celebrity.available ? 'Available' : 'Sold Out'}
-                    </span>
-                  </td>
-                  <td>
-                    <button 
-                      onClick={() => handleEditCelebrity(celebrity)} 
-                      className="edit-btn"
-                    >
-                      Edit
-                    </button>
-                    <button 
-                      onClick={() => deleteCelebrity(celebrity.id)} 
-                      className="delete-btn"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {filteredCelebrities.length === 0 && (
-            <div className="no-results">
-              <p>No celebrities found matching your criteria.</p>
-              <button onClick={clearFilters} className="clear-filters-btn">
-                Clear All Filters
-              </button>
+      {/* User Details Sidebar */}
+      {showUserModal && selectedUser && (
+        <div className="sidebar-overlay" onClick={closeUserModal}>
+          <div className="user-sidebar" onClick={(e) => e.stopPropagation()}>
+            <div className="sidebar-header">
+              <h3>User Details</h3>
+              <button onClick={closeUserModal} className="close-btn">×</button>
             </div>
-          )}
+            
+            <div className="sidebar-content">
+              <div className="user-basic-info">
+                <div className="user-avatar">
+                  {selectedUser.firstName?.charAt(0) || 'U'}
+                </div>
+                <h4>{selectedUser.firstName} {selectedUser.lastName}</h4>
+                <p className="user-email">{selectedUser.email}</p>
+              </div>
+
+              <div className="user-quick-stats">
+                <div className="quick-stat">
+                  <span className="stat-value">{selectedUser.bookings?.length || 0}</span>
+                  <span className="stat-label">Bookings</span>
+                </div>
+                <div className="quick-stat">
+                  <span className="stat-value">
+                    ${selectedUser.bookings?.reduce((sum, booking) => 
+                      sum + (booking.pricing?.total || booking.total || 0), 0
+                    ) || 0}
+                  </span>
+                  <span className="stat-label">Total Spent</span>
+                </div>
+              </div>
+
+              <div className="user-info-list">
+                <div className="info-row">
+                  <span className="label">Status:</span>
+                  <span className={`value status-badge ${selectedUser.isActive !== false ? 'active' : 'inactive'}`}>
+                    {selectedUser.isActive !== false ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Joined:</span>
+                  <span className="value">
+                    {selectedUser.createdAt ? (
+                      selectedUser.createdAt.seconds ? 
+                        new Date(selectedUser.createdAt.seconds * 1000).toLocaleDateString() :
+                        new Date(selectedUser.createdAt).toLocaleDateString()
+                    ) : 'N/A'}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span className="label">Phone:</span>
+                  <span className="value">{selectedUser.phone || 'Not provided'}</span>
+                </div>
+              </div>
+
+              {selectedUser.bookings && selectedUser.bookings.length > 0 && (
+                <div className="recent-bookings">
+                  <h5>Recent Bookings</h5>
+                  <div className="booking-list">
+                    {selectedUser.bookings.slice(0, 3).map((booking) => (
+                      <div key={booking.id || booking.bookingId} className="booking-item">
+                        <div className="booking-info">
+                          <span className="celebrity-name">{booking.celebrity?.name || 'N/A'}</span>
+                          <span className="booking-date">{booking.sessionDetails?.date || booking.date || 'N/A'}</span>
+                        </div>
+                        <div className="booking-status">
+                          <span className={`status ${booking.paymentStatus}`}>
+                            {booking.paymentStatus || 'pending'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
+
+
     </div>
   );
 };

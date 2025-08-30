@@ -1,321 +1,115 @@
+/* ==== CELEBRITY SECTION ==== */
 .celebrities-section {
   padding: 4rem 0;
-  background: var(--bg-secondary);
+  background: var(--background, #f9fafb);
 }
 
-.celebrities .container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.section-title {
+.celebrities-header {
   text-align: center;
-  font-size: clamp(2rem, 4vw, 3rem);
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  line-height: 1.2;
-  margin-top: 2rem;
-}
-
-.section-subtitle {
-  text-align: center;
-  font-size: 1.125rem;
-  color: var(--text-secondary);
   margin-bottom: 3rem;
-  max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
 }
 
-/* Search and Filter Styles */
-.search-filters {
-  background: var(--bg-primary);
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px var(--shadow-color);
-  margin-bottom: 2rem;
-  transition: all 0.3s ease;
+.celebrities-title {
+  font-size: clamp(1.875rem, 3vw, 2.5rem);
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: var(--text-primary, #111827);
 }
 
-.search-bar {
-  margin-bottom: 1.5rem;
+.celebrities-subtitle {
+  font-size: 1.125rem;
+  color: var(--text-secondary, #6b7280);
 }
 
-.search-input {
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: 2px solid var(--border-color);
-  border-radius: 8px;
-  font-size: 1rem;
-  transition: border-color 0.2s ease;
-  font-family: inherit;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.filter-controls {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1rem;
-  align-items: center;
-}
-
-.filter-select {
-  padding: 0.75rem;
-  border: 2px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: border-color 0.2s ease;
-  font-family: inherit;
-}
-
-.filter-select:focus {
-  outline: none;
-  border-color: var(--accent-color);
-}
-
-.clear-filters-btn {
-  background: #ef4444;
-  color: white;
-  border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.875rem;
-  font-family: inherit;
-}
-
-.clear-filters-btn:hover {
-  background: #dc2626;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-}
-
-.results-info {
-  margin-bottom: 1.5rem;
-  text-align: center;
-}
-
-.results-info p {
-  color: var(--text-secondary);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Grid Styles */
+/* ==== GRID ==== */
 .celebrities-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 2rem;
 }
 
+/* ==== CARD ==== */
 .celebrity-card {
-  background: var(--bg-primary);
-  border-radius: 12px;
+  background: var(--surface, #fff);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 6px -1px var(--shadow-color);
-  transition: all 0.3s ease;
-  border: 2px solid transparent;
 }
 
 .celebrity-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 25px -3px var(--shadow-color);
-  border-color: var(--accent-color);
+  transform: translateY(-6px);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.12);
 }
 
-.celebrity-card.unavailable {
-  opacity: 0.7;
-}
-
-.celebrity-card.unavailable:hover {
-  transform: none;
-  border-color: transparent;
-}
-
-.celebrity-image {
-  position: relative;
-  height: 200px;
-  overflow: hidden;
-}
-
-.celebrity-image img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
-}
-
-.celebrity-card:hover .celebrity-image img {
-  transform: scale(1.05);
-}
-
-/* Profile Icon Styles */
-.profile-icon {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 3rem;
-  font-weight: 600;
-  font-family: 'Arial', sans-serif;
-  color: white;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-/* Fix sold-out overlay */
-.sold-out-overlay {
+.celebrity-card.sold-out::before {
+  content: "SOLD OUT";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-weight: 600;
-  font-size: 1.125rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.sold-out {
-  position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 1rem;
+  left: -2rem;
+  transform: rotate(-45deg);
   background: #ef4444;
   color: white;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
+  padding: 0.25rem 2rem;
+  font-weight: 600;
   font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  z-index: 10;
+  z-index: 1;
 }
 
-/* Ensure celebrity name styling */
+/* ==== IMAGE ==== */
+.celebrity-image {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.75rem;
+  margin-bottom: 1rem;
+  object-fit: cover;
+  background: #e5e7eb;
+}
+
+.celebrity-image.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: #9ca3af;
+}
+
+/* ==== INFO ==== */
+.celebrity-info {
+  text-align: center;
+}
+
 .celebrity-name {
-  font-size: 1.125rem;
   font-weight: 600;
-  color: var(--text-primary);
   margin-bottom: 0.5rem;
-  margin-top: 0;
+  color: var(--text-primary, #111827);
 }
 
-.celebrity-category {
-  color: var(--text-secondary);
+.celebrity-role {
   font-size: 0.875rem;
-  margin-bottom: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 500;
-}
-
-.celebrity-price {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--success-color, #059669);
+  color: var(--text-secondary, #6b7280);
   margin-bottom: 1rem;
 }
 
-/* Professional Book Now Button */
+/* ==== BUTTON (inherits from .btn globally) ==== */
 .celebrity-btn {
   width: 100%;
-  background: var(--accent-color);
-  color: white;
-  border: none;
-  padding: 0.875rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
   font-size: 0.875rem;
-  font-family: inherit;
-  text-transform: none;
-  letter-spacing: 0;
+  font-weight: 600;
 }
 
-.celebrity-btn:hover:not(.disabled) {
-  background: var(--accent-hover, #2563eb);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-}
-
-.celebrity-btn:active:not(.disabled) {
-  transform: translateY(0);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-}
-
-.celebrity-btn.disabled {
-  background: var(--text-secondary);
+.celebrity-btn:disabled {
+  background: #9ca3af;
   cursor: not-allowed;
-  transform: none;
+  opacity: 0.7;
 }
 
-.celebrity-btn.disabled:hover {
-  background: var(--text-secondary);
-  transform: none;
-  box-shadow: none;
-}
-
-/* No Results */
-.no-results {
-  text-align: center;
-  padding: 3rem 1rem;
-  background: var(--bg-primary);
-  border-radius: 12px;
-  box-shadow: 0 4px 6px -1px var(--shadow-color);
-}
-
-.no-results p {
-  color: var(--text-secondary);
-  font-size: 1.125rem;
-  margin-bottom: 1.5rem;
-}
-
-/* Responsive Design */
+/* ==== RESPONSIVE ==== */
 @media (max-width: 768px) {
-  .celebrities {
-    padding: 2rem 0;
-  }
-  
-  .section-title {
-    font-size: 2rem;
-  }
-  
-  .search-filters {
-    padding: 1.5rem;
-  }
-  
-  .filter-controls {
-    grid-template-columns: 1fr;
-  }
-  
   .celebrities-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-  }
-  
-  .celebrity-image {
-    height: 180px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
@@ -323,8 +117,17 @@
   .celebrities-grid {
     grid-template-columns: 1fr;
   }
-  
-  .search-filters {
-    padding: 1rem;
-  }
+}
+
+/* ==== DARK MODE ==== */
+[data-theme="dark"] .celebrities-section {
+  background: var(--background-dark, #1f2937);
+}
+
+[data-theme="dark"] .celebrity-card {
+  background: var(--surface-dark, #111827);
+}
+
+[data-theme="dark"] .celebrity-role {
+  color: #9ca3af;
 }

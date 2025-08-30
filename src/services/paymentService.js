@@ -1,4 +1,6 @@
 import emailService from './emailService';
+import { db } from './firebase';
+import { collection, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
 const NOWPAYMENTS_API_URL = 'https://api.nowpayments.io/v1'; // ✅ Production URL
 const API_KEY = process.env.REACT_APP_NOWPAYMENTS_API_KEY; // ✅ Your live API key
@@ -183,15 +185,36 @@ export const processPayment = async (paymentData) => {
         if (booking.id === bookingId || booking.bookingId === bookingId) {
           return {
             ...booking,
-            status: 'confirmed',
-            paymentStatus: 'completed',
+            paymentReceived: true,
             paymentData: paymentData,
-            confirmedAt: new Date().toISOString()
+            paymentVerifiedAt: new Date().toISOString()
           };
         }
         return booking;
       });
       localStorage.setItem('bookings', JSON.stringify(updatedBookings));
+      
+      // Also update in Firebase
+      try {
+        const bookingsCollection = collection(db, 'bookings');
+        const bookingQuery = query(
+          bookingsCollection,
+          where('id', '==', bookingId)
+        );
+        const querySnapshot = await getDocs(bookingQuery);
+        
+        if (!querySnapshot.empty) {
+          const bookingDoc = querySnapshot.docs[0];
+          await updateDoc(doc(db, 'bookings', bookingDoc.id), {
+            paymentReceived: true,
+            paymentData: paymentData,
+            paymentVerifiedAt: new Date()
+          });
+          console.log('Payment status updated in Firebase');
+        }
+      } catch (firebaseError) {
+        console.error('Failed to update payment status in Firebase:', firebaseError);
+      }
     }
     
     return {

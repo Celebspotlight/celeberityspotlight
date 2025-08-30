@@ -180,25 +180,219 @@
   transform: translateY(-2px);
 }
 
-.btn-primary {
-  background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%);
-  color: white;
+.bitcoin-payment .btn-primary {
+  background: linear-gradient(45deg, #27ae60 0%, #2ecc71 100%) !important;
+  color: white !important;
+  border: none !important;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(45deg, #229954 0%, #27ae60 100%);
+.bitcoin-payment .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(45deg, #229954 0%, #27ae60 100%) !important;
   transform: translateY(-2px);
 }
 
-.btn-primary.confirmed {
-  background: #27ae60;
+.bitcoin-payment .btn-primary.confirmed {
+  background: #27ae60 !important;
   cursor: not-allowed;
 }
 
-.btn-primary:disabled {
+.bitcoin-payment .btn-primary:disabled,
+.bitcoin-payment .btn-primary.disabled {
+  background: #bdc3c7 !important;
+  color: #7f8c8d !important;
   opacity: 0.7;
   cursor: not-allowed;
   transform: none;
+}
+
+.bitcoin-payment .btn-primary:disabled:hover,
+.bitcoin-payment .btn-primary.disabled:hover {
+  background: #bdc3c7 !important;
+  transform: none;
+}
+
+/* Processing Overlay Styles */
+.payment-processing-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.3s ease;
+}
+
+.processing-modal {
+  background: white;
+  border-radius: 20px;
+  padding: 3rem;
+  max-width: 500px;
+  width: 90%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.4s ease;
+}
+
+.processing-content h3 {
+  color: #2c3e50;
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.5rem;
+}
+
+.processing-content p {
+  color: #6c757d;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+.processing-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 1rem;
+}
+
+.spinner-ring {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #f39c12;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50px;
+  height: 50px;
+  background: #f39c12;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bitcoin-icon {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.processing-progress {
+  margin: 2rem 0;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #f3f3f3;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #f39c12, #e67e22);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  animation: shimmer 2s infinite;
+}
+
+.progress-text {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 600;
+}
+
+.processing-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.step.active {
+  background: #e8f4fd;
+  border-left: 4px solid #3498db;
+  animation: pulse 2s infinite;
+}
+
+.step.completed {
+  background: #d4edda;
+  border-left: 4px solid #27ae60;
+}
+
+.step-icon {
+  font-size: 1.2rem;
+  width: 24px;
+  text-align: center;
+}
+
+.step span:last-child {
+  color: #495057;
+  font-weight: 500;
+}
+
+.step.active span:last-child {
+  color: #3498db;
+  font-weight: 600;
+}
+
+.step.completed span:last-child {
+  color: #27ae60;
+  font-weight: 600;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200px 0; }
+  100% { background-position: 200px 0; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.02); }
 }
 
 /* Responsive Design */
@@ -217,6 +411,30 @@
   
   .payment-actions {
     flex-direction: column;
+  }
+  
+  .processing-modal {
+    padding: 2rem;
+    margin: 1rem;
+  }
+  
+  .processing-spinner {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .spinner-ring {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .spinner-center {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .bitcoin-icon {
+    font-size: 1.2rem;
   }
 }
 

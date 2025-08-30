@@ -1,0 +1,447 @@
+/* Modern Table Styles for Admin Panel */
+
+.modern-table {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: white;
+}
+
+.modern-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.modern-table th {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: none;
+}
+
+.modern-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: top;
+}
+
+/* User Row Styles */
+.user-row, .payment-row {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.user-row:hover, .payment-row:hover {
+  background-color: #f8f9fa;
+}
+
+.user-row.expanded, .payment-row.expanded {
+  background-color: #e3f2fd;
+}
+
+/* User Info Cell */
+.user-info-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-size: 15px;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.user-id {
+  font-size: 12px;
+  color: #7f8c8d;
+  font-family: monospace;
+}
+
+/* Contact Cell */
+.contact-cell {
+  line-height: 1.4;
+}
+
+.contact-cell .email {
+  font-weight: 500;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.contact-cell .phone {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+/* Registration Cell */
+.registration-cell .date {
+  font-size: 13px;
+  color: #2c3e50;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-badge.active {
+  background-color: #d4edda;
+  color: #155724;
+}
+
+.status-badge.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+
+.status-badge.confirmed {
+  background-color: #d1ecf1;
+  color: #0c5460;
+}
+
+/* Expand Button */
+.expand-btn {
+  background: #667eea;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.expand-btn:hover {
+  background: #5a6fd8;
+  transform: scale(1.05);
+}
+
+/* Payment Actions */
+.payment-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.approve-btn-compact {
+  background: #28a745;
+  color: white;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.approve-btn-compact:hover {
+  background: #218838;
+  transform: scale(1.05);
+}
+
+.approve-btn-compact:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Expanded Details */
+.expanded-details {
+  background: #f8f9fa;
+  border-top: 2px solid #667eea;
+}
+
+.user-expanded-content, .payment-expanded-content {
+  padding: 24px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.detail-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.detail-section h4 {
+  margin: 0 0 16px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+  border-bottom: 2px solid #667eea;
+  padding-bottom: 8px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.detail-item.sub-item {
+  margin-left: 16px;
+  margin-bottom: 8px;
+}
+
+.detail-item.action-item {
+  margin-top: 16px;
+  justify-content: flex-start;
+}
+
+.detail-item .label {
+  font-weight: 600;
+  color: #34495e;
+  min-width: 120px;
+  font-size: 13px;
+}
+
+.detail-item .value {
+  flex: 1;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.detail-item .value.amount-highlight {
+  font-weight: bold;
+  color: #28a745;
+  font-size: 16px;
+}
+
+.copy-btn-small {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.copy-btn-small:hover {
+  background: #5a6268;
+}
+
+.load-bookings-btn, .approve-btn-full {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+
+.load-bookings-btn:hover, .approve-btn-full:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.approve-btn-full {
+  background: #28a745;
+}
+
+.approve-btn-full:hover {
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+/* Booking and Service Cells */
+.booking-info-cell, .customer-info-cell, .service-cell, .amount-cell {
+  line-height: 1.4;
+}
+
+.booking-id {
+  font-weight: bold;
+  color: #667eea;
+  font-family: monospace;
+  margin-bottom: 4px;
+}
+
+.booking-date, .customer-email, .package-type, .payment-method {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+.customer-name, .celebrity-name, .amount {
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 2px;
+}
+
+.amount {
+  font-size: 16px;
+  color: #28a745;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .details-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 16px;
+  }
+  
+  .detail-section {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .modern-table {
+    font-size: 12px;
+  }
+  
+  .modern-table th,
+  .modern-table td {
+    padding: 8px;
+  }
+  
+  .user-info-cell {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+  
+  .details-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .user-expanded-content, .payment-expanded-content {
+    padding: 16px;
+  }
+  
+  .detail-item .label {
+    min-width: 100px;
+    font-size: 12px;
+  }
+  
+  .payment-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modern-table th {
+    font-size: 11px;
+    padding: 12px 6px;
+  }
+  
+  .modern-table td {
+    padding: 8px 6px;
+  }
+  
+  .detail-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+  
+  .detail-item .label {
+    min-width: auto;
+    font-weight: 700;
+  }
+}
+
+/* Animation for expanding rows */
+@keyframes expandRow {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.expanded-details {
+  animation: expandRow 0.3s ease-out;
+}
+
+/* Loading and Empty States */
+.no-payments, .no-users {
+  text-align: center;
+  padding: 40px 20px;
+  color: #7f8c8d;
+  font-style: italic;
+}
+
+/* Pricing Breakdown */
+.pricing-breakdown {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e9ecef;
+}
+
+.pricing-breakdown .detail-item {
+  margin-bottom: 6px;
+}
+
+.pricing-breakdown .sub-item .label {
+  min-width: 80px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.pricing-breakdown .sub-item .value {
+  font-size: 13px;
+}

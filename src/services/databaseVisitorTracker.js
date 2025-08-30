@@ -5,7 +5,7 @@ class DatabaseVisitorTracker {
   constructor() {
     this.sessionId = this.generateSessionId();
     this.sessionStartTime = Date.now();
-    this.dbUrl = 'https://celebrity-spotlight-default-rtdb.firebaseio.com'; // Firebase Realtime Database
+    this.dbUrl = 'https://celebrityspotlight-b15a3-default-rtdb.firebaseio.com'; // Firebase Realtime Database
     this.initializeTracking();
   }
 
@@ -15,14 +15,9 @@ class DatabaseVisitorTracker {
 
   async initializeTracking() {
     try {
-      // Try to get visitor data from database first
-      const dbData = await this.getVisitorDataFromDB();
-      
-      // Fallback to localStorage if database is unavailable
+      // Use only localStorage - Firebase Realtime Database disabled to prevent 404 errors
       const localData = this.getLocalVisitorData();
-      
-      // Merge data (database takes priority)
-      const visitorData = dbData || localData;
+      const visitorData = localData;
       
       // Check if this is a new visitor session
       const lastVisit = localStorage.getItem('lastVisit');
@@ -30,12 +25,12 @@ class DatabaseVisitorTracker {
       const isNewSession = !lastVisit || (now - parseInt(lastVisit)) > 30 * 60 * 1000; // 30 minutes
 
       if (isNewSession) {
-        await this.recordNewSession(visitorData);
+        this.recordNewSessionLocal(visitorData);
       }
 
       localStorage.setItem('lastVisit', now.toString());
     } catch (error) {
-      console.warn('Database tracking failed, using localStorage:', error);
+      console.warn('Local tracking failed:', error);
       this.initializeLocalTracking();
     }
   }
@@ -159,7 +154,7 @@ class DatabaseVisitorTracker {
 
   async trackPageView(page) {
     try {
-      const visitorData = await this.getVisitorDataFromDB() || this.getLocalVisitorData();
+      const visitorData = this.getLocalVisitorData();
       
       const visit = {
         id: Date.now() + '_' + Math.random().toString(36).substr(2, 5),
@@ -178,8 +173,7 @@ class DatabaseVisitorTracker {
 
       visitorData.lastUpdated = Date.now();
 
-      // Update both database and localStorage
-      await this.updateDatabase(visitorData);
+      // Update only localStorage - database disabled
       localStorage.setItem('visitorData', JSON.stringify(visitorData));
     } catch (error) {
       console.warn('Page view tracking failed, using localStorage:', error);
@@ -207,29 +201,8 @@ class DatabaseVisitorTracker {
   }
 
   async getVisitorStats() {
-    try {
-      // Try to get fresh data from database
-      const dbData = await this.getVisitorDataFromDB();
-      const data = dbData || this.getLocalVisitorData();
-
-      // Calculate average time on site
-      const currentTime = Date.now();
-      const averageTimeOnSite = data.sessions.length > 0 
-        ? Math.round((currentTime - data.sessions[data.sessions.length - 1].startTime) / 1000)
-        : 0;
-
-      return {
-        totalVisitors: data.totalVisitors,
-        totalVisits: data.totalVisits,
-        averageTimeOnSite: averageTimeOnSite,
-        recentVisits: data.visits.slice(-10).reverse(), // Last 10 visits, newest first
-        lastUpdated: data.lastUpdated || Date.now(),
-        isUsingDatabase: !!dbData
-      };
-    } catch (error) {
-      console.warn('Failed to get visitor stats from database, using localStorage:', error);
-      return this.getLocalVisitorStats();
-    }
+    // Use only localStorage - Firebase Realtime Database disabled
+    return this.getLocalVisitorStats();
   }
 
   getLocalVisitorStats() {

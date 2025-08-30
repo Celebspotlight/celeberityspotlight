@@ -7,12 +7,12 @@
   transition: all 0.3s ease;
 }
 
-/* Hero Section - Reduced padding */
+/* Hero Section - Consistent with other pages */
 .page-header {
   position: relative;
   background: var(--gradient-primary);
   color: white;
-  padding: 60px 0 40px; /* Reduced from 120px 0 80px */
+  padding: 60px 0 40px;
   text-align: center;
   overflow: hidden;
 }
@@ -83,7 +83,7 @@
 }
 
 .service-card {
-  background: var(--bg-primary);
+  background: var(--bg-primary) !important;
   border-radius: 12px; /* Reduced radius */
   padding: 1.5rem; /* Reduced padding */
   text-align: center;
@@ -258,15 +258,20 @@
 }
 
 .category {
-  color: var(--accent-color);
+  color: white;
+  background: var(--accent-color);
   font-size: 0.85rem; /* Reduced size */
   font-weight: 500;
   margin-bottom: 0.75rem; /* Reduced margin */
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  display: inline-block;
+  text-align: center;
 }
 
 .pricing {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   margin-bottom: 1rem; /* Reduced margin */
 }

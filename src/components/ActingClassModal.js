@@ -264,7 +264,14 @@ const ActingClassModal = ({ coach, onClose }) => {
           ) : (
             <BitcoinPayment 
               amount={coach.class_price}
-              onClose={() => setShowBitcoinPayment(false)}
+              onPaymentComplete={() => {
+                // Handle payment completion
+                alert('Payment confirmed! Your acting class booking has been submitted.');
+                setShowBitcoinPayment(false);
+                onClose();
+              }}
+              onCancel={() => setShowBitcoinPayment(false)}
+              bookingId={`AC-${Date.now()}`}
             />
           )}
         </div>

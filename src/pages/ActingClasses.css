@@ -228,6 +228,10 @@
 /* Coach Info */
 .coach-info {
   padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
 }
 
 .coach-name {

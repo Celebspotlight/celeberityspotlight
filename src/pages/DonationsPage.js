@@ -434,6 +434,7 @@ const DonationsPage = () => {
               amount={donationAmount}
               onPaymentComplete={handleBitcoinPaymentComplete}
               onCancel={() => setShowBitcoinPayment(false)}
+              bookingId={`DN-${Date.now()}`}
             />
           </div>
         </div>
