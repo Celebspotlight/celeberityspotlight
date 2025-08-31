@@ -40,6 +40,11 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
       // Restore body scroll when modal closes
       document.body.style.overflow = 'unset';
     }
+
+    // Cleanup function to ensure body scroll is always restored
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -114,6 +119,9 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     setShowBitcoinPayment(false);
     setShowCryptoTutorial(false);
     setFormErrors({});
+    
+    // Ensure body scroll is restored when closing
+    document.body.style.overflow = 'unset';
     
     // Call the parent's onClose function to properly close the modal
     onClose();
@@ -440,11 +448,17 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
             setCurrentStep(1);
             setSelectedPaymentMethod(null);
             setFormErrors({});
+            
+            // Ensure body scroll is restored
+            document.body.style.overflow = 'unset';
+            
             // Close the modal
             onClose();
           }}
             onCancel={() => {
               setShowBitcoinPayment(false);
+              // Ensure body scroll is restored when canceling payment
+              document.body.style.overflow = 'unset';
             }}
             bookingId={`PV-${Date.now()}`}
           />
@@ -458,10 +472,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
                 <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
               </div>
               <CryptoTutorial 
-                onContinue={() => {
-                  setShowCryptoTutorial(false);
-                  setShowBitcoinPayment(true);
-                }}
+                onContinue={() => setShowCryptoTutorial(false)}
                 onSkip={() => setShowCryptoTutorial(false)}
               />
             </div>

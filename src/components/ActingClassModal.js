@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ActingClassModal.css';
 import BitcoinPayment from './BitcoinPayment';
 import CryptoTutorial from './CryptoTutorial';
@@ -16,6 +16,17 @@ const ActingClassModal = ({ coach, onClose }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+
+  // Body scroll management
+  useEffect(() => {
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+    
+    // Cleanup function to ensure body scroll is always restored
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -112,6 +123,9 @@ const ActingClassModal = ({ coach, onClose }) => {
       
       // Show simple confirmation message
       alert(`Acting class booking confirmed! Your booking ID is: ${bookingId}\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
+      
+      // Restore body scroll before closing
+      document.body.style.overflow = 'unset';
       onClose();
       
     } catch (error) {
@@ -268,9 +282,16 @@ const ActingClassModal = ({ coach, onClose }) => {
                 // Handle payment completion
                 alert('Payment confirmed! Your acting class booking has been submitted.');
                 setShowBitcoinPayment(false);
+                
+                // Restore body scroll before closing
+                document.body.style.overflow = 'unset';
                 onClose();
               }}
-              onCancel={() => setShowBitcoinPayment(false)}
+              onCancel={() => {
+                setShowBitcoinPayment(false);
+                // Restore body scroll when canceling payment
+                document.body.style.overflow = 'unset';
+              }}
               bookingId={`AC-${Date.now()}`}
             />
           )}

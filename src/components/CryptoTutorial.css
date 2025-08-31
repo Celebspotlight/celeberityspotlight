@@ -373,20 +373,38 @@
 @media (max-width: 768px) {
   .crypto-tutorial-container {
     padding: 15px;
-    margin: 10px;
+    margin: 5px;
+    border-radius: 8px;
+  }
+  
+  .tutorial-header h3 {
+    font-size: 1.4rem;
+  }
+  
+  .tutorial-header p {
+    font-size: 1rem;
   }
   
   .tutorial-progress {
-    padding: 0 10px;
+    padding: 0 5px;
+    flex-wrap: wrap;
+    gap: 10px;
   }
   
   .progress-step {
-    margin: 0 5px;
+    margin: 0;
+    min-width: 80px;
+  }
+  
+  .step-number {
+    width: 35px;
+    height: 35px;
+    font-size: 0.9rem;
   }
   
   .step-label {
-    font-size: 0.8rem;
-    max-width: 80px;
+    font-size: 0.75rem;
+    max-width: 70px;
   }
   
   .step-header {
@@ -396,7 +414,7 @@
   }
   
   .step-header h4 {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
   
   .video-wrapper iframe {
@@ -405,11 +423,24 @@
   
   .step-navigation {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
+  }
+  
+  .step-navigation button {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-height: 44px;
   }
   
   .alternative-actions {
     flex-direction: column;
+    gap: 10px;
+  }
+  
+  .alternative-actions button {
+    width: 100%;
+    min-height: 44px;
   }
   
   .contact-info {
@@ -422,12 +453,22 @@
 }
 
 @media (max-width: 480px) {
+  .crypto-tutorial-container {
+    padding: 10px;
+    margin: 2px;
+  }
+  
+  .tutorial-header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+  }
+  
   .tutorial-header h3 {
-    font-size: 1.5rem;
+    font-size: 1.3rem;
   }
   
   .tutorial-header p {
-    font-size: 1rem;
+    font-size: 0.95rem;
   }
   
   .progress-step:not(:last-child)::after {
@@ -436,22 +477,39 @@
   
   .tutorial-progress {
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
+    padding: 0;
   }
   
   .progress-step {
     flex-direction: row;
     justify-content: flex-start;
     text-align: left;
+    min-width: auto;
   }
   
   .step-number {
-    margin-right: 15px;
+    margin-right: 12px;
     margin-bottom: 0;
+    width: 32px;
+    height: 32px;
+    font-size: 0.85rem;
   }
   
   .step-label {
     max-width: none;
     text-align: left;
+    font-size: 0.8rem;
+  }
+  
+  .step-navigation button {
+    padding: 14px 20px;
+    font-size: 1.05rem;
+    min-height: 48px;
+  }
+  
+  .alternative-actions button {
+    min-height: 48px;
+    font-size: 1rem;
   }
 }

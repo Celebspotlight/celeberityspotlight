@@ -3,7 +3,6 @@ import './CryptoTutorial.css';
 
 const CryptoTutorial = ({ onContinue, onSkip }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [completedSteps, setCompletedSteps] = useState([]);
   const [showAlternativePayment, setShowAlternativePayment] = useState(false);
 
   const tutorialSteps = [
@@ -30,11 +29,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
     }
   ];
 
-  const handleVideoEnd = (stepId) => {
-    if (!completedSteps.includes(stepId)) {
-      setCompletedSteps([...completedSteps, stepId]);
-    }
-  };
+
 
   const handleNextStep = () => {
     if (currentStep < tutorialSteps.length) {
@@ -48,8 +43,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
     }
   };
 
-  const allStepsCompleted = completedSteps.length === tutorialSteps.length;
-  const currentStepCompleted = completedSteps.includes(currentStep);
+  const allStepsCompleted = currentStep === tutorialSteps.length;
 
   const handleShowAlternative = () => {
     setShowAlternativePayment(true);
@@ -71,12 +65,12 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
             key={step.id} 
             className={`progress-step ${
               currentStep === step.id ? 'active' : 
-              completedSteps.includes(step.id) ? 'completed' : ''
+              currentStep > step.id ? 'completed' : ''
             }`}
             onClick={() => setCurrentStep(step.id)}
           >
             <div className="step-number">
-              {completedSteps.includes(step.id) ? '✓' : step.id}
+              {currentStep > step.id ? '✓' : step.id}
             </div>
             <div className="step-label">{step.title}</div>
           </div>
@@ -94,10 +88,10 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
 
         <div className="video-wrapper">
           <video
+            key={currentStep}
             width="100%"
             height="315"
             controls
-            onEnded={() => handleVideoEnd(currentStep)}
           >
             <source src={currentStepData.videoUrl} type="video/mp4" />
             Your browser does not support the video tag.
@@ -107,6 +101,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
         {/* Step Navigation */}
         <div className="step-navigation">
           <button 
+            type="button"
             className="btn-secondary"
             onClick={handlePreviousStep}
             disabled={currentStep === 1}
@@ -114,13 +109,8 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
             ← Previous
           </button>
           
-          <div className="step-status">
-            {currentStepCompleted && (
-              <span className="step-completed">✓ Step Completed</span>
-            )}
-          </div>
-          
           <button 
+            type="button"
             className="btn-secondary"
             onClick={handleNextStep}
             disabled={currentStep === tutorialSteps.length}
@@ -128,27 +118,33 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
             Next →
           </button>
         </div>
+        
+        {/* Step Status */}
+        <div className="step-status">
+          <span className="step-info">Step {currentStep} of {tutorialSteps.length}</span>
+        </div>
       </div>
 
       {/* Tutorial Options */}
       <div className="tutorial-options">
         <div className="payment-choice">
-          <h4>Ready to Make Your Payment?</h4>
-          
-          <div className="payment-option primary-option">
-            <div className="option-header">
-              <span className="option-icon">🔒</span>
-              <h5>Crypto Payment (Recommended)</h5>
+            <h4>Tutorial Complete!</h4>
+            
+            <div className="payment-option primary-option">
+              <div className="option-header">
+                <span className="option-icon">🎓</span>
+                <h5>You've Learned How to Use Crypto!</h5>
+              </div>
+              <p>Now you understand how cryptocurrency payments work. Close this tutorial and manually proceed to the payment section to complete your booking.</p>
+              <button 
+                type="button"
+                className={`btn-primary ${!allStepsCompleted ? 'disabled' : ''}`}
+                onClick={onSkip}
+                disabled={!allStepsCompleted}
+              >
+                {allStepsCompleted ? 'Close Tutorial - I Understand' : `Complete All Steps (${currentStep}/3)`}
+              </button>
             </div>
-            <p>Secure, fast, and direct Bitcoin payment processing</p>
-            <button 
-              className={`btn-primary ${!allStepsCompleted ? 'disabled' : ''}`}
-              onClick={onContinue}
-              disabled={!allStepsCompleted}
-            >
-              {allStepsCompleted ? 'Continue with Crypto Payment' : `Complete All Steps (${completedSteps.length}/3)`}
-            </button>
-          </div>
 
           <div className="payment-option alternative-option">
             <div className="option-header">
@@ -157,6 +153,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
             </div>
             <p>Having trouble? Our support team can assist you</p>
             <button 
+              type="button"
               className="btn-secondary"
               onClick={handleShowAlternative}
             >
@@ -184,6 +181,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
             
             <div className="alternative-actions">
               <button 
+                type="button"
                 className="btn-primary"
                 onClick={() => {
                   alert('Please contact our support team using the information above. We\'ll help you complete your payment.');
@@ -193,6 +191,7 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
                 I'll Contact Support
               </button>
               <button 
+                type="button"
                 className="btn-secondary"
                 onClick={() => setShowAlternativePayment(false)}
               >

@@ -239,10 +239,11 @@ const Header = () => {
           
           {/* Authentication or User Menu */}
           {currentUser ? (
-            <div className="profile-menu">
+            <div className="profile-menu" ref={userMenuRef}>
               <button 
                 className="profile-toggle"
                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                data-username={currentUser.displayName || currentUser.email?.split('@')[0] || 'User'}
               >
                 <div className="profile-icon user-initial">
                   {(currentUser.displayName || currentUser.email || 'U').charAt(0).toUpperCase()}

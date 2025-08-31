@@ -471,14 +471,38 @@
     padding: 10px;
   }
   
+  .personalized-video-modal {
+    margin: 0;
+    border-radius: 10px;
+  }
+  
+  .personalized-video-modal .modal-header {
+    padding: 16px;
+  }
+  
+  .personalized-video-modal .modal-header h2 {
+    font-size: 1.3rem;
+  }
+  
+  .personalized-video-modal .close-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 24px;
+  }
+  
+  .personalized-video-modal .celebrity-info {
+    padding: 16px;
+  }
+  
   .personalized-video-modal .video-types-grid {
     grid-template-columns: 1fr;
   }
   
   .personalized-video-modal .modal-footer {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     align-items: stretch;
+    padding: 16px;
   }
   
   .personalized-video-modal .modal-actions {
@@ -487,6 +511,60 @@
   
   .personalized-video-modal .btn {
     flex: 1;
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-height: 44px;
+  }
+  
+  .payment-methods-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .payment-option-card {
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .personalized-video-modal-overlay {
+    padding: 5px;
+  }
+  
+  .personalized-video-modal {
+    border-radius: 8px;
+  }
+  
+  .personalized-video-modal .modal-header {
+    padding: 12px;
+  }
+  
+  .personalized-video-modal .modal-header h2 {
+    font-size: 1.2rem;
+  }
+  
+  .personalized-video-modal .close-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+  
+  .personalized-video-modal .celebrity-info {
+    padding: 12px;
+  }
+  
+  .personalized-video-modal .modal-footer {
+    padding: 12px;
+  }
+  
+  .personalized-video-modal .btn {
+    padding: 14px 20px;
+    font-size: 1.05rem;
+    min-height: 48px;
+  }
+  
+  .payment-option-card {
+    padding: 1rem;
   }
 }
 

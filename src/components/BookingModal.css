@@ -626,55 +626,98 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  .modal-overlay {
+    padding: 10px;
+  }
+  
   .modal-content {
-    margin: 10px;
+    margin: 0;
     max-height: 95vh;
+    border-radius: 10px;
   }
   
   .enhanced-booking {
     max-width: 100%;
   }
   
-  .modal-header,
+  .modal-header {
+    padding: 20px 20px 15px;
+  }
+  
+  .modal-header h2 {
+    left: 0 !important;
+    font-size: 1.6rem;
+    text-align: center;
+  }
+  
   .step-content {
     padding: 20px;
   }
   
-  .progress-bar {
-    padding: 20px 15px;
-    flex-wrap: nowrap;
-    overflow-x: auto;
+  .close-btn {
+    top: 15px;
+    right: 15px;
+    font-size: 1.8rem;
   }
   
-  .progress-bar::before,
+  /* Enhanced Mobile Progress Bar */
+  .progress-bar {
+    padding: 18px 15px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 10px;
+    justify-content: flex-start;
+    width: 105%;
+    align-items: center;
+    
+  }
+  
+  .progress-bar::before {
+    left: 50px;
+    right: 50px;
+    background: var(--border-color);
+    height: 3px;
+  }
+  
   .progress-bar::after {
-    display: none;
+    left: 50px;
+    width: calc((100% - 100px) * (var(--progress, 0) / 4));
+    height: 3px;
   }
   
   .progress-bar .step {
     flex: 1;
-    min-width: 70px;
-  }
-  
-  .progress-bar {
-    padding: 15px 10px;
+    min-width: 75px;
+    max-width: 85px;
+    padding: 0.4rem 0.3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
   
   .progress-bar .step span {
-    width: 30px;
-    height: 30px;
-    font-size: 0.8rem;
-  }
-  
-  .progress-bar .step label {
-    font-size: 0.7rem;
-    max-width: 60px;
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    
   }
   
   .progress-bar .step label {
     font-size: 0.75rem;
-    max-width: 80px;
+    
+    line-height: 1.1;
+    word-wrap: break-word;
+    hyphens: auto;
+    text-align: center;
+    
   }
+  
   
   .form-row {
     grid-template-columns: 1fr;
@@ -706,18 +749,93 @@
 }
 
 @media (max-width: 480px) {
+  .modal-overlay {
+    padding: 5px;
+  }
+  
+  .modal-header {
+    padding: 15px;
+  }
+  
   .modal-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.4rem;
+    left: 0 !important;
+    text-align: center;
+  }
+  
+  .step-content {
+    padding: 15px;
   }
   
   .step-content h3 {
-    font-size: 1.3rem;
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  
+  .close-btn {
+    top: 10px;
+    right: 10px;
+    font-size: 1.6rem;
+    padding: 5px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+  
+  /* Extra Small Mobile Progress Bar */
+  .progress-bar {
+    padding: 15px 12px;
+    gap: 6px;
+    justify-content: flex-start;
+    width: 108%;
+    align-items: center;
+    position: relative;
+    left: -12px;
+  }
+  
+  .progress-bar::before {
+    left: 35px;
+    right: 35px;
+    height: 2px;
+  }
+
+  .progress-bar::after {
+    left: 35px;
+    width: calc((100% - 70px) * (var(--progress, 0) / 4));
+    height: 2px;
+  }
+  
+  .progress-bar .step {
+    flex: 1;
+    min-width: 65px;
+    max-width: 75px;
+    padding: 0.35rem 0.25rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
   }
   
   .progress-bar .step span {
-    width: 35px;
-    height: 35px;
-    font-size: 0.9rem;
+    width: 34px;
+    height: 34px;
+    font-size: 0.8rem;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .progress-bar .step label {
+    font-size: 0.7rem;
+    max-width: 65px;
+    line-height: 1.0;
+    word-wrap: break-word;
+    hyphens: auto;
+    text-align: center;
+    min-height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .package-card {
@@ -725,7 +843,14 @@
   }
   
   .booking-summary {
-    padding: 20px;
+    padding: 15px;
+  }
+  
+  .btn-primary,
+  .btn-secondary {
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-height: 44px;
   }
 }
 

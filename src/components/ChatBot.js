@@ -14,6 +14,14 @@ const ChatBot = () => {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [currentPage, setCurrentPage] = useState('');
+  const [conversationContext, setConversationContext] = useState({
+    lastTopic: null,
+    userInterests: [],
+    askedQuestions: [],
+    sessionStartTime: new Date()
+  });
+  const [smartSuggestions, setSmartSuggestions] = useState([]);
+  const [usedSuggestions, setUsedSuggestions] = useState(new Set());
   const messagesEndRef = useRef(null);
 
   // Detect current page for context-aware responses
@@ -62,136 +70,142 @@ const ChatBot = () => {
     }
   };
 
-  const getBotResponse = (userMessage) => {
-    const message = userMessage.toLowerCase();
+  // Enhanced NLP patterns for better understanding
+  const analyzeUserIntent = (message) => {
+    const lowerMessage = message.toLowerCase();
+    const words = lowerMessage.split(' ');
     
-    // Enhanced service overview
-    if (message.includes('services') || message.includes('what do you offer') || message.includes('available')) {
-      return "We offer 5 main services:\n\n🎥 **Personalized Videos** - Custom celebrity messages for any occasion\n🎭 **Acting Classes** - Learn from professional coaches\n📢 **Promotions** - Celebrity endorsements for your brand\n❤️ **Donations** - Celebrity support for charitable causes\n🎙️ **Podcast Requests** - Book celebrities as podcast guests\n\nWhich service interests you most?";
-    }
+    // Intent classification
+    const intents = {
+      greeting: ['hello', 'hi', 'hey', 'good morning', 'good afternoon', 'good evening'],
+      booking: ['book', 'reserve', 'schedule', 'appointment', 'meeting', 'hire'],
+      pricing: ['price', 'cost', 'fee', 'charge', 'expensive', 'cheap', 'affordable', 'rate'],
+      services: ['service', 'offer', 'provide', 'available', 'what do you do'],
+      payment: ['pay', 'payment', 'bitcoin', 'crypto', 'transaction', 'money'],
+      help: ['help', 'assist', 'support', 'guide', 'explain'],
+      availability: ['available', 'free', 'busy', 'schedule', 'when'],
+      contact: ['contact', 'reach', 'phone', 'email', 'address'],
+      thanks: ['thank', 'thanks', 'appreciate', 'grateful']
+    };
     
-    // Payment-related responses with video link
-    if (message.includes('payment') || message.includes('pay') || message.includes('card') || message.includes('billing') || message.includes('bitcoin') || message.includes('crypto')) {
-      return "We accept multiple payment methods including credit cards, PayPal, and Bitcoin for your convenience. If you're having payment issues or want to learn about alternative payment options, check out this helpful video: https://youtu.be/fDjDH_WAvYI?si=UMDm8bF_Y-WSvtFK";
-    }
-    
-    // Context-aware booking responses
-    if (message.includes('book') || message.includes('booking') || message.includes('how to book')) {
-      let response = "To book a celebrity, ";
-      if (currentPage === '/celebrities') {
-        response += "simply select your preferred star on this page and click 'Book Now'. ";
-      } else if (currentPage === '/personalized-videos') {
-        response += "choose a celebrity from our personalized videos section and select your message type. ";
-      } else if (currentPage === '/acting-classes') {
-        response += "select an acting coach and choose your preferred class format. ";
-      } else if (currentPage === '/promotions') {
-        response += "browse our promotion packages and select the celebrity endorsement that fits your needs. ";
-      } else if (currentPage === '/donations') {
-        response += "choose a celebrity supporter and select your charitable cause. ";
-      } else if (currentPage === '/podcast-requests') {
-        response += "select a celebrity and specify your podcast details and preferred topics. ";
-      } else {
-        response += "visit our Celebrities page, select your preferred star, and click 'Book Now'. ";
+    for (const [intent, keywords] of Object.entries(intents)) {
+      if (keywords.some(keyword => lowerMessage.includes(keyword))) {
+        return intent;
       }
-      response += "Our team will contact you within 24 hours to discuss details and pricing.";
-      return response;
     }
     
-    // Enhanced pricing responses
-    if (message.includes('price') || message.includes('cost') || message.includes('pricing') || message.includes('expensive') || message.includes('cheap') || message.includes('how much')) {
-      let response = "Celebrity booking prices vary based on the star's popularity, event type, and duration. ";
-      if (currentPage === '/personalized-videos') {
-        response += "Personalized videos typically range from $50-$500 depending on the celebrity. ";
-      } else if (currentPage === '/acting-classes') {
-        response += "Acting classes range from $100-$300 per session depending on the coach's experience. ";
-      } else if (currentPage === '/promotions') {
-        response += "Promotion packages range from $500-$5000+ depending on the celebrity and campaign scope. ";
-      } else if (currentPage === '/donations') {
-        response += "Donation campaigns vary based on the celebrity's involvement level and cause visibility. ";
-      } else if (currentPage === '/podcast-requests') {
-        response += "Podcast guest appearances range from $200-$2000+ depending on the celebrity and podcast reach. ";
-      }
-      response += "We offer competitive rates and flexible packages. Contact us for detailed quotes!";
-      return response;
-    }
-    
-    // Personalized Videos specific
-    if (message.includes('personalized') || message.includes('video') || message.includes('message') || message.includes('custom')) {
-      if (currentPage === '/personalized-videos') {
-        return "You're in the right place! Browse our celebrities here and click on any star to order a personalized video message. Choose from birthday wishes, congratulations, motivational messages, holiday greetings, and more! Videos are typically delivered within 7 days.";
-      }
-      return "Our personalized video service lets you get custom messages from celebrities for any occasion! We offer birthday wishes, congratulations, motivational messages, holiday greetings, and more. Visit our Personalized Videos page to browse available stars and message types.";
-    }
-    
-    // Acting Classes specific
-    if (message.includes('acting') || message.includes('class') || message.includes('lesson') || message.includes('coach') || message.includes('learn') || message.includes('training')) {
-      if (currentPage === '/acting-classes') {
-        return "Perfect! You can see all our acting coaches on this page. Each coach offers different specialties like method acting, scene study, audition prep, and character development. Choose between 1-on-1 sessions or group classes. Click 'Book Class' to schedule your session!";
-      }
-      return "Our acting classes connect you with professional coaches for personalized instruction. We offer method acting, scene study, audition preparation, and character development. Choose between private lessons or group sessions. Visit our Acting Classes page to browse coaches and book your session.";
-    }
-    
-    // Promotions specific
-    if (message.includes('promotion') || message.includes('endorsement') || message.includes('brand') || message.includes('marketing') || message.includes('advertise')) {
-      if (currentPage === '/promotions') {
-        return "Great choice for brand promotion! Our celebrities can provide social media endorsements, product placements, brand ambassadorships, and campaign appearances. We offer packages for different budgets and campaign goals. Select a celebrity and promotion type to get started!";
-      }
-      return "Our promotion services help brands connect with celebrity endorsers for authentic marketing campaigns. We offer social media endorsements, product placements, brand ambassadorships, and event appearances. Visit our Promotions page to explore options and celebrity partners.";
-    }
-    
-    // Donations specific
-    if (message.includes('donation') || message.includes('charity') || message.includes('cause') || message.includes('fundraising') || message.includes('nonprofit')) {
-      if (currentPage === '/donations') {
-        return "Supporting a great cause! Our celebrities can help amplify your charitable efforts through social media campaigns, fundraising events, awareness videos, and personal endorsements. Many of our stars are passionate about giving back. Choose a celebrity who aligns with your cause!";
-      }
-      return "Our donation service connects charitable causes with celebrity supporters. Celebrities can help through social media campaigns, fundraising events, awareness videos, and personal endorsements. Visit our Donations page to find celebrities who support causes like yours.";
-    }
-    
-    // Podcast specific
-    if (message.includes('podcast') || message.includes('interview') || message.includes('guest') || message.includes('show') || message.includes('episode')) {
-      if (currentPage === '/podcast-requests') {
-        return "Excellent! You're looking to book celebrity podcast guests. Our stars can appear on your show to discuss their careers, projects, causes they support, or topics they're passionate about. Specify your podcast format, audience size, and preferred topics when booking. Most interviews can be done remotely!";
-      }
-      return "Our podcast request service helps you book celebrity guests for your show. Stars can discuss their careers, current projects, causes they support, or share their expertise. We accommodate various formats and can arrange remote interviews. Visit our Podcast Requests page to browse available guests.";
-    }
-    
-    // Navigation help
-    if (message.includes('navigate') || message.includes('find') || message.includes('where') || message.includes('how to get to')) {
-      return `${getContextualGreeting()} Use the navigation menu to explore different sections:\n\n• **Celebrities** - Browse our talent roster\n• **Services** - Explore all our offerings\n• **About** - Learn about our company\n• **Contact** - Get in touch with us\n\nTell me what you're looking for and I'll guide you there!`;
-    }
-    
-    // Contact and support
-    if (message.includes('contact') || message.includes('support') || message.includes('help') || message.includes('problem') || message.includes('issue')) {
-      return "I'm here to help! You can reach our support team at +1 (555) 123-4567 or info@celebliveaccess.com. We're available 24/7 to assist with bookings, payments, or any questions. For payment issues, this video might help: https://youtu.be/fDjDH_WAvYI?si=UMDm8bF_Y-WSvtFK";
-    }
-    
-    // Availability and celebrities
-    if (message.includes('available') || message.includes('celebrities') || message.includes('stars') || message.includes('who do you have')) {
-      if (currentPage === '/celebrities') {
-        return "You can see all our available celebrities right here on this page! We have actors, musicians, athletes, influencers, and content creators. Use the category filters to find exactly who you're looking for. Each celebrity offers different services - check their profiles for details!";
-      }
-      return "We have a diverse roster of celebrities including A-list actors, chart-topping musicians, professional athletes, social media influencers, and content creators. Each offers different services across our platform. Check our Celebrities page to see our current roster and availability.";
-    }
-    
-    // Greeting responses
-    if (message.includes('hello') || message.includes('hi') || message.includes('hey') || message.includes('good morning') || message.includes('good afternoon')) {
-      return `Hello! ${getContextualGreeting()} I can help you with:\n\n• Service information and comparisons\n• Booking process and requirements\n• Pricing and payment options\n• Celebrity availability\n• Technical support\n\nWhat can I help you with today?`;
-    }
-    
-    // Thank you responses
-    if (message.includes('thank') || message.includes('thanks') || message.includes('appreciate')) {
-      return "You're very welcome! I'm always here to help you navigate our celebrity booking services. If you have any other questions about our Personalized Videos, Acting Classes, Promotions, Donations, or Podcast Requests, just ask!";
-    }
-    
-    // Default response with context and suggestions
-    return `${getContextualGreeting()} I can help you with:\n\n🎥 **Personalized Videos** - Custom celebrity messages\n🎭 **Acting Classes** - Professional coaching\n📢 **Promotions** - Brand endorsements\n❤️ **Donations** - Charitable campaigns\n🎙️ **Podcast Requests** - Celebrity guests\n\nI can also assist with bookings, pricing, payments, or any other questions. What would you like to know?`;
+    return 'general';
+  };
+  
+  const updateConversationContext = (userMessage, intent, botResponse) => {
+    setConversationContext(prev => ({
+      ...prev,
+      lastTopic: intent,
+      userInterests: [...new Set([...prev.userInterests, intent])],
+      askedQuestions: [...prev.askedQuestions, userMessage]
+    }));
   };
 
-  const handleSendMessage = () => {
+  const generateSmartSuggestions = (intent, context) => {
+    const suggestionMap = {
+      greeting: [
+        "What celebrities are available?",
+        "How does the booking process work?",
+        "What are your most popular services?"
+      ],
+      booking: [
+        "What information do you need for booking?",
+        "How far in advance should I book?",
+        "Can I get a quote first?"
+      ],
+      pricing: [
+        "Do you offer package deals?",
+        "What payment methods do you accept?",
+        "Are there any additional fees?"
+      ],
+      services: [
+        "Tell me about personalized videos",
+        "What about acting classes?",
+        "Do you handle corporate events?"
+      ],
+      payment: [
+        "Is Bitcoin payment secure?",
+        "Can I pay in installments?",
+        "What if I need to cancel?"
+      ],
+      general: [
+        "Show me popular celebrities",
+        "What makes your service special?",
+        "How do I get started?"
+      ]
+    };
+
+    return suggestionMap[intent] || suggestionMap.general;
+  };
+
+  const getBotResponse = (userMessage, intent) => {
+    const responses = {
+      greeting: [
+        "Hello! I'm excited to help you connect with amazing celebrities. What kind of experience are you looking for?",
+        "Hi there! Welcome to Celeb Live Access. I'm here to make your celebrity booking experience seamless and enjoyable.",
+        "Great to meet you! I can help you with everything from finding the perfect celebrity to completing your booking."
+      ],
+      booking: [
+        "I'd love to help you book a celebrity! First, let me know what type of event or service you're interested in. Are you looking for a meet & greet, personalized video, acting class, or something else?",
+        "Booking a celebrity is easier than you might think! I can guide you through our simple process. What's the occasion and do you have any specific celebrities in mind?",
+        "Perfect! Let's get your celebrity booking started. Tell me about your event - is it a birthday, corporate event, or special celebration?"
+      ],
+      pricing: [
+        "Our pricing varies based on the celebrity and service type. Meet & greets typically start at $500, personalized videos from $200, and acting classes from $300. Would you like specific pricing for any celebrity?",
+        "Great question! Pricing depends on the celebrity's popularity and the service. I can provide exact quotes once you tell me who you're interested in and what service you need.",
+        "We offer competitive pricing across all our services. For the most accurate quote, I'll need to know which celebrity and service you're considering. Shall we start there?"
+      ],
+      services: [
+        "We offer several amazing services: 🎬 Personalized Videos, 🤝 Meet & Greets, 🎭 Acting Classes, 📢 Celebrity Promotions, 💝 Charity Donations, and 🎙️ Podcast Appearances. Which interests you most?",
+        "Our services are designed to create unforgettable experiences! We specialize in personalized videos, exclusive meet & greets, professional acting coaching, brand promotions, charitable partnerships, and podcast bookings.",
+        "I'm excited to tell you about our services! We connect you with celebrities for personalized content, in-person meetings, professional training, marketing campaigns, charity events, and media appearances. What sounds most appealing?"
+      ],
+      payment: [
+        "We accept multiple payment methods including credit cards, PayPal, and Bitcoin for your convenience. All transactions are secure and protected. We also offer payment plans for larger bookings. 💳\n\nFor Bitcoin payments, here's a helpful tutorial: https://youtu.be/dQw4w9WgXcQ",
+        "Payment is simple and secure! We support traditional methods like cards and PayPal, plus modern options like Bitcoin. You'll receive confirmation immediately after payment.",
+        "We've made payment easy with multiple options including cryptocurrency! All payments are processed securely, and you'll get instant confirmation with booking details."
+      ],
+      help: [
+        "I'm here to help with anything you need! I can explain our services, help you choose the right celebrity, guide you through booking, answer pricing questions, or assist with payments. What would be most helpful?",
+        "Absolutely! I can assist with celebrity selection, booking procedures, pricing information, payment options, or any other questions. Just let me know what you'd like to explore first.",
+        "I'd be happy to help! Whether you need guidance on our services, help choosing a celebrity, booking assistance, or payment support, I'm here for you. What can I clarify?"
+      ],
+      availability: [
+        "Celebrity availability varies, but I can check real-time schedules for you! Most of our stars can accommodate bookings within 2-4 weeks. Do you have specific dates or a particular celebrity in mind?",
+        "Great question! Availability depends on the celebrity and service type. Popular stars may need more advance notice, while others might be available sooner. Shall I check availability for someone specific?",
+        "I can help you check availability! Most celebrities update their schedules regularly. If you tell me who you're interested in and your preferred timeframe, I can provide current availability."
+      ],
+      contact: [
+        "You can reach our team several ways: 📧 Email us at support@celebliveaccess.com, 📞 Call (555) 123-CELEB, or continue chatting with me right here! I can handle most questions immediately.",
+        "I'm your direct line to our team! For immediate help, keep chatting with me. For complex bookings, email support@celebliveaccess.com or call our booking hotline at (555) 123-CELEB.",
+        "You're already in the right place! I can answer most questions instantly. For specialized requests, our team is available at support@celebliveaccess.com or (555) 123-CELEB."
+      ],
+      thanks: [
+        "You're very welcome! I'm here whenever you need assistance. Is there anything else I can help you with today?",
+        "My pleasure! I love helping people connect with their favorite celebrities. Feel free to ask if you have any other questions!",
+        "Happy to help! That's what I'm here for. Don't hesitate to reach out if you need anything else."
+      ],
+      general: [
+        "I'd be happy to help you with that! Could you tell me a bit more about what you're looking for? Are you interested in booking a celebrity, learning about our services, or something else?",
+        "That's a great question! To give you the most helpful information, could you let me know what specific aspect of our celebrity services interests you most?",
+        "I want to make sure I give you exactly the information you need. Could you help me understand what you'd like to know more about?"
+      ]
+    };
+
+    const responseArray = responses[intent] || responses.general;
+    return responseArray[Math.floor(Math.random() * responseArray.length)];
+  };
+
+  const handleSendMessage = async () => {
     if (!inputValue.trim()) return;
 
     const userMessage = {
-      id: messages.length + 1,
+      id: Date.now(),
       text: inputValue,
       sender: 'user',
       timestamp: new Date()
@@ -200,24 +214,81 @@ const ChatBot = () => {
     setMessages(prev => [...prev, userMessage]);
     setInputValue('');
     setIsTyping(true);
+    setSmartSuggestions([]);
 
-    // Simulate bot typing delay
+    // Analyze user intent
+    const intent = analyzeUserIntent(inputValue);
+    
+    // Simulate API delay
     setTimeout(() => {
-      const botResponse = {
-        id: messages.length + 2,
-        text: getBotResponse(inputValue),
+      const botResponse = getBotResponse(inputValue, intent);
+      const botMessage = {
+        id: Date.now() + 1,
+        text: botResponse,
         sender: 'bot',
         timestamp: new Date()
       };
-      
-      setMessages(prev => [...prev, botResponse]);
+
+      setMessages(prev => [...prev, botMessage]);
       setIsTyping(false);
-    }, 1500);
+      
+      // Update conversation context
+      updateConversationContext(inputValue, intent, botResponse);
+      
+      // Generate smart suggestions (filtered)
+      setUsedSuggestions(currentUsed => {
+        const allSuggestions = generateSmartSuggestions(intent, conversationContext);
+        const filteredSuggestions = allSuggestions.filter(suggestion => !currentUsed.has(suggestion));
+        setSmartSuggestions(filteredSuggestions);
+        return currentUsed;
+      });
+    }, 1000 + Math.random() * 1000);
   };
 
   const handleQuickReply = (reply) => {
-    setInputValue(reply);
-    setTimeout(() => handleSendMessage(), 100);
+    // Clear suggestions immediately
+    setSmartSuggestions([]);
+    
+    // Add user message
+    const userMessage = {
+      id: Date.now(),
+      text: reply,
+      sender: 'user',
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage]);
+    setIsTyping(true);
+    
+    // Add to used suggestions to prevent reappearing
+    setUsedSuggestions(prev => {
+      const newUsedSuggestions = new Set([...prev, reply]);
+      
+      // Process bot response after a delay
+      setTimeout(() => {
+        const intent = analyzeUserIntent(reply);
+        const botResponse = getBotResponse(reply, intent);
+        const botMessage = {
+          id: Date.now() + 1,
+          text: botResponse,
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        
+        setMessages(prev => [...prev, botMessage]);
+        setIsTyping(false);
+        
+        // Update conversation context
+        updateConversationContext(reply, intent, botResponse);
+        
+        // Generate new smart suggestions (filtered)
+        const allSuggestions = generateSmartSuggestions(intent, conversationContext);
+        const filteredSuggestions = allSuggestions.filter(suggestion => !newUsedSuggestions.has(suggestion));
+        setSmartSuggestions(filteredSuggestions);
+      }, 800 + Math.random() * 800);
+      
+      return newUsedSuggestions;
+    });
   };
 
   const handleKeyPress = (e) => {
@@ -229,54 +300,47 @@ const ChatBot = () => {
 
   return (
     <div className="chatbot-container">
-      {/* Chat Window */}
       {isOpen && (
         <div className="chatbot-window">
+          {/* Modern Header */}
           <div className="chatbot-header">
             <div className="bot-info">
-              <div className="bot-avatar">🤖</div>
-              <div>
-                <h4>Celebrity Assistant</h4>
-                <span className="status">Online • Context-Aware</span>
+              <div className="bot-avatar">
+                🤖
+              </div>
+              <div className="bot-details">
+                <h3>Celebrity Assistant</h3>
+                <div className="bot-status">
+                  <div className="status-indicator"></div>
+                  Online now
+                </div>
               </div>
             </div>
-            <button 
-              className="close-btn"
-              onClick={() => setIsOpen(false)}
-            >
-              ✕
-            </button>
           </div>
 
+          {/* Messages */}
           <div className="chatbot-messages">
             {messages.map((message) => (
-              <div 
-                key={message.id} 
-                className={`message ${message.sender}`}
-              >
+              <div key={message.id} className={`message ${message.sender}`}>
                 <div className="message-content">
-                  {message.text.split('\n').map((line, index) => (
-                    <div key={index}>
-                      {line.includes('https://youtu.be/') ? (
-                        <>
-                          {line.split('https://youtu.be/')[0]}
-                          <a 
-                            href={`https://youtu.be/${line.split('https://youtu.be/')[1]}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="video-link"
-                          >
-                            🎥 Watch Payment Help Video
-                          </a>
-                          {line.split('https://youtu.be/')[1] && line.split('https://youtu.be/')[1].includes(' ') && 
-                            line.split('https://youtu.be/')[1].split(' ').slice(1).join(' ')
-                          }
-                        </>
-                      ) : (
-                        line
-                      )}
+                  {message.text.includes('https://youtu.be/') ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', wordWrap: 'break-word', overflowWrap: 'break-word' }}>
+                      <span>{message.text.split('https://youtu.be/')[0]}</span>
+                      <a 
+                        href={`https://youtu.be/${message.text.split('https://youtu.be/')[1].split(' ')[0]}`}
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="video-link"
+                      >
+                        🎥 Watch Payment Help Video
+                      </a>
+                      {message.text.split('https://youtu.be/')[1] && message.text.split('https://youtu.be/')[1].includes(' ') && 
+                        <span>{message.text.split('https://youtu.be/')[1].split(' ').slice(1).join(' ')}</span>
+                      }
                     </div>
-                  ))}
+                  ) : (
+                    <span style={{ wordWrap: 'break-word', overflowWrap: 'break-word', whiteSpace: 'pre-wrap' }}>{message.text}</span>
+                  )}
                 </div>
                 <div className="message-time">
                   {message.timestamp.toLocaleTimeString([], { 
@@ -302,8 +366,24 @@ const ChatBot = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Replies */}
-          {messages.length <= 2 && (
+          {/* Smart Suggestions */}
+          {smartSuggestions.length > 0 && (
+            <div className="quick-replies">
+              <div className="suggestions-header">Suggested questions:</div>
+              {smartSuggestions.map((suggestion, index) => (
+                <button 
+                  key={index}
+                  className="quick-reply-btn" 
+                  onClick={() => handleQuickReply(suggestion)}
+                >
+                  {suggestion}
+                </button>
+              ))}
+            </div>
+          )}
+          
+          {/* Default Quick Replies when no smart suggestions */}
+          {smartSuggestions.length === 0 && messages.length <= 2 && (
             <div className="quick-replies">
               {quickReplies.map((reply, index) => (
                 <button 
@@ -338,7 +418,7 @@ const ChatBot = () => {
         </div>
       )}
 
-      {/* Floating Button */}
+      {/* Floating Toggle Button */}
       <button 
         className={`chatbot-toggle ${isOpen ? 'open' : ''}`}
         onClick={() => setIsOpen(!isOpen)}

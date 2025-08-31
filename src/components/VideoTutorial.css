@@ -231,6 +231,7 @@
 @media (max-width: 768px) {
   .video-tutorial-container {
     padding: 15px;
+    margin: 5px;
   }
   
   .payment-option {
@@ -239,20 +240,34 @@
   
   .alternative-actions {
     flex-direction: column;
+    gap: 10px;
   }
   
   .alternative-actions button {
     min-width: auto;
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 1rem;
+    min-height: 44px;
   }
   
   .tutorial-header h3 {
     font-size: 1.3rem;
   }
+  
+  .tutorial-header p {
+    font-size: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
+  .video-tutorial-container {
+    padding: 10px;
+    margin: 2px;
+  }
+  
   .video-wrapper {
-    margin-bottom: 20px;
+    margin-bottom: 15px;
   }
   
   .payment-option {
@@ -266,5 +281,19 @@
   
   .option-icon {
     margin-bottom: 5px;
+  }
+  
+  .tutorial-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .tutorial-header p {
+    font-size: 0.95rem;
+  }
+  
+  .alternative-actions button {
+    padding: 14px 20px;
+    font-size: 1.05rem;
+    min-height: 48px;
   }
 }

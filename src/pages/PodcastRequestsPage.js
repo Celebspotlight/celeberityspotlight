@@ -33,6 +33,16 @@ const PodcastRequestsPage = () => {
     specialRequests: '',
     agreeToTerms: false
   });
+  
+  // Prevent scroll when showing Bitcoin payment
+  useEffect(() => {
+    if (showBitcoinPayment) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    }
+  }, [showBitcoinPayment]);
 
   const podcastTypes = {
     interview: {
@@ -204,18 +214,11 @@ const PodcastRequestsPage = () => {
   const handleBitcoinPaymentComplete = () => {
     setShowBitcoinPayment(false);
     
-    // Restore body scroll - THIS WAS MISSING!
+    // Restore body scroll
     document.body.style.overflow = 'unset';
     
-    // Scroll back to the clicked button
-    setTimeout(() => {
-      if (clickedButtonRef) {
-        clickedButtonRef.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-      }
-    }, 100);
+    // Don't scroll when Bitcoin payment completes - stay in current position
+    // The user should remain where the modal was opened
     
     alert('Thank you for your booking! Your Bitcoin payment has been processed.');
   };
@@ -223,9 +226,13 @@ const PodcastRequestsPage = () => {
   const handleCloseModal = () => {
     setShowBookingForm(false);
     setShowPaymentModal(false);
+    setShowBitcoinPayment(false);
     
     // Restore body scroll
     document.body.style.overflow = 'unset';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
     
     // Scroll back to the clicked button
     setTimeout(() => {
@@ -246,12 +253,12 @@ const PodcastRequestsPage = () => {
   return (
     <div className="podcast-requests-page">
       {/* Hero Section */}
-      <div className="page-header">
-        <div className="container">
+      <section className="hero-section">
+        <div className="hero-content">
           <h1>Podcast Requests</h1>
           <p>Invite celebrities as guests for interviews, panels, or live Q&A sessions</p>
         </div>
-      </div>
+      </section>
 
       {/* Services Overview */}
       <section className="podcast-services">

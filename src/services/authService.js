@@ -126,11 +126,35 @@ class AuthService {
         });
       }
 
-      // Update Firestore document
-      await updateDoc(doc(db, 'users', user.uid), {
-        ...userData,
-        updatedAt: Timestamp.now()
-      });
+      // Check if user document exists, if not create it
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      
+      if (!userDoc.exists()) {
+        // Create user document if it doesn't exist
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName || userData.displayName || '',
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          phone: userData.phone || '',
+          createdAt: Timestamp.now(),
+          updatedAt: Timestamp.now(),
+          isActive: true,
+          preferences: {
+            emailNotifications: true,
+            smsNotifications: false
+          },
+          ...userData
+        });
+      } else {
+        // Update existing document
+        await updateDoc(userDocRef, {
+          ...userData,
+          updatedAt: Timestamp.now()
+        });
+      }
 
       return { success: true };
     } catch (error) {

@@ -1129,7 +1129,10 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                   <h2>Crypto Payment Tutorial</h2>
                   <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
                 </div>
-                <CryptoTutorial onClose={() => setShowCryptoTutorial(false)} />
+                <CryptoTutorial 
+                  onContinue={() => setShowCryptoTutorial(false)}
+                  onSkip={() => setShowCryptoTutorial(false)}
+                />
               </div>
             </div>
           )}

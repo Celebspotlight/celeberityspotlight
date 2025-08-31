@@ -21,6 +21,20 @@ const PaymentModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const [paymentError, setPaymentError] = useState(null);
   const [apiStatus, setApiStatus] = useState(null);
+  
+  // Body scroll management
+  useEffect(() => {
+    if (isOpen) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+    
+    // Cleanup function to ensure body scroll is always restored
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+  
   // Check API connectivity on component mount
   useEffect(() => {
     const checkAPI = async () => {
@@ -40,32 +54,29 @@ const PaymentModal = ({
     setPaymentError(null);
     
     try {
-      // Prepare booking data for enhanced payment service
-      const bookingData = {
-        bookingId: `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        totalAmount: amount,
-        celebrityName: service?.title || 'Celebrity Experience',
-        email: formData.email,
-        fullName: formData.fullName,
-        phone: formData.phone,
-        notes: formData.notes,
-        selectedCrypto: paymentType === 'bitcoin' ? 'btc' : 'btc', // Default to BTC
+      // For Bitcoin payments, use the same logic as BookingModal
+      if (paymentType === 'bitcoin' && onBitcoinPayment) {
+        await onBitcoinPayment(formData);
+        // Don't close the modal - let the parent component handle it
+        return;
+      }
+      
+      // For regular payments, try enhanced payment service first
+      const paymentData = {
+        service: service?.title || service?.name || 'Service',
+        amount: amount,
+        customerInfo: formData,
         paymentType: paymentType
       };
-
-      console.log('Creating payment with enhanced service:', bookingData);
       
-      // Use enhanced payment service
-      const paymentResult = await enhancedPaymentService.createPayment(bookingData);
+      const response = await enhancedPaymentService.createPayment(paymentData);
       
-      console.log('Payment result:', paymentResult);
-      
-      if (paymentResult.payment_url) {
-        // Redirect to payment URL
-        window.open(paymentResult.payment_url, '_blank');
+      if (response.success && response.paymentUrl) {
+        // Restore body scroll before redirecting
+        document.body.style.overflow = 'unset';
         
-        // Show success message
-        alert(`Payment initiated successfully! ${paymentResult.mock ? '(Mock payment for testing)' : ''}\n\nPayment ID: ${paymentResult.payment_id}\n\nA new tab has opened for payment completion.`);
+        // Redirect to payment URL
+        window.location.href = response.paymentUrl;
         
         // Close modal
         onClose();
@@ -98,7 +109,11 @@ const PaymentModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={() => {
+      // Restore body scroll before closing
+      document.body.style.overflow = 'unset';
+      onClose();
+    }}>
       <div 
         className="payment-modal" 
         onClick={(e) => e.stopPropagation()}

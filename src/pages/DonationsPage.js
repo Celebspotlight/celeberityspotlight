@@ -14,6 +14,21 @@ const DonationsPage = () => {
   const [campaignAmounts, setCampaignAmounts] = useState({});
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
   const paymentModalRef = useRef(null);
+  
+  // Prevent scroll when showing Bitcoin payment
+  useEffect(() => {
+    if (showBitcoinPayment) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+      document.body.style.height = '100%';
+    } else {
+      document.body.style.overflow = 'unset';
+      document.body.style.position = '';
+      document.body.style.width = '';
+      document.body.style.height = '';
+    }
+  }, [showBitcoinPayment]);
 
   const campaigns = [
     {
@@ -295,31 +310,33 @@ const DonationsPage = () => {
     localStorage.setItem('donations', JSON.stringify(existingDonations));
     
     setShowBitcoinPayment(true);
-    setShowPaymentModal(false);
+    // Keep the payment modal open - don't close it
+    // setShowPaymentModal(false);
   };
 
   const handleBitcoinPaymentComplete = () => {
     setShowBitcoinPayment(false);
+    setShowPaymentModal(false);
     setCampaignAmounts(prev => ({
       ...prev,
       [selectedCampaign.id]: ''
     }));
     
-    // Scroll back to the clicked button
-    setTimeout(() => {
-      if (clickedButtonRef) {
-        clickedButtonRef.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-      }
-    }, 100);
+    // Don't scroll when Bitcoin payment completes - stay in current position
+    // The user should remain where the modal was opened
     
     alert('Thank you for your donation! Your Bitcoin payment has been processed.');
   };
 
   const handleCloseModal = () => {
     setShowPaymentModal(false);
+    setShowBitcoinPayment(false);
+    
+    // Restore body scroll
+    document.body.style.overflow = 'unset';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
     
     // Scroll back to the clicked button
     setTimeout(() => {
@@ -433,7 +450,10 @@ const DonationsPage = () => {
             <BitcoinPayment
               amount={donationAmount}
               onPaymentComplete={handleBitcoinPaymentComplete}
-              onCancel={() => setShowBitcoinPayment(false)}
+              onCancel={() => {
+                setShowBitcoinPayment(false);
+                setShowPaymentModal(false);
+              }}
               bookingId={`DN-${Date.now()}`}
             />
           </div>
@@ -451,8 +471,8 @@ const DonationsPage = () => {
               ×
             </button>
             <CryptoTutorial 
-                  onContinue={() => setShowCryptoTutorial(false)}
-                  onSkip={() => setShowCryptoTutorial(false)}
+                   onContinue={() => setShowCryptoTutorial(false)}
+                   onSkip={() => setShowCryptoTutorial(false)}
                 />
           </div>
         </div>
