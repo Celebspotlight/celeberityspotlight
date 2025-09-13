@@ -11,21 +11,21 @@ const CryptoTutorial = ({ onContinue, onSkip }) => {
       title: 'Step 1: Setting Up Your Crypto Wallet',
       description: 'Learn how to create and set up a cryptocurrency wallet for secure transactions.',
       videoUrl: '/Step 1.mp4',
-      duration: '3:45'
+      duration: '1:33'
     },
     {
       id: 2,
       title: 'Step 2: Buying Cryptocurrency',
       description: 'Discover how to purchase cryptocurrency using various payment methods.',
       videoUrl: '/Step 2.mp4',
-      duration: '4:20'
+      duration: '2:23'
     },
     {
       id: 3,
       title: 'Step 3: Making Your Payment',
       description: 'Complete your transaction by sending crypto to our payment processor.',
       videoUrl: '/Step 3.mp4',
-      duration: '2:55'
+      duration: '2:03'
     }
   ];
 

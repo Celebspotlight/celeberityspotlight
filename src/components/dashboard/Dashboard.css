@@ -2192,6 +2192,175 @@
   line-height: 1.5;
 }
 
+/* Personalized Videos Section */
+.personalized-videos-section {
+  padding: 2rem;
+}
+
+.pending-videos, .all-videos {
+  margin-bottom: 3rem;
+}
+
+.pending-videos h3, .all-videos h3 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0 0 1.5rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #e2e8f0;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.videos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.video-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.video-card.pending {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.video-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.video-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.video-title h3 {
+  margin: 0 0 0.5rem 0;
+  color: #0f172a;
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+.video-id {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.video-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: white;
+}
+
+.video-details {
+  margin-bottom: 1.5rem;
+}
+
+.video-details p {
+  margin: 0.5rem 0;
+  color: #4b5563;
+  font-size: 0.9rem;
+}
+
+.video-details strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+.video-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.empty-state-small {
+  text-align: center;
+  padding: 40px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #e2e8f0;
+  color: #64748b;
+  font-size: 14px;
+  margin: 1rem 0;
+}
+
+/* Dark mode styles for personalized videos section */
+[data-theme="dark"] .personalized-videos-section {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .pending-videos h3,
+[data-theme="dark"] .all-videos h3 {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .video-card {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  box-shadow: 
+    0 4px 12px var(--shadow-color),
+    0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .video-card.pending {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border-left-color: var(--warning-color);
+}
+
+[data-theme="dark"] .video-card:hover {
+  background: var(--border-color);
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.4),
+    0 6px 20px var(--shadow-color);
+}
+
+[data-theme="dark"] .video-title h3 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .video-id {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .video-details p {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+[data-theme="dark"] .video-details strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .empty-state-small {
+  background: var(--border-color);
+  border-color: var(--text-secondary);
+  color: var(--text-secondary);
+}
+
 /* Promo Cards */
 .promo-grid {
   display: grid;
@@ -3436,4 +3605,144 @@
 
 [data-theme="dark"] .unread-indicator {
   background: #3b82f6;
+}
+
+/* Donation History Styles */
+.donations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.donation-item {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.donation-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.donation-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.donation-info p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.donation-date {
+  font-size: 12px !important;
+  color: #999 !important;
+}
+
+.donation-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Dark theme for donation history */
+[data-theme="dark"] .donation-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .donation-info h4 {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .donation-info p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .donation-date {
+  color: #94a3b8 !important;
+}
+
+/* Promotion History Styles */
+.promotion-history {
+  margin-top: 30px;
+}
+
+.promotions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.promotion-item {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+}
+
+.promotion-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.promotion-info h4 {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.promotion-info p {
+  margin: 4px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.promotion-date {
+  font-size: 12px !important;
+  color: #999 !important;
+}
+
+.promotion-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Dark theme for promotion history */
+[data-theme="dark"] .promotion-item {
+  background: #334155;
+  border-color: #475569;
+}
+
+[data-theme="dark"] .promotion-info h4 {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .promotion-info p {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .promotion-date {
+  color: #94a3b8 !important;
 }

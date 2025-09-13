@@ -2,9 +2,12 @@ import React, { useState, useEffect } from 'react';
 import './ActingClassModal.css';
 import BitcoinPayment from './BitcoinPayment';
 import CryptoTutorial from './CryptoTutorial';
-import './ActingClassModal.css';
+import { db } from '../services/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 const ActingClassModal = ({ coach, onClose }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -69,24 +72,7 @@ const ActingClassModal = ({ coach, onClose }) => {
       return;
     }
     
-    const bookingId = `acting_${Date.now()}`;
-    const bookingData = {
-      bookingId,
-      type: 'acting_class',
-      coachId: coach.id,
-      coachName: coach.name,
-      classType: coach.class_type,
-      duration: coach.class_duration,
-      totalAmount: coach.class_price,
-      customerInfo: formData,
-      timestamp: new Date().toISOString(),
-      status: 'pending_payment'
-    };
-    
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingData);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
-    
+    // Only show Bitcoin payment modal - DO NOT create booking data until payment is confirmed
     setShowBitcoinPayment(true);
   };
 
@@ -104,22 +90,64 @@ const ActingClassModal = ({ coach, onClose }) => {
       
       // Save booking data
       const bookingData = {
+        id: bookingId,
         bookingId,
         type: 'acting_class',
-        coachId: coach.id,
-        coachName: coach.name,
-        classType: coach.class_type,
-        duration: coach.class_duration,
-        totalAmount: coach.class_price,
-        customerInfo: formData,
-        timestamp: new Date().toISOString(),
-        status: 'pending'
+        coach: {
+          id: coach.id,
+          name: coach.name,
+          classType: coach.class_type,
+          duration: coach.class_duration
+        },
+        customerInfo: {
+          fullName: formData.fullName,
+          email: formData.email,
+          preferredDateTime: formData.preferredDateTime,
+          classTopic: formData.classTopic,
+          notes: formData.notes
+        },
+        pricing: {
+          total: coach.class_price
+        },
+        status: 'pending',
+        paymentStatus: 'pending',
+        paymentMethod: 'pending',
+        createdAt: new Date().toISOString()
       };
       
-      // Save to localStorage (in production, save to database)
+      // Save to localStorage first
       const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
       existingBookings.push(bookingData);
       localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      console.log('Acting class booking saved to localStorage');
+      
+      // Save to Firebase for admin panel visibility
+      try {
+        const bookingsCollection = collection(db, 'bookings');
+        const docRef = await addDoc(bookingsCollection, {
+          ...bookingData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        console.log('Acting class booking saved to Firebase with ID:', docRef.id);
+      } catch (firebaseError) {
+        console.error('Error saving acting class booking to Firebase:', firebaseError);
+        // Don't fail the entire process if Firebase save fails
+      }
+      
+      // Show success notification
+      try {
+        if (window.showNotification) {
+          window.showNotification(
+            `🎉 Acting class booking confirmed! Booking ID: ${bookingId}. Please complete your payment to secure your spot.`,
+            'success'
+          );
+        }
+      } catch (notificationError) {
+        console.log('Notification system not available:', notificationError);
+      }
+      
+      console.log('Acting class booking saved successfully:', bookingData);
       
       // Show simple confirmation message
       alert(`Acting class booking confirmed! Your booking ID is: ${bookingId}\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
@@ -127,6 +155,11 @@ const ActingClassModal = ({ coach, onClose }) => {
       // Restore body scroll before closing
       document.body.style.overflow = 'unset';
       onClose();
+      
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
       
     } catch (error) {
       console.error('Booking failed:', error);

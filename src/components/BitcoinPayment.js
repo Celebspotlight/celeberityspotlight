@@ -34,7 +34,14 @@ const BitcoinPayment = ({ amount, onPaymentComplete, onCancel, bookingId }) => {
   
   const handlePaymentConfirmation = () => {
     if (!addressCopied) {
-      alert('Please copy the Bitcoin address first before confirming payment.');
+      // Show modern notification instead of alert
+      const notificationData = {
+        type: 'warning',
+        title: 'Address Required',
+        message: 'Please copy the Bitcoin address first before confirming payment.'
+      };
+      localStorage.setItem('pendingNotification', JSON.stringify(notificationData));
+      window.dispatchEvent(new CustomEvent('showNotification', { detail: notificationData }));
       return;
     }
     
@@ -67,23 +74,21 @@ const BitcoinPayment = ({ amount, onPaymentComplete, onCancel, bookingId }) => {
     if (status === 'confirmed' && !paymentCompleted) {
       // Payment is fully confirmed, proceed with booking completion
       setPaymentCompleted(true);
-      setTimeout(() => {
-        onPaymentComplete && onPaymentComplete();
-      }, 2000);
+      onPaymentComplete && onPaymentComplete();
     }
   };
   
   const handleCloseStatusTracker = () => {
     setShowStatusTracker(false);
-    // Don't call onPaymentComplete again if it was already called
-    // The payment completion is handled in handleStatusUpdate
+    // Don't call onPaymentComplete - it should only be called through handleStatusUpdate
+    // This prevents duplicate completion calls
   };
   
   return (
     <>
     <div className="bitcoin-payment">
       <div className="payment-header">
-        <h3>🪙 Alternative Payment Method</h3>
+        <h3>🪙 Payment Method</h3>
         <p>Send Bitcoin to complete your booking</p>
       </div>
       

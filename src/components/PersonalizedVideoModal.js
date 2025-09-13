@@ -25,7 +25,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
   const [, setSelectedPaymentMethod] = useState(null);
   const modalRef = useRef(null);
 
-  // Simple modal management like BookingModal
+  // Enhanced modal management with proper viewport handling
   useEffect(() => {
     if (isOpen) {
       // Scroll to top when modal opens
@@ -36,6 +36,16 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
       
       // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden';
+      
+      // Ensure modal is visible in viewport when Bitcoin payment shows
+      if (showBitcoinPayment && modalRef.current) {
+        setTimeout(() => {
+          modalRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
+          });
+        }, 100);
+      }
     } else {
       // Restore body scroll when modal closes
       document.body.style.overflow = 'unset';
@@ -45,7 +55,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [isOpen, showBitcoinPayment]);
 
   if (!isOpen) return null;
 
@@ -87,23 +97,26 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
   // };
 
   const handleBitcoinPayment = () => {
-    const bookingId = 'PV' + Date.now();
-    const bookingData = {
-      id: bookingId,
-      type: 'personalized_video',
-      celebrity: celebrity,
-      videoType: formData.videoType,
-      formData: formData,
-      total: totalPrice,
-      status: 'pending_payment',
-      createdAt: new Date().toISOString()
-    };
+    // Prevent duplicate payment submissions
+    if (window.personalizedVideoSubmitting) {
+      console.log('Payment submission already in progress');
+      return;
+    }
     
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingData);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
+    window.personalizedVideoSubmitting = true;
     
+    // Only show Bitcoin payment modal - DO NOT create booking data until payment is confirmed
     setShowBitcoinPayment(true);
+    
+    // Ensure payment modal is visible in viewport
+    setTimeout(() => {
+      if (modalRef.current) {
+        modalRef.current.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }
+    }, 100);
   };
 
   // Removed unused handleRegularPayment function
@@ -357,6 +370,15 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
             window.personalizedVideoSaving = true;
             
             try {
+              // Show success notification immediately
+              if (window.showNotification) {
+                window.showNotification('Payment confirmed! Processing your personalized video booking...', 'success');
+              }
+            } catch (notificationError) {
+              console.log('Notification system not available:', notificationError);
+            }
+            
+            try {
               // Handle payment completion with proper data persistence
               const bookingId = `PV-${Date.now()}`;
               
@@ -428,17 +450,44 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
                 // Don't fail the entire process if Firebase save fails
               }
               
-              // Show success notification
-              console.log('Payment confirmed! Personalized video booking saved successfully.');
+              // Show detailed success notification with booking ID
+              try {
+                if (window.showNotification) {
+                  window.showNotification(
+                    `🎉 Personalized video booking confirmed! Booking ID: ${bookingId}. You'll receive your custom video within 3-5 business days.`,
+                    'success'
+                  );
+                }
+              } catch (notificationError) {
+                console.log('Notification system not available:', notificationError);
+              }
               
+              console.log('Payment confirmed! Personalized video booking saved successfully.');
               console.log('Personalized video booking saved:', bookingData);
+              
+              // Redirect to dashboard after a short delay
+              setTimeout(() => {
+                window.location.href = '/dashboard';
+              }, 2000);
             } catch (error) {
               console.error('Error saving personalized video booking:', error);
-              console.log('Payment confirmed, but there was an issue saving your booking data.');
+              
+              // Show error notification
+              try {
+                if (window.showNotification) {
+                  window.showNotification(
+                    'Payment confirmed, but there was an issue saving your booking data. Please contact support with your payment confirmation.',
+                    'error'
+                  );
+                }
+              } catch (notificationError) {
+                console.log('Notification system not available:', notificationError);
+              }
             } finally {
-              // Reset the saving flag after a delay
+              // Reset both saving and submission flags
               setTimeout(() => {
                 window.personalizedVideoSaving = false;
+                window.personalizedVideoSubmitting = false;
               }, 5000);
             }
             
@@ -457,6 +506,8 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
           }}
             onCancel={() => {
               setShowBitcoinPayment(false);
+              // Clear submission guard when canceling
+              window.personalizedVideoSubmitting = false;
               // Ensure body scroll is restored when canceling payment
               document.body.style.overflow = 'unset';
             }}

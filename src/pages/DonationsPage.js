@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { createPayment } from '../services/paymentService';
 import BitcoinPayment from '../components/BitcoinPayment';
 import PaymentModal from '../components/PaymentModal';
@@ -6,6 +7,36 @@ import CryptoTutorial from '../components/CryptoTutorial';
 import './DonationsPage.css';
 
 const DonationsPage = () => {
+  // Test function to verify Firebase connection
+  window.testDonationSave = async () => {
+    try {
+      const { addDoc, collection } = await import('firebase/firestore');
+      const { db } = await import('../services/firebase');
+      
+      const testDonation = {
+        id: 'TEST_' + Date.now(),
+        type: 'donation',
+        campaign: { id: 'test', title: 'Test Campaign' },
+        amount: 10,
+        status: 'pending',
+        paymentStatus: 'pending',
+        paymentMethod: 'test',
+        userId: 'test-user',
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      
+      const docRef = await addDoc(collection(db, 'donations'), testDonation);
+      console.log('Test donation saved successfully with ID:', docRef.id);
+      console.log('Test donation data:', testDonation);
+      return { success: true, id: docRef.id };
+    } catch (error) {
+      console.error('Test donation save failed:', error);
+      return { success: false, error: error.message };
+    }
+  };
+
+  const { currentUser } = useAuth();
   const [selectedCampaign, setSelectedCampaign] = useState(null);
   const [donationAmount, setDonationAmount] = useState('');
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -212,6 +243,41 @@ const DonationsPage = () => {
     }));
   };
 
+  // Helper function to check for duplicates in Firebase
+  const checkFirebaseDuplicates = async (donationData) => {
+    try {
+      const { collection, query, where, getDocs } = await import('firebase/firestore');
+      const { db } = await import('../services/firebase');
+      
+      if (!currentUser?.uid) {
+        return false; // Skip Firebase check for anonymous users
+      }
+      
+      const donationsQuery = query(
+        collection(db, 'donations'),
+        where('userId', '==', currentUser.uid),
+        where('campaign.id', '==', donationData.campaign?.id || ''),
+        where('type', '==', 'donation')
+      );
+      
+      const querySnapshot = await getDocs(donationsQuery);
+      
+      const firebaseDuplicate = querySnapshot.docs.some(doc => {
+        const data = doc.data();
+        const sameAmount = Math.abs((data.amount || 0) - (donationData.amount || 0)) < 0.01;
+        const timeDiff = Math.abs(new Date(data.createdAt?.toDate?.() || data.createdAt).getTime() - new Date().getTime());
+        const recentTime = timeDiff < 300000; // Within 5 minutes
+        
+        return sameAmount && recentTime;
+      });
+      
+      return firebaseDuplicate;
+    } catch (error) {
+      console.error('Error checking Firebase duplicates:', error);
+      return false; // Don't block on error
+    }
+  };
+
   const handleDonate = (campaign, event) => {
     const amount = parseFloat(campaignAmounts[campaign.id] || '');
     if (!amount || amount <= 0) {
@@ -263,12 +329,52 @@ const DonationsPage = () => {
           formData,
           paymentUrl: response.invoice_url,
           status: 'pending_payment',
-          createdAt: new Date().toISOString()
+          paymentMethod: 'crypto',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
         };
         
+        // Enhanced duplicate detection for donations (similar to celebrity bookings)
         const existingDonations = JSON.parse(localStorage.getItem('donations') || '[]');
+        
+        const isDuplicate = existingDonations.some(donation => {
+          // Check for exact match on multiple fields
+          const sameUser = donation.formData?.email === formData.email;
+          const sameCampaign = donation.campaign?.id === selectedCampaign.id;
+          const sameAmount = Math.abs((donation.amount || 0) - donationAmount) < 0.01;
+          const sameType = donation.type === 'donation';
+          const recentTime = Math.abs(new Date(donation.createdAt).getTime() - new Date().getTime()) < 300000; // Within 5 minutes
+          
+          return sameUser && sameCampaign && sameAmount && sameType && recentTime;
+        });
+        
+        if (isDuplicate) {
+          console.log('Duplicate donation detected, skipping save.');
+          alert('A similar donation was recently submitted. Please check your dashboard.');
+          setShowPaymentModal(false);
+          return;
+        }
+        
         existingDonations.push(donationData);
         localStorage.setItem('donations', JSON.stringify(existingDonations));
+        
+        // Note: Don't save to Firebase here - only save after payment completion
+        // This prevents duplicate entries in the admin panel
+        console.log('Donation saved to localStorage, waiting for payment completion to save to Firebase');
+        
+        // Show notification (similar to celebrity booking)
+        const notification = {
+          id: Date.now(),
+          type: 'payment_reminder',
+          title: 'Donation Payment Initiated!',
+          message: 'Your donation payment has been initiated. Complete the payment and check your User Management section to track status.',
+          timestamp: new Date().toISOString(),
+          read: false
+        };
+        
+        const existingNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        existingNotifications.unshift(notification);
+        localStorage.setItem('notifications', JSON.stringify(existingNotifications));
         
         window.open(response.invoice_url, '_blank');
         setShowPaymentModal(false);
@@ -277,15 +383,35 @@ const DonationsPage = () => {
           [selectedCampaign.id]: ''
         }));
         
-        // Scroll back to the clicked button
+        // Save completed donation to Firebase immediately for regular payments
+        // since we don't have a callback mechanism like Bitcoin payments
+        try {
+          const { addDoc, collection } = await import('firebase/firestore');
+          const { db } = await import('../services/firebase');
+          
+          const completedDonationData = {
+            ...donationData,
+            status: 'pending', // Pending admin approval
+            paymentStatus: 'pending',
+            paymentMethod: 'crypto',
+            paymentReceived: true,
+            paymentVerifiedAt: new Date().toISOString(),
+            userId: currentUser?.uid || 'anonymous',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          };
+          
+          const docRef = await addDoc(collection(db, 'donations'), completedDonationData);
+          console.log('Regular payment donation saved to Firebase successfully with ID:', docRef.id);
+          console.log('Donation data saved:', completedDonationData);
+        } catch (firebaseError) {
+          console.error('Error saving regular payment donation to Firebase:', firebaseError);
+        }
+        
+        // Auto-redirect to dashboard after 2 seconds
         setTimeout(() => {
-          if (clickedButtonRef) {
-            clickedButtonRef.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center' 
-            });
-          }
-        }, 100);
+          window.location.href = '/dashboard';
+        }, 2000);
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -314,7 +440,88 @@ const DonationsPage = () => {
     // setShowPaymentModal(false);
   };
 
-  const handleBitcoinPaymentComplete = () => {
+  const handleBitcoinPaymentComplete = async () => {
+    try {
+      // Update donation status in localStorage
+      const existingDonations = JSON.parse(localStorage.getItem('donations') || '[]');
+      
+      // Enhanced duplicate detection before updating
+      const currentDonation = existingDonations.find(donation => 
+        donation.campaign?.id === selectedCampaign.id && 
+        donation.status === 'pending_bitcoin_payment'
+      );
+      
+      if (currentDonation) {
+        // Check for duplicates in Firebase before saving
+        const isDuplicateInFirebase = await checkFirebaseDuplicates(currentDonation);
+        if (isDuplicateInFirebase) {
+          console.log('Duplicate donation found in Firebase, skipping save.');
+          alert('A similar donation already exists. Please check your dashboard.');
+          setShowBitcoinPayment(false);
+          setShowPaymentModal(false);
+          return;
+        }
+      }
+      
+      const updatedDonations = existingDonations.map(donation => {
+        if (donation.campaign?.id === selectedCampaign.id && donation.status === 'pending_bitcoin_payment') {
+          return {
+            ...donation,
+            status: 'pending', // Pending admin approval like celebrity bookings
+            paymentStatus: 'pending',
+            paymentMethod: 'bitcoin',
+            paymentReceived: true,
+            paymentVerifiedAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          };
+        }
+        return donation;
+      });
+      localStorage.setItem('donations', JSON.stringify(updatedDonations));
+      
+      // Save to Firebase (similar to celebrity booking logic)
+      try {
+        const { addDoc, collection } = await import('firebase/firestore');
+        const { db } = await import('../services/firebase');
+        
+        const donationData = updatedDonations.find(d => 
+          d.campaign?.id === selectedCampaign.id && d.paymentReceived
+        );
+        
+        if (donationData) {
+          const docRef = await addDoc(collection(db, 'donations'), {
+            ...donationData,
+            userId: currentUser?.uid || 'anonymous',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          console.log('Bitcoin donation saved to Firebase successfully with ID:', docRef.id);
+          console.log('Bitcoin donation data saved:', donationData);
+        }
+      } catch (firebaseError) {
+        console.error('Error saving donation to Firebase:', firebaseError);
+        // Don't fail the entire process if Firebase save fails
+      }
+      
+      // Show notification (similar to celebrity booking)
+      const notification = {
+        id: Date.now(),
+        type: 'payment_reminder',
+        title: 'Donation Payment Submitted Successfully!',
+        message: 'Your Bitcoin donation payment has been submitted. Check your User Management section to track approval status.',
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      const existingNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+      existingNotifications.unshift(notification);
+      localStorage.setItem('notifications', JSON.stringify(existingNotifications));
+      
+    } catch (error) {
+      console.error('Error processing donation completion:', error);
+      alert('Donation saved locally but there was an issue with cloud sync. Your donation is still valid.');
+    }
+    
     setShowBitcoinPayment(false);
     setShowPaymentModal(false);
     setCampaignAmounts(prev => ({
@@ -322,10 +529,10 @@ const DonationsPage = () => {
       [selectedCampaign.id]: ''
     }));
     
-    // Don't scroll when Bitcoin payment completes - stay in current position
-    // The user should remain where the modal was opened
-    
-    alert('Thank you for your donation! Your Bitcoin payment has been processed.');
+    // Auto-redirect to dashboard after 3 seconds (like celebrity booking)
+    setTimeout(() => {
+      window.location.href = '/dashboard';
+    }, 3000);
   };
 
   const handleCloseModal = () => {

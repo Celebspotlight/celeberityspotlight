@@ -3,8 +3,12 @@ import './PodcastRequestsPage.css';
 import { createPayment } from '../services/paymentService';
 import BitcoinPayment from '../components/BitcoinPayment';
 import CryptoTutorial from '../components/CryptoTutorial';
+import { db } from '../services/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 
 const PodcastRequestsPage = () => {
+  const navigate = useNavigate();
   const [celebrities, setCelebrities] = useState([]);
   const [filteredCelebrities, setFilteredCelebrities] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -163,22 +167,8 @@ const PodcastRequestsPage = () => {
       const response = await createPayment(paymentRequestData);
       
       if (response && response.payment_url) {
-        const bookingData = {
-          id: bookingId,
-          type: 'podcast',
-          celebrity: selectedCelebrity,
-          podcastType: formData.podcastType,
-          price: totalAmount,
-          formData: { ...formData, ...paymentFormData },
-          paymentUrl: response.payment_url,
-          status: 'pending_payment',
-          createdAt: new Date().toISOString()
-        };
-        
-        const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-        existingBookings.push(bookingData);
-        localStorage.setItem('bookings', JSON.stringify(existingBookings));
-        
+        // DO NOT save booking data until payment is confirmed
+        // Only open payment URL
         window.open(response.payment_url, '_blank');
         handleCloseModal();
       }
@@ -191,36 +181,105 @@ const PodcastRequestsPage = () => {
   };
 
   const handleBitcoinPayment = (paymentData) => {
-    const bookingId = 'PODCAST' + Date.now();
-    const bookingData = {
-      id: bookingId,
-      type: 'podcast_request',
-      celebrity: selectedCelebrity,
-      formData: formData,
-      total: getPodcastPrice(selectedCelebrity, formData.podcastType),
-      status: 'pending_bitcoin_payment',
-      createdAt: new Date().toISOString(),
-      paymentMethod: 'bitcoin'
-    };
-    
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingData);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
-    
+    // Only show Bitcoin payment modal - DO NOT create booking data until payment is confirmed
     setShowBitcoinPayment(true);
     setShowPaymentModal(false);
   };
 
-  const handleBitcoinPaymentComplete = () => {
-    setShowBitcoinPayment(false);
-    
-    // Restore body scroll
-    document.body.style.overflow = 'unset';
-    
-    // Don't scroll when Bitcoin payment completes - stay in current position
-    // The user should remain where the modal was opened
-    
-    alert('Thank you for your booking! Your Bitcoin payment has been processed.');
+  const handleBitcoinPaymentComplete = async () => {
+    try {
+      const bookingId = `PC-${Date.now()}`;
+      const totalAmount = getPodcastPrice(selectedCelebrity, formData.podcastType);
+      
+      // Create booking data object
+      const bookingData = {
+        id: bookingId,
+        bookingId: bookingId,
+        type: 'podcast_booking',
+        celebrity: {
+          id: selectedCelebrity.id,
+          name: selectedCelebrity.name,
+          category: selectedCelebrity.category
+        },
+        podcastDetails: {
+          podcastName: formData.podcastName,
+          hostName: formData.hostName,
+          podcastType: formData.podcastType,
+          duration: formData.duration,
+          format: formData.format,
+          audience: formData.audience,
+          topic: formData.topic,
+          questions: formData.questions,
+          specialRequests: formData.specialRequests
+        },
+        contactInfo: {
+          email: formData.email,
+          phone: formData.phone
+        },
+        sessionDetails: {
+          preferredDate: formData.preferredDate,
+          preferredTime: formData.preferredTime
+        },
+        pricing: {
+          basePrice: podcastTypes[formData.podcastType].basePrice,
+          total: totalAmount
+        },
+        status: 'pending',
+        paymentStatus: 'pending_bitcoin_payment',
+        paymentMethod: 'bitcoin',
+        agreements: {
+          termsAccepted: formData.agreeToTerms
+        },
+        createdAt: new Date().toISOString()
+      };
+      
+      // Save to localStorage first
+      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      existingBookings.push(bookingData);
+      localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      console.log('Podcast booking saved to localStorage');
+      
+      // Save to Firebase for admin panel visibility
+      try {
+        const bookingsCollection = collection(db, 'bookings');
+        const docRef = await addDoc(bookingsCollection, {
+          ...bookingData,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        console.log('Podcast booking saved to Firebase with ID:', docRef.id);
+      } catch (firebaseError) {
+        console.error('Error saving podcast booking to Firebase:', firebaseError);
+        // Don't fail the entire process if Firebase save fails
+      }
+      
+      // Show success notification
+      try {
+        if (window.showNotification) {
+          window.showNotification(
+            `🎉 Podcast booking confirmed! Booking ID: ${bookingId}. We'll contact you within 24 hours to finalize details.`,
+            'success'
+          );
+        }
+      } catch (notificationError) {
+        console.log('Notification system not available:', notificationError);
+      }
+      
+      console.log('Podcast booking saved successfully:', bookingData);
+      
+    } catch (error) {
+      console.error('Error saving podcast booking:', error);
+    } finally {
+      setShowBitcoinPayment(false);
+      
+      // Restore body scroll
+      document.body.style.overflow = 'unset';
+      
+      // Navigate to dashboard after a short delay
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2000);
+    }
   };
 
   const handleCloseModal = () => {

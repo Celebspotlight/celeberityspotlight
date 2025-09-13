@@ -125,6 +125,32 @@ const getDefaultCelebrities = () => {
 };
 
 const AdminPage = () => {
+  // Test function to manually refresh pending payments
+  window.testLoadPendingPayments = async () => {
+    try {
+      const donationsCollection = collection(db, 'donations');
+      const donationsSnapshot = await getDocs(donationsCollection);
+      const allDonations = donationsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log('All donations in Firebase:', allDonations);
+      
+      const pendingDonations = allDonations.filter(donation => 
+        donation.status === 'pending' || 
+        donation.status === 'pending_payment' || 
+        donation.status === 'pending_bitcoin_payment'
+      );
+      
+      console.log('Pending donations:', pendingDonations);
+      return { allDonations, pendingDonations };
+    } catch (error) {
+      console.error('Test load failed:', error);
+      return { error: error.message };
+    }
+  };
+
   // Clean up old localStorage data on component mount
   const cleanupOldData = () => {
     try {
@@ -771,8 +797,9 @@ const AdminPage = () => {
           createdAt: data.createdAt?.toDate ? data.createdAt : data.createdAt
         };
         
-        // Load user's latest booking status
+        // Load user's bookings and donations
         try {
+          // Load bookings
           const bookingsCollection = collection(db, 'bookings');
           const userBookingsQuery = query(
             bookingsCollection,
@@ -780,23 +807,58 @@ const AdminPage = () => {
           );
           const userBookingsSnapshot = await getDocs(userBookingsQuery);
           
+          const userBookings = [];
           if (!userBookingsSnapshot.empty) {
-            // Sort by createdAt and get the latest booking (client-side)
-            const userBookings = userBookingsSnapshot.docs.map(doc => doc.data())
-              .sort((a, b) => {
-                const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
-                const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
-                return dateB - dateA;
+            userBookingsSnapshot.docs.forEach(bookingDoc => {
+              userBookings.push({
+                id: bookingDoc.id,
+                ...bookingDoc.data(),
+                type: 'booking'
               });
-            const latestBooking = userBookings[0];
-            // Check both status and paymentStatus to determine the latest booking status
+            });
+          }
+          
+          // Load donations
+          const donationsCollection = collection(db, 'donations');
+          const userDonationsQuery = query(
+            donationsCollection,
+            where('userId', '==', doc.id)
+          );
+          const userDonationsSnapshot = await getDocs(userDonationsQuery);
+          
+          const userDonations = [];
+          if (!userDonationsSnapshot.empty) {
+            userDonationsSnapshot.docs.forEach(donationDoc => {
+              userDonations.push({
+                id: donationDoc.id,
+                ...donationDoc.data(),
+                type: 'donation'
+              });
+            });
+          }
+          
+          // Combine and sort all user activities
+          const allUserActivities = [...userBookings, ...userDonations]
+            .sort((a, b) => {
+              const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
+              const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
+              return dateB - dateA;
+            });
+          
+          userData.bookings = userBookings;
+          userData.donations = userDonations;
+          userData.allActivities = allUserActivities;
+          
+          if (allUserActivities.length > 0) {
+            const latestActivity = allUserActivities[0];
+            // Check both status and paymentStatus to determine the latest activity status
             // Priority: completed > confirmed > pending
-            if (latestBooking.status === 'completed' || latestBooking.bookingStatus === 'completed') {
+            if (latestActivity.status === 'completed' || latestActivity.bookingStatus === 'completed') {
               userData.latestBookingStatus = 'completed';
-            } else if (latestBooking.status === 'confirmed' || latestBooking.paymentStatus === 'confirmed') {
+            } else if (latestActivity.status === 'confirmed' || latestActivity.paymentStatus === 'confirmed') {
               userData.latestBookingStatus = 'confirmed';
             } else {
-              userData.latestBookingStatus = latestBooking.paymentStatus || latestBooking.status || 'pending';
+              userData.latestBookingStatus = latestActivity.paymentStatus || latestActivity.status || 'pending';
             }
             userData.hasBookings = true;
           } else {
@@ -804,9 +866,12 @@ const AdminPage = () => {
             userData.hasBookings = false;
           }
         } catch (error) {
-          console.error('Error loading booking status for user:', doc.id, error);
+          console.error('Error loading user activities for user:', doc.id, error);
           userData.latestBookingStatus = 'error';
           userData.hasBookings = false;
+          userData.bookings = [];
+          userData.donations = [];
+          userData.allActivities = [];
         }
         
         console.log('👤 User found:', userData);
@@ -878,20 +943,40 @@ const AdminPage = () => {
 
   const loadAllBookings = async () => {
     try {
-      // Load only from Firebase database
+      // Load bookings from Firebase database
       const bookingsCollection = collection(db, 'bookings');
       const bookingsSnapshot = await getDocs(bookingsCollection);
       const firebaseBookings = bookingsSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        createdAt: doc.data().createdAt?.toDate?.() || new Date()
-      })).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+        type: doc.data().type || 'booking' // Ensure type is set
+      }));
+      
+      // Load donations from Firebase database
+      const donationsCollection = collection(db, 'donations');
+      const donationsSnapshot = await getDocs(donationsCollection);
+      const firebaseDonations = donationsSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt?.toDate?.() || new Date(),
+        type: 'donation' // Mark as donation type
+      }));
+      
+      // Combine bookings and donations
+      const allBookings = [...firebaseBookings, ...firebaseDonations]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       
       // Update both bookings and pending payments from database only
-      setBookings(firebaseBookings);
-      setPendingPayments(firebaseBookings.filter(b => b.paymentStatus === 'pending'));
+      setBookings(allBookings);
+      setPendingPayments(allBookings.filter(b => 
+        b.paymentStatus === 'pending' || 
+        b.status === 'pending' || 
+        b.status === 'pending_payment' || 
+        b.status === 'pending_bitcoin_payment'
+      ));
       
-      console.log(`Loaded ${firebaseBookings.length} bookings from database`);
+      console.log(`Loaded ${firebaseBookings.length} bookings and ${firebaseDonations.length} donations from database`);
     } catch (error) {
       console.error('Error loading bookings from database:', error);
       // Set empty arrays if database fails
@@ -934,6 +1019,7 @@ const AdminPage = () => {
     }
     
     try {
+      // Clear pending bookings
       const bookingsCollection = collection(db, 'bookings');
       const pendingQuery = query(
         bookingsCollection,
@@ -941,29 +1027,109 @@ const AdminPage = () => {
       );
       const pendingSnapshot = await getDocs(pendingQuery);
       
-      const deletePromises = pendingSnapshot.docs.map(async (docSnapshot) => {
+      const deleteBookingPromises = pendingSnapshot.docs.map(async (docSnapshot) => {
         await deleteDoc(doc(db, 'bookings', docSnapshot.id));
         console.log(`Deleted pending booking: ${docSnapshot.id}`);
       });
       
-      await Promise.all(deletePromises);
-      console.log(`Deleted ${pendingSnapshot.docs.length} pending payments from Firebase`);
+      // Clear pending donations
+      const donationsCollection = collection(db, 'donations');
+      const donationsSnapshot = await getDocs(donationsCollection);
+      const pendingDonations = donationsSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.status === 'pending' || data.status === 'pending_payment' || data.status === 'pending_bitcoin_payment';
+      });
+      
+      const deleteDonationPromises = pendingDonations.map(async (docSnapshot) => {
+        await deleteDoc(doc(db, 'donations', docSnapshot.id));
+        console.log(`Deleted pending donation: ${docSnapshot.id}`);
+      });
+      
+      await Promise.all([...deleteBookingPromises, ...deleteDonationPromises]);
+      console.log(`Deleted ${pendingSnapshot.docs.length} pending bookings and ${pendingDonations.length} pending donations from Firebase`);
       
       // Reload data
       await loadAllBookings();
       await loadPendingPayments();
       
-      alert(`Successfully deleted ${pendingSnapshot.docs.length} pending payments from Firebase`);
+      alert(`Successfully deleted ${pendingSnapshot.docs.length} pending bookings and ${pendingDonations.length} pending donations from Firebase`);
     } catch (error) {
       console.error('Error clearing pending payments:', error);
       alert('Error clearing pending payments. Check console for details.');
+    }
+  };
+  
+  // Function to remove duplicate donations from Firebase
+  const removeDuplicateDonations = async () => {
+    if (!window.confirm('Are you sure you want to remove duplicate donations? This will keep only the latest version of each duplicate.')) {
+      return;
+    }
+    
+    try {
+      const donationsCollection = collection(db, 'donations');
+      const donationsSnapshot = await getDocs(donationsCollection);
+      const allDonations = donationsSnapshot.docs.map(doc => ({
+        docId: doc.id,
+        ...doc.data()
+      }));
+      
+      // Group donations by their original ID (like DONATE1756680388529)
+      const donationGroups = {};
+      allDonations.forEach(donation => {
+        const originalId = donation.id || donation.docId;
+        if (!donationGroups[originalId]) {
+          donationGroups[originalId] = [];
+        }
+        donationGroups[originalId].push(donation);
+      });
+      
+      // Find duplicates and mark older ones for deletion
+      const toDelete = [];
+      Object.values(donationGroups).forEach(group => {
+        if (group.length > 1) {
+          // Sort by creation date, keep the newest
+          group.sort((a, b) => {
+            const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
+            const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
+            return dateB - dateA;
+          });
+          
+          // Mark all but the first (newest) for deletion
+          for (let i = 1; i < group.length; i++) {
+            toDelete.push(group[i].docId);
+          }
+        }
+      });
+      
+      if (toDelete.length === 0) {
+        alert('No duplicate donations found.');
+        return;
+      }
+      
+      // Delete duplicates
+      const deletePromises = toDelete.map(async (docId) => {
+        await deleteDoc(doc(db, 'donations', docId));
+        console.log(`Deleted duplicate donation: ${docId}`);
+      });
+      
+      await Promise.all(deletePromises);
+      console.log(`Deleted ${toDelete.length} duplicate donations from Firebase`);
+      
+      // Reload data
+      await loadAllBookings();
+      await loadPendingPayments();
+      
+      alert(`Successfully removed ${toDelete.length} duplicate donations from Firebase`);
+    } catch (error) {
+      console.error('Error removing duplicate donations:', error);
+      alert('Error removing duplicate donations. Check console for details.');
     }
   };
 
   const loadPendingPayments = async () => {
     setLoadingPayments(true);
     try {
-      // Load only from Firebase database
+      // Load pending bookings from Firebase database
       const bookingsCollection = collection(db, 'bookings');
       const pendingQuery = query(
         bookingsCollection,
@@ -976,13 +1142,39 @@ const AdminPage = () => {
         return {
           id: doc.id,
           ...data,
-          createdAt: data.createdAt?.toDate?.() || new Date()
+          createdAt: data.createdAt?.toDate?.() || new Date(),
+          type: data.type || 'booking'
         };
-      }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      });
       
-      setPendingPayments(firebaseBookings);
-      console.log(`Loaded ${firebaseBookings.length} pending payments from database`);
-      console.log('Pending payments data:', firebaseBookings); // Debug log
+      // Load pending donations from Firebase database
+      const donationsCollection = collection(db, 'donations');
+      const donationsSnapshot = await getDocs(donationsCollection);
+      const firebaseDonations = donationsSnapshot.docs
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+            type: 'donation'
+          };
+        })
+        .filter(donation => 
+          donation.status === 'pending' || 
+          donation.status === 'pending_payment' || 
+          donation.status === 'pending_bitcoin_payment'
+        );
+      
+      // Combine pending bookings and donations
+      const allPendingPayments = [...firebaseBookings, ...firebaseDonations]
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setPendingPayments(allPendingPayments);
+      console.log(`Loaded ${firebaseBookings.length} pending bookings and ${firebaseDonations.length} pending donations from database`);
+      console.log('Raw donations from Firebase:', donationsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
+      console.log('Filtered donations:', firebaseDonations);
+      console.log('All pending payments:', allPendingPayments); // Debug log
     } catch (error) {
       console.error('Error loading pending payments from database:', error);
       setPendingPayments([]);
@@ -1018,23 +1210,91 @@ const AdminPage = () => {
     if (!window.confirm('Are you sure you want to approve this payment?')) return;
     
     try {
-      // Get booking details before updating
-      const bookingDoc = doc(db, 'bookings', paymentId);
-      const bookingSnapshot = await getDoc(bookingDoc);
-      const bookingData = bookingSnapshot.data();
+      console.log('Attempting to approve payment with ID:', paymentId);
       
-      // Update in Firebase database
-      await updateDoc(bookingDoc, {
-        paymentStatus: 'confirmed',
-        bookingStatus: 'confirmed',
-        status: 'confirmed',
-        confirmedAt: new Date(),
-        confirmedBy: 'admin'
-      });
+      // First, try to find the payment in bookings collection
+      let paymentData = null;
+      let isBooking = true;
+      let actualDocId = paymentId;
+      
+      try {
+        const bookingDoc = doc(db, 'bookings', paymentId);
+        const bookingSnapshot = await getDoc(bookingDoc);
+        if (bookingSnapshot.exists()) {
+          paymentData = bookingSnapshot.data();
+          console.log('Found payment in bookings collection');
+        }
+      } catch (error) {
+        console.log('Payment not found in bookings, checking donations...', error.message);
+      }
+      
+      // If not found in bookings, check donations collection
+      if (!paymentData) {
+        try {
+          const donationDoc = doc(db, 'donations', paymentId);
+          const donationSnapshot = await getDoc(donationDoc);
+          if (donationSnapshot.exists()) {
+            paymentData = donationSnapshot.data();
+            isBooking = false;
+            console.log('Found payment in donations collection');
+          }
+        } catch (error) {
+          console.log('Payment not found in donations either', error.message);
+        }
+      }
+      
+      // If still not found, try to find by original donation ID in donations
+      if (!paymentData) {
+        try {
+          console.log('Searching donations by original ID...');
+          const donationsCollection = collection(db, 'donations');
+          const donationsSnapshot = await getDocs(donationsCollection);
+          
+          for (const docSnapshot of donationsSnapshot.docs) {
+            const data = docSnapshot.data();
+            if (data.id === paymentId || data.donationId === paymentId) {
+              paymentData = data;
+              actualDocId = docSnapshot.id;
+              isBooking = false;
+              console.log('Found donation by original ID:', paymentId, 'Firebase doc ID:', actualDocId);
+              break;
+            }
+          }
+        } catch (error) {
+          console.log('Error searching donations by original ID:', error.message);
+        }
+      }
+      
+      if (!paymentData) {
+        console.error('Payment not found anywhere. ID searched:', paymentId);
+        throw new Error('Payment not found in either bookings or donations collection');
+      }
+      
+      // Update the appropriate collection using the correct document ID
+      if (isBooking) {
+        const bookingDoc = doc(db, 'bookings', actualDocId);
+        await updateDoc(bookingDoc, {
+          paymentStatus: 'confirmed',
+          bookingStatus: 'confirmed',
+          status: 'confirmed',
+          confirmedAt: new Date(),
+          confirmedBy: 'admin'
+        });
+        console.log('Updated booking with doc ID:', actualDocId);
+      } else {
+        const donationDoc = doc(db, 'donations', actualDocId);
+        await updateDoc(donationDoc, {
+          status: 'confirmed',
+          paymentStatus: 'confirmed',
+          confirmedAt: new Date(),
+          confirmedBy: 'admin'
+        });
+        console.log('Updated donation with doc ID:', actualDocId);
+      }
       
       // Send notification to user
-      if (bookingData) {
-        await sendPaymentApprovalNotification({ id: paymentId, ...bookingData });
+      if (paymentData) {
+        await sendPaymentApprovalNotification({ id: paymentId, ...paymentData, type: isBooking ? 'booking' : 'donation' });
       }
       
       // Refresh all data to reflect changes
@@ -1042,7 +1302,8 @@ const AdminPage = () => {
       await loadPendingPayments();
       await loadUsers();
       
-      alert('Payment approved successfully! The booking is now confirmed and notification sent to user.');
+      const paymentType = isBooking ? 'booking' : 'donation';
+      alert(`${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)} payment approved successfully! The ${paymentType} is now confirmed and notification sent to user.`);
     } catch (error) {
       console.error('Error approving payment:', error);
       alert('Failed to approve payment. Please try again.');
@@ -2119,18 +2380,44 @@ const AdminPage = () => {
                     <td>
                       <div>
                         <strong>
-                          {booking.formData?.firstName || booking.firstName || 'N/A'} {booking.formData?.lastName || booking.lastName || 'N/A'}
+                          {booking.type === 'donation' 
+                            ? (booking.donorInfo?.firstName || booking.donorName?.split(' ')[0] || 'Anonymous') + ' ' + (booking.donorInfo?.lastName || booking.donorName?.split(' ').slice(1).join(' ') || 'Donor')
+                            : (booking.personalInfo?.firstName || booking.formData?.firstName || booking.firstName || 'N/A') + ' ' + (booking.personalInfo?.lastName || booking.formData?.lastName || booking.lastName || 'N/A')
+                          }
                         </strong>
                         <br />
-                        <small>{booking.formData?.email || booking.email || 'N/A'}</small>
+                        <small>
+                          {booking.type === 'donation' 
+                            ? (booking.donorInfo?.email || booking.personalInfo?.email || booking.formData?.email || booking.userEmail || booking.email || 'N/A')
+                            : (booking.personalInfo?.email || booking.formData?.email || booking.userEmail || booking.email || 'N/A')
+                          }
+                        </small>
                       </div>
                     </td>
-                    <td>{booking.celebrity?.name || 'N/A'}</td>
                     <td>
-                      {booking.formData?.date || booking.date || 'N/A'} at {booking.formData?.time || booking.time || 'N/A'}
+                      {booking.type === 'donation' 
+                        ? `Donation - ${typeof booking.campaign === 'string' ? booking.campaign : (booking.campaign?.name || 'General Fund')}`
+                        : (booking.celebrity?.name || 'N/A')
+                      }
                     </td>
-                    <td>{booking.formData?.package || booking.package || booking.podcastType || 'N/A'}</td>
-                    <td>${booking.total || booking.price || 0}</td>
+                    <td>
+                      {booking.type === 'donation' 
+                        ? 'N/A'
+                        : `${booking.sessionDetails?.date || booking.formData?.date || booking.date || 'N/A'} at ${booking.sessionDetails?.time || booking.formData?.time || booking.time || 'N/A'}`
+                      }
+                    </td>
+                    <td>
+                      {booking.type === 'donation' 
+                        ? 'Donation'
+                        : (booking.sessionDetails?.packageName || booking.sessionDetails?.package || booking.formData?.package || booking.package || booking.podcastType || 'N/A')
+                      }
+                    </td>
+                    <td>
+                      ${booking.type === 'donation' 
+                        ? (booking.amount || 0)
+                        : (booking.pricing?.total || booking.total || booking.price || 0)
+                      }
+                    </td>
                     <td>
                       <span className={`status ${booking.status}`}>
                         {booking.status}
@@ -2402,9 +2689,16 @@ const AdminPage = () => {
             <button 
               onClick={clearAllPendingPayments}
               className="clear-btn"
-              style={{marginBottom: '10px', backgroundColor: '#dc3545', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+              style={{marginBottom: '10px', backgroundColor: '#dc3545', color: 'white', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '10px'}}
             >
               Clear All Pending Payments
+            </button>
+            <button 
+              onClick={removeDuplicateDonations}
+              className="remove-duplicates-btn"
+              style={{marginBottom: '10px', backgroundColor: '#ffc107', color: 'black', padding: '8px 16px', border: 'none', borderRadius: '4px', cursor: 'pointer'}}
+            >
+              Remove Duplicate Donations
             </button>
             <div className="search-container">
               <input
@@ -2427,13 +2721,30 @@ const AdminPage = () => {
               {(() => {
                 // Group payments by customer
                 const groupedPayments = filteredPendingPayments.reduce((groups, payment) => {
-                  const customerKey = `${payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || 'Unknown'} ${payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || 'Customer'}`;
+                  // Enhanced customer info extraction for both bookings and donations
+                  let firstName, lastName, email, phone;
+                  
+                  if (payment.type === 'donation') {
+                    // For donations, check donation-specific fields
+                    firstName = payment.donorInfo?.firstName || payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || payment.donorName?.split(' ')[0] || 'Anonymous';
+                    lastName = payment.donorInfo?.lastName || payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || payment.donorName?.split(' ').slice(1).join(' ') || 'Donor';
+                    email = payment.donorInfo?.email || payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A';
+                    phone = payment.donorInfo?.phone || payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A';
+                  } else {
+                    // For bookings, use existing logic
+                    firstName = payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || 'Unknown';
+                    lastName = payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || 'Customer';
+                    email = payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A';
+                    phone = payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A';
+                  }
+                  
+                  const customerKey = `${firstName} ${lastName}`;
                   if (!groups[customerKey]) {
                     groups[customerKey] = {
                       customer: {
                         name: customerKey,
-                        email: payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A',
-                        phone: payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A'
+                        email: email,
+                        phone: phone
                       },
                       payments: []
                     };
@@ -2461,19 +2772,39 @@ const AdminPage = () => {
                     </div>
                     
                     <div className="customer-payments">
-                      {group.payments.map((payment) => (
-                        <div key={payment.id} className="payment-item">
+                      {group.payments.map((payment, index) => (
+                        <div key={`${payment.type || 'booking'}-${payment.id}-${index}`} className="payment-item">
                           <div className="payment-main">
                             <div className="payment-info">
                               <div className="booking-reference">#{payment.id.substring(0, 8)}</div>
-                              <div className="celebrity-name">{payment.celebrity?.name || 'N/A'}</div>
+                              <div className="celebrity-name">
+                                {payment.type === 'donation' 
+                                  ? `Donation - ${typeof payment.campaign === 'string' ? payment.campaign : (payment.campaign?.name || 'General Fund')}` 
+                                  : (payment.celebrity?.name || 'N/A')
+                                }
+                              </div>
                               <div className="session-details">
-                                <span className="package-type">{payment.sessionDetails?.package || payment.formData?.package || payment.package || payment.podcastType || 'Standard'}</span>
-                                <span className="session-date">{payment.sessionDetails?.date || payment.formData?.date || payment.date || 'TBD'}</span>
+                                <span className="package-type">
+                                  {payment.type === 'donation' 
+                                    ? `$${payment.amount || payment.totalAmount || 0} Donation` 
+                                    : (payment.sessionDetails?.package || payment.formData?.package || payment.package || payment.podcastType || 'Standard')
+                                  }
+                                </span>
+                                <span className="session-date">
+                                  {payment.type === 'donation' 
+                                    ? (payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A')
+                                    : (payment.sessionDetails?.date || payment.formData?.date || payment.date || 'TBD')
+                                  }
+                                </span>
                               </div>
                             </div>
                             <div className="payment-actions">
-                              <div className="payment-amount">${payment.pricing?.total || payment.total || payment.price || 0}</div>
+                              <div className="payment-amount">
+                                ${payment.type === 'donation' 
+                                  ? (payment.totalAmount || payment.amount || 0) 
+                                  : (payment.pricing?.total || payment.total || payment.price || 0)
+                                }
+                              </div>
                               <button 
                                 className="approve-payment-btn"
                                 onClick={() => confirmPayment(payment.id)}
@@ -3049,10 +3380,19 @@ const AdminPage = () => {
                   <span className="stat-label">Bookings</span>
                 </div>
                 <div className="quick-stat">
+                  <span className="stat-value">{selectedUser.donations?.length || 0}</span>
+                  <span className="stat-label">Donations</span>
+                </div>
+                <div className="quick-stat">
                   <span className="stat-value">
-                    ${selectedUser.bookings?.reduce((sum, booking) => 
-                      sum + (booking.pricing?.total || booking.total || 0), 0
-                    ) || 0}
+                    ${(
+                      (selectedUser.bookings?.reduce((sum, booking) => 
+                        sum + (booking.pricing?.total || booking.total || 0), 0
+                      ) || 0) +
+                      (selectedUser.donations?.reduce((sum, donation) => 
+                        sum + (donation.amount || 0), 0
+                      ) || 0)
+                    )}
                   </span>
                   <span className="stat-label">Total Spent</span>
                 </div>
@@ -3081,19 +3421,60 @@ const AdminPage = () => {
                 </div>
               </div>
 
-              {selectedUser.bookings && selectedUser.bookings.length > 0 && (
-                <div className="recent-bookings">
-                  <h5>Recent Bookings</h5>
-                  <div className="booking-list">
-                    {selectedUser.bookings.slice(0, 3).map((booking) => (
-                      <div key={booking.id || booking.bookingId} className="booking-item">
-                        <div className="booking-info">
-                          <span className="celebrity-name">{booking.celebrity?.name || 'N/A'}</span>
-                          <span className="booking-date">{booking.sessionDetails?.date || booking.date || 'N/A'}</span>
+              {selectedUser.allActivities && selectedUser.allActivities.length > 0 && (
+                <div className="recent-activities">
+                  <h5>Recent Activities</h5>
+                  <div className="activity-list">
+                    {selectedUser.allActivities.slice(0, 5).map((activity) => (
+                      <div key={activity.id || activity.bookingId} className="activity-item">
+                        <div className="activity-info">
+                          <span className="activity-type">
+                            {activity.type === 'donation' ? '💝' : '🎭'} 
+                            {activity.type === 'donation' 
+                              ? activity.campaign?.title || 'Donation'
+                              : activity.celebrity?.name || 'Booking'
+                            }
+                          </span>
+                          <span className="activity-date">
+                            {activity.type === 'donation'
+                              ? (activity.createdAt?.toDate?.() || new Date(activity.createdAt)).toLocaleDateString()
+                              : activity.sessionDetails?.date || activity.date || 'N/A'
+                            }
+                          </span>
+                          <span className="activity-amount">
+                            ${activity.type === 'donation' 
+                              ? activity.amount || 0
+                              : activity.pricing?.total || activity.total || 0
+                            }
+                          </span>
                         </div>
-                        <div className="booking-status">
-                          <span className={`status ${booking.paymentStatus}`}>
-                            {booking.paymentStatus || 'pending'}
+                        <div className="activity-status">
+                          <span className={`status ${activity.paymentStatus || activity.status}`}>
+                            {activity.paymentStatus || activity.status || 'pending'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {selectedUser.donations && selectedUser.donations.length > 0 && (
+                <div className="donation-history">
+                  <h5>Donation History</h5>
+                  <div className="donation-list">
+                    {selectedUser.donations.map((donation) => (
+                      <div key={donation.id} className="donation-item">
+                        <div className="donation-info">
+                          <span className="campaign-name">{donation.campaign?.title || 'Charitable Donation'}</span>
+                          <span className="donation-date">
+                            {(donation.createdAt?.toDate?.() || new Date(donation.createdAt)).toLocaleDateString()}
+                          </span>
+                          <span className="donation-amount">${donation.amount || 0}</span>
+                        </div>
+                        <div className="donation-status">
+                          <span className={`status ${donation.status}`}>
+                            {donation.status || 'pending'}
                           </span>
                         </div>
                       </div>

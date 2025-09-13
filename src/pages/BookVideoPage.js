@@ -190,25 +190,8 @@ const BookVideoPage = () => {
       
       const payment = await createPayment(paymentData);
       
-      // Save booking data
-      const bookingData = {
-        id: bookingId,
-        type: 'personalized_video',
-        celebrity: celebrity,
-        videoType: formData.videoType,
-        formData: formData,
-        total: totalPrice,
-        status: 'pending_payment',
-        createdAt: new Date().toISOString(),
-        paymentId: payment.payment_id,
-        paymentUrl: payment.payment_url
-      };
-      
-      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push(bookingData);
-      localStorage.setItem('bookings', JSON.stringify(existingBookings));
-      
-      // Redirect to payment
+      // DO NOT save booking data until payment is confirmed
+      // Only redirect to payment
       window.open(payment.payment_url, '_blank');
       
       // Redirect back to main page

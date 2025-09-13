@@ -11,6 +11,8 @@ const PromotionsPage = () => {
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
+  const [tempFormData, setTempFormData] = useState(null);
+  const [tempBookingId, setTempBookingId] = useState(null);
   const paymentModalRef = useRef(null);
 
   const promotionServices = [
@@ -165,26 +167,40 @@ const PromotionsPage = () => {
   };
 
   const handleBitcoinPayment = (formData) => {
+    // Generate booking ID but DO NOT save booking data until payment is confirmed
     const bookingId = 'PROMO' + Date.now();
-    const bookingData = {
-      id: bookingId,
-      type: 'promotion',
-      service: selectedService,
-      formData,
-      total: selectedService.price,
-      status: 'pending_bitcoin_payment',
-      createdAt: new Date().toISOString()
-    };
     
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingData);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
+    // Store form data temporarily for payment completion
+    setTempFormData(formData);
+    setTempBookingId(bookingId);
     
     setShowBitcoinPayment(true);
     setShowPaymentModal(false);
   };
 
   const handleBitcoinPaymentComplete = () => {
+    // Now save the booking data after payment confirmation
+    if (tempFormData && tempBookingId) {
+      const bookingData = {
+        id: tempBookingId,
+        type: 'promotion',
+        service: selectedService,
+        formData: tempFormData,
+        total: selectedService.price,
+        status: 'pending',
+        paymentMethod: 'bitcoin',
+        createdAt: new Date().toISOString()
+      };
+      
+      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      existingBookings.push(bookingData);
+      localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      
+      // Clear temporary data
+      setTempFormData(null);
+      setTempBookingId(null);
+    }
+    
     setShowBitcoinPayment(false);
     
     // Scroll back to the clicked button
@@ -196,8 +212,6 @@ const PromotionsPage = () => {
         });
       }
     }, 100);
-    
-    alert('Thank you for your purchase! Your Bitcoin payment has been processed.');
   };
 
   const handleCloseModal = () => {

@@ -8,6 +8,7 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
   const [transactionHash, setTransactionHash] = useState('');
   const [confirmations, setConfirmations] = useState(0);
   const [requiredConfirmations] = useState(3);
+  const [hasNotified, setHasNotified] = useState(false);
 
   const statusSteps = [
     {
@@ -15,28 +16,28 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
       title: 'Payment Submitted',
       description: 'Your Bitcoin payment has been submitted to the network',
       icon: '📤',
-      duration: 10 // seconds
+      duration: 5 // seconds
     },
     {
       key: 'broadcasting',
       title: 'Broadcasting Transaction',
       description: 'Transaction is being broadcast to the Bitcoin network',
       icon: '📡',
-      duration: 30
+      duration: 15
     },
     {
       key: 'pending',
       title: 'Pending Confirmation',
       description: 'Waiting for network confirmations',
       icon: '⏳',
-      duration: 120
+      duration: 45
     },
     {
       key: 'confirming',
       title: 'Confirming Transaction',
       description: `Receiving confirmations (${confirmations}/${requiredConfirmations})`,
       icon: '🔄',
-      duration: 60
+      duration: 25
     },
     {
       key: 'confirmed',
@@ -66,34 +67,69 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
         const newTime = prev + 1;
         
         // Update status based on time elapsed
-        if (newTime <= 10) {
+        if (newTime <= 5) {
           setCurrentStatus('submitted');
-          setProgress((newTime / 10) * 20);
-        } else if (newTime <= 40) {
+          setProgress((newTime / 5) * 20);
+        } else if (newTime <= 20) {
           setCurrentStatus('broadcasting');
-          setProgress(20 + ((newTime - 10) / 30) * 20);
-        } else if (newTime <= 160) {
+          setProgress(20 + ((newTime - 5) / 15) * 20);
+        } else if (newTime <= 65) {
           setCurrentStatus('pending');
-          setProgress(40 + ((newTime - 40) / 120) * 30);
-        } else if (newTime <= 220) {
+          setProgress(40 + ((newTime - 20) / 45) * 30);
+        } else if (newTime <= 90) {
           setCurrentStatus('confirming');
-          setProgress(70 + ((newTime - 160) / 60) * 25);
+          setProgress(70 + ((newTime - 65) / 25) * 25);
           
           // Simulate confirmations
-          const confirmationProgress = Math.floor((newTime - 160) / 20);
+          const confirmationProgress = Math.floor((newTime - 65) / 8);
           setConfirmations(Math.min(confirmationProgress, requiredConfirmations));
         } else {
           setCurrentStatus('confirmed');
           setProgress(100);
           setConfirmations(requiredConfirmations);
           
-          // Notify parent component
-          if (onStatusUpdate) {
+          // Notify parent component only once when first confirmed
+          if (newTime === 91 && onStatusUpdate && !hasNotified) {
+            setHasNotified(true);
+            
+            // Play notification sound with a more reliable audio source
+            try {
+              // Create a simple beep sound using Web Audio API
+              const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+              const oscillator = audioContext.createOscillator();
+              const gainNode = audioContext.createGain();
+              
+              oscillator.connect(gainNode);
+              gainNode.connect(audioContext.destination);
+              
+              oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+              oscillator.type = 'sine';
+              
+              gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+              gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+              
+              oscillator.start(audioContext.currentTime);
+              oscillator.stop(audioContext.currentTime + 0.5);
+              
+              console.log('Notification sound played successfully');
+            } catch (e) {
+              console.log('Audio notification failed:', e);
+              // Fallback: try with a simple audio element
+              try {
+                const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBSuBzvLZiTYIG2m98OScTgwOUarm7blmGgU7k9n1unEiBC13yO/eizEIHWq+8+OWT');
+                audio.volume = 0.3;
+                audio.play().catch(e => console.log('Fallback audio failed:', e));
+              } catch (fallbackError) {
+                console.log('All audio methods failed:', fallbackError);
+              }
+            }
+            
+            // Call the status update callback (no alert here - let BookingModal handle it)
             onStatusUpdate('confirmed');
           }
           
           // Auto close after 5 seconds of confirmation
-          if (newTime > 225) {
+          if (newTime > 95) {
             clearInterval(interval);
             setTimeout(() => {
               document.body.style.overflow = 'unset';

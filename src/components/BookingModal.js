@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../services/firebase';
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import './BookingModal.css';
 import CryptoTutorial from './CryptoTutorial';
 import BitcoinPayment from './BitcoinPayment';
@@ -12,9 +12,9 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
   const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
-  const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bitcoinPaymentStep, setBitcoinPaymentStep] = useState(1); // 1: details, 2: payment, 3: confirmation
+  const [bookingCompleted, setBookingCompleted] = useState(false);
 
   const [formData, setFormData] = useState({
     // Personal Information
@@ -120,21 +120,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     return Object.keys(errors).length === 0;
   };
 
-  // Add the copyToClipboard function
-  const copyToClipboard = (text) => {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('Booking ID copied to clipboard! 📋\n\nSave this ID for your records.');
-    }).catch(() => {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      alert('Booking ID copied to clipboard! 📋\n\nSave this ID for your records.');
-    });
-  };
+
 
   // Load saved form data on mount
   useEffect(() => {
@@ -145,6 +131,8 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
         setFormData(prev => ({ ...prev, ...parsed }));
       }
       setBookingId(generateBookingId());
+      // Reset booking completion state when modal opens
+      setBookingCompleted(false);
     }
   }, [isOpen, celebrity]);
 
@@ -219,7 +207,14 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
   const handleBitcoinPayment = () => {
     // Check authentication before proceeding with payment
     if (!currentUser) {
-      alert('Please sign in to complete your payment.');
+      // Show modern notification instead of alert
+      const notificationData = {
+        type: 'warning',
+        title: 'Sign In Required',
+        message: 'Please sign in to complete your payment.'
+      };
+      localStorage.setItem('pendingNotification', JSON.stringify(notificationData));
+      window.dispatchEvent(new CustomEvent('showNotification', { detail: notificationData }));
       navigate('/login');
       return;
     }
@@ -228,23 +223,8 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
       return;
     }
     
-    // Generate booking data for Bitcoin payment
+    // Generate booking ID but DO NOT save booking data until payment is confirmed
     const bookingId = 'BK' + Date.now();
-    const bookingData = {
-      id: bookingId,
-      celebrity: celebrity,
-      formData: formData,
-      total: calculateTotal(),
-      status: 'pending_bitcoin_payment',
-      createdAt: new Date().toISOString(),
-      paymentMethod: 'bitcoin',
-      paymentStatus: 'pending'
-    };
-    
-    // Save booking to localStorage
-    const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-    existingBookings.push(bookingData);
-    localStorage.setItem('bookings', JSON.stringify(existingBookings));
     
     // Clear the draft
     localStorage.removeItem(`booking-draft-${celebrity.id}`);
@@ -254,18 +234,49 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
     setBitcoinPaymentStep(1);
   };
   
-  // Handle Bitcoin payment completion
+  // Handle Bitcoin payment completion with ultimate guards
   const handleBitcoinPaymentComplete = async () => {
-    setBitcoinPaymentStep(3);
+    // Multiple layers of duplicate prevention
+    if (bookingCompleted) {
+      console.log('🛡️ Guard 1: Booking already completed, skipping duplicate execution.');
+      return;
+    }
+    
+    // Check if function is already running
+    const functionKey = `payment-processing-${celebrity.id}-${Date.now()}`;
+    if (window.paymentProcessing) {
+      console.log('🛡️ Guard 2: Payment already processing, skipping duplicate.');
+      return;
+    }
+    
+    // Set global processing flag
+    window.paymentProcessing = true;
+    
+    // Set completion flag immediately to prevent race conditions
+    setBookingCompleted(true);
     
     try {
-      // Update booking status to pending (awaiting admin approval)
-      const bookingData = {
+      // Create unique booking identifier for duplicate detection
+      const bookingIdentifier = `${celebrity.id}-${currentUser?.email || formData.email}-${Date.now()}`;
+      
+      // Check if this exact booking is already being processed
+      const processingKey = `processing-${bookingIdentifier}`;
+      if (localStorage.getItem(processingKey)) {
+        console.log('Booking already being processed, skipping duplicate.');
+        onClose();
+        navigate('/dashboard');
+        return;
+      }
+      
+      // Mark as processing
+      localStorage.setItem(processingKey, 'true');
+      
+      // Create the complete booking data
+      const fullBookingData = {
         bookingId: bookingId,
         userId: currentUser?.uid || 'guest',
         userEmail: currentUser?.email || formData.email,
         type: 'celebrity_experience',
-        service: `${celebrity.name} - ${packages[formData.package]?.name || 'Meet & Greet'}`,
         celebrity: {
           id: celebrity.id,
           name: celebrity.name,
@@ -283,7 +294,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
         },
         sessionDetails: {
           package: formData.package,
-          packageName: packages[formData.package]?.name || 'Standard Package',
+          packageName: packages[formData.package].name,
           date: formData.date,
           time: formData.time,
           location: formData.location,
@@ -296,12 +307,12 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
           accessibilityNeeds: formData.accessibilityNeeds
         },
         pricing: {
-          basePrice: packages[formData.package]?.price || celebrity.price,
+          basePrice: packages[formData.package].price,
           total: calculateTotal()
         },
-        status: 'pending', // Pending admin approval
+        status: 'pending',
+        paymentStatus: 'pending',
         paymentMethod: 'bitcoin',
-        paymentStatus: 'pending', // Keep as pending for admin panel visibility
         agreements: {
           termsAccepted: formData.agreeToTerms,
           privacyAccepted: formData.agreeToPrivacy,
@@ -311,39 +322,104 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
         updatedAt: new Date().toISOString()
       };
       
-      // Save to localStorage for immediate display in dashboard
+      // Enhanced duplicate detection - check multiple criteria
       const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      const existingIndex = existingBookings.findIndex(b => b.bookingId === bookingId);
       
-      if (existingIndex >= 0) {
-        existingBookings[existingIndex] = { ...existingBookings[existingIndex], ...bookingData };
-      } else {
-        existingBookings.push(bookingData);
+      const isDuplicate = existingBookings.some(booking => {
+        // Check for exact match on multiple fields
+        const sameUser = booking.userEmail === (currentUser?.email || formData.email);
+        const sameCelebrity = booking.celebrity?.id === celebrity.id;
+        const sameType = booking.type === 'celebrity_experience';
+        const sameBookingId = booking.bookingId === bookingId;
+        const recentTime = Math.abs(new Date(booking.createdAt).getTime() - new Date().getTime()) < 300000; // Within 5 minutes
+        
+        return (sameUser && sameCelebrity && sameType && recentTime) || sameBookingId;
+      });
+      
+      if (isDuplicate) {
+        console.log('Duplicate booking detected, skipping save.');
+        localStorage.removeItem(processingKey);
+        onClose();
+        navigate('/dashboard');
+        return;
       }
       
-      localStorage.setItem('bookings', JSON.stringify(existingBookings));
-      
-      // Update Firebase record with payment completion
-      try {
-        if (bookingData.id) {
-          const bookingRef = doc(db, 'bookings', bookingData.id);
-          await updateDoc(bookingRef, {
-            paymentStatus: 'pending', // Keep as pending for admin visibility
-            paymentMethod: 'bitcoin',
+      // Check Firebase for duplicates if user is authenticated
+      if (currentUser) {
+        try {
+          // Query Firebase for existing bookings to prevent duplicates
+          const q = query(
+            collection(db, 'bookings'),
+            where('userId', '==', currentUser.uid),
+            where('celebrity.id', '==', celebrity.id),
+            where('type', '==', 'celebrity_experience')
+          );
+          const querySnapshot = await getDocs(q);
+          
+          const firebaseDuplicate = querySnapshot.docs.some(doc => {
+            const data = doc.data();
+            const timeDiff = Math.abs(new Date(data.createdAt?.toDate?.() || data.createdAt).getTime() - new Date().getTime());
+            return timeDiff < 300000; // Within 5 minutes
+          });
+          
+          if (firebaseDuplicate) {
+            console.log('Firebase duplicate detected, skipping save.');
+            localStorage.removeItem(processingKey);
+            onClose();
+            navigate('/dashboard');
+            return;
+          }
+          
+          // Save to Firebase
+          const docRef = await addDoc(collection(db, 'bookings'), {
+            ...fullBookingData,
+            createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
           });
-          console.log('Firebase booking updated with payment completion');
+          fullBookingData.id = docRef.id;
+          console.log('Booking saved to Firebase with ID:', docRef.id);
+          
+          // Save to bookings localStorage only (unified storage)
+          existingBookings.push(fullBookingData);
+          localStorage.setItem('bookings', JSON.stringify(existingBookings));
+          console.log('Booking saved to bookings localStorage');
+          
+        } catch (firebaseError) {
+          console.error('Firebase save failed:', firebaseError);
+          // Fallback to localStorage save if Firebase fails
+          existingBookings.push(fullBookingData);
+          localStorage.setItem('bookings', JSON.stringify(existingBookings));
+          console.log('Booking saved to bookings localStorage (Firebase fallback)');
         }
-      } catch (firebaseError) {
-        console.error('Error updating Firebase booking:', firebaseError);
-      }
+      } else {
+        // Save to localStorage for guest users
+        existingBookings.push(fullBookingData);
+        localStorage.setItem('bookings', JSON.stringify(existingBookings));
+        console.log('Booking saved to bookings localStorage (guest user)');
+       }
       
-      // Show notification
+      // Clear the draft and processing flag
+      localStorage.removeItem(`booking-draft-${celebrity.id}`);
+      localStorage.removeItem(processingKey);
+      
+      // Show ultimate notification with strict deduplication
+      await window.showUltimateBookingNotification(
+        'success',
+        'Payment Confirmed!',
+        'Your booking has been submitted and is pending admin approval. Check your dashboard for updates.',
+        {
+          bookingId: bookingId,
+          celebrityId: celebrity.id,
+          read: false
+        }
+      );
+      
+      // Still save to localStorage for dashboard compatibility
       const notification = {
-        id: Date.now(),
-        type: 'payment_reminder',
-        title: 'Payment Submitted Successfully!',
-        message: 'Your Bitcoin payment has been submitted. Check your User Management section to track approval status.',
+        id: `booking-${bookingId}-${Date.now()}`,
+        type: 'success',
+        title: 'Payment Confirmed!',
+        message: 'Your booking has been submitted and is pending admin approval. Check your dashboard for updates.',
         timestamp: new Date().toISOString(),
         read: false
       };
@@ -352,42 +428,26 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
       existingNotifications.unshift(notification);
       localStorage.setItem('notifications', JSON.stringify(existingNotifications));
       
-    } catch (error) {
-      console.error('Error saving booking:', error);
-      alert('Booking saved locally but there was an issue with cloud sync. Your booking is still valid.');
-    }
-    
-    // Auto-redirect after 3 seconds
-    setTimeout(() => {
+      // Close modal and redirect to dashboard
       onClose();
       navigate('/dashboard');
-    }, 3000);
-  };
-  
-
-  
-  const handleCancelTransaction = () => {
-    if (window.confirm('Are you sure you want to cancel this transaction? Your booking will be cancelled.')) {
-      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      const updatedBookings = existingBookings.filter(booking => booking.id !== bookingId);
-      localStorage.setItem('bookings', JSON.stringify(updatedBookings));
       
-      setCurrentStep(1);
-      setPaymentData(null);
-      onClose();
+    } catch (error) {
+      console.error('Booking completion failed:', error);
+      // Clear processing flag on error
+      const processingKey = `processing-${celebrity.id}-${currentUser?.email || formData.email}-${Date.now()}`;
+      localStorage.removeItem(processingKey);
+      alert('There was an error completing your booking. Please contact support with your payment confirmation.');
+    } finally {
+      // Always clear the global processing flag
+      window.paymentProcessing = false;
+      console.log('🧹 Processing flag cleared');
     }
   };
+  
 
-  const handleGoBackToPayment = () => {
-    if (paymentData && paymentData.payment_url) {
-      const paymentWindow = window.open(paymentData.payment_url, '_blank', 'noopener,noreferrer');
-      if (!paymentWindow) {
-        alert('Please allow popups for this site to open the payment page.');
-      }
-    } else {
-      alert('Payment URL not available. Please try refreshing and booking again.');
-    }
-  };
+  
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -475,7 +535,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
       localStorage.removeItem(`booking-draft-${celebrity.id}`);
       
       // Show success message
-      alert(`Booking confirmed! Your booking ID is: ${bookingId}\n\nYou can view and manage your booking in your dashboard.\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
+      alert(`Booking details saved! Your booking ID is: ${bookingId}\n\nYou can view and manage your booking in your dashboard.\n\nPlease complete your payment to confirm the booking.`);
       
       // Navigate to dashboard
       onClose();
@@ -988,75 +1048,6 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
           {currentStep === 5 && (
             <div className="step-content bitcoin-payment-flow">
               {bitcoinPaymentStep === 1 && (
-                <div className="bitcoin-step booking-details">
-                  <div className="step-header">
-                    <h3>📋 Booking Details</h3>
-                    <p>Review your booking before payment</p>
-                  </div>
-                  
-                  <div className="booking-summary-card">
-                    <div className="celebrity-info">
-                      <img src={celebrity.image} alt={celebrity.name} className="celebrity-avatar" />
-                      <div>
-                        <h4>{celebrity.name}</h4>
-                        <p>{packages[formData.package].name}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="booking-details-grid">
-                      <div className="detail-item">
-                        <span className="label">Package:</span>
-                        <span className="value">{packages[formData.package].name}</span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="label">Duration:</span>
-                        <span className="value">{packages[formData.package].duration}</span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="label">Date & Time:</span>
-                        <span className="value">{formData.date} at {formData.time}</span>
-                      </div>
-                      <div className="detail-item">
-                        <span className="label">Total Amount:</span>
-                        <span className="value total-amount">${calculateTotal()}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="booking-id-section">
-                      <h5>Your Booking ID</h5>
-                      <div className="booking-id-display">
-                        <span className="booking-id-text">{bookingId}</span>
-                        <button 
-                          onClick={() => copyToClipboard(bookingId)}
-                          className="copy-id-btn"
-                          title="Copy to clipboard"
-                        >
-                          📋 Copy
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="step-actions">
-                    <button 
-                      type="button" 
-                      className="btn-secondary" 
-                      onClick={() => setCurrentStep(4)}
-                    >
-                      ← Back to Review
-                    </button>
-                    <button 
-                      type="button" 
-                      className="btn-primary" 
-                      onClick={() => setBitcoinPaymentStep(2)}
-                    >
-                      Continue to Payment →
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {bitcoinPaymentStep === 2 && (
                 <div className="bitcoin-step payment-instructions">
                   <div className="step-header">
                     <h3>₿ Bitcoin Payment</h3>
@@ -1066,43 +1057,13 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                   <BitcoinPayment
                     amount={calculateTotal()}
                     onPaymentComplete={handleBitcoinPaymentComplete}
-                    onCancel={() => setBitcoinPaymentStep(1)}
+                    onCancel={() => setCurrentStep(4)}
                     bookingId={bookingId}
                   />
                 </div>
               )}
               
-              {bitcoinPaymentStep === 3 && (
-                <div className="bitcoin-step payment-confirmation">
-                  <div className="confirmation-content">
-                    <div className="success-icon">✅</div>
-                    <h3>Payment Submitted Successfully!</h3>
-                    <p>Your Bitcoin payment has been received and is being processed.</p>
-                    
-                    <div className="next-steps">
-                      <h4>What happens next?</h4>
-                      <ul>
-                        <li>We'll verify your Bitcoin transaction (usually within 24-48 hours)</li>
-                        <li>You'll receive an email confirmation once verified</li>
-                        <li>Check your User Management section to track booking status</li>
-                        <li>You'll be redirected to your dashboard in a few seconds</li>
-                      </ul>
-                    </div>
-                    
-                    <div className="booking-reference">
-                      <h5>Booking Reference: {bookingId}</h5>
-                    </div>
-                    
-                    <div className="notification-alert">
-                      <div className="alert-icon">🔔</div>
-                      <div className="alert-content">
-                        <h6>Reminder Set!</h6>
-                        <p>We've added a reminder to check your booking status within the next hour.</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
+
             </div>
           )}
 

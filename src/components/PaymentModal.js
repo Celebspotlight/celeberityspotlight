@@ -45,10 +45,24 @@ const PaymentModal = ({
   }, []);
 
   const handleSubmit = async (paymentType) => {
-    if (!formData.fullName || !formData.email) {
-      alert('Please fill in required fields (Name and Email)');
+    // Component-level guard to prevent duplicate submissions
+    if (window.paymentSubmitting) {
+      console.log('🛡️ Payment already submitting, preventing duplicate');
       return;
     }
+    
+    if (!formData.fullName || !formData.email) {
+      // Show ultimate notification with strict deduplication
+      await window.showUltimateBookingNotification(
+        'warning',
+        'Required Fields Missing',
+        'Please fill in required fields (Name and Email)'
+      );
+      return;
+    }
+    
+    // Set submission guard
+    window.paymentSubmitting = true;
 
     setIsLoading(true);
     setPaymentError(null);
@@ -97,10 +111,20 @@ const PaymentModal = ({
         }
       } catch (fallbackError) {
         console.error('Fallback payment also failed:', fallbackError);
-        alert(`Payment processing failed: ${error.message}\n\nPlease try again or contact support.`);
+        // Show modern notification instead of alert
+        const notificationData = {
+          type: 'error',
+          title: 'Payment Failed',
+          message: `Payment processing failed: ${error.message}. Please try again or contact support.`
+        };
+        localStorage.setItem('pendingNotification', JSON.stringify(notificationData));
+        window.dispatchEvent(new CustomEvent('showNotification', { detail: notificationData }));
       }
     } finally {
       setIsLoading(false);
+      // Always clear the submission guard
+      window.paymentSubmitting = false;
+      console.log('🧹 Payment submission guard cleared');
     }
   };
 

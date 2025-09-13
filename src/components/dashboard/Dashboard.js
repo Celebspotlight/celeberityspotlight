@@ -38,12 +38,12 @@ const Dashboard = () => {
   // Load bookings from localStorage immediately
   const loadLocalBookings = useCallback(() => {
     try {
-      // Check both 'userBookings' and 'bookings' keys
-      const savedUserBookings = JSON.parse(localStorage.getItem('userBookings') || '[]');
+      // Use only the unified bookings localStorage array
       const savedBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      const savedDonations = JSON.parse(localStorage.getItem('donations') || '[]');
       
-      // Combine all local bookings
-      const allLocalBookings = [...savedUserBookings, ...savedBookings];
+      // Combine bookings and donations
+      const allLocalBookings = [...savedBookings, ...savedDonations];
       
       // If we have a current user, filter by userId, otherwise show all local bookings
       const userBookings = currentUser?.uid 
@@ -108,8 +108,36 @@ const Dashboard = () => {
         });
       });
       
+      // Fetch donations from Firebase
+      const donationsQuery = query(
+        collection(db, 'donations'),
+        where('userId', '==', currentUser.uid)
+      );
+      
+      const donationsSnapshot = await getDocs(donationsQuery);
+      const userDonations = [];
+      
+      donationsSnapshot.forEach((doc) => {
+        const donationData = doc.data();
+        userDonations.push({
+          id: doc.id,
+          ...donationData,
+          // Format data for display
+          service: donationData.campaign?.title || 'Charitable Donation',
+          date: '',
+          time: '',
+          status: donationData.status || 'pending',
+          total: donationData.amount || 0,
+          package: 'Donation',
+          paymentStatus: donationData.paymentStatus || 'pending'
+        });
+      });
+      
+      // Combine bookings and donations
+      const allUserData = [...userBookings, ...userDonations];
+      
       // Sort by createdAt descending (client-side)
-      userBookings.sort((a, b) => {
+      allUserData.sort((a, b) => {
         const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
         const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
         return dateB - dateA;
@@ -131,7 +159,7 @@ const Dashboard = () => {
         }));
       
       // Combine Firebase and local bookings
-      const allBookings = [...userBookings, ...localBookings];
+      const allBookings = [...allUserData, ...localBookings];
       
       // Remove duplicates based on bookingId
       const uniqueBookings = allBookings.filter((booking, index, self) => 
@@ -140,8 +168,8 @@ const Dashboard = () => {
       
       setBookings(uniqueBookings);
       
-      // Update localStorage with merged data
-      localStorage.setItem('userBookings', JSON.stringify(uniqueBookings));
+      // Update localStorage with merged data (unified storage)
+      localStorage.setItem('bookings', JSON.stringify(uniqueBookings));
       
     } catch (error) {
       console.error('Error loading bookings from Firebase:', error);
@@ -185,20 +213,43 @@ const Dashboard = () => {
     }
   }, [currentUser?.uid, loadUserBookings]);
 
-  // Listen for real-time booking updates
+  // Listen for real-time booking and donation updates
   useEffect(() => {
     if (!currentUser?.uid) return;
+
+    let currentBookingsData = [];
+    let currentDonationsData = [];
+
+    const updateCombinedData = () => {
+      const allData = [...currentBookingsData, ...currentDonationsData];
+      
+      // Sort by createdAt descending (client-side)
+      allData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
+        return dateB - dateA;
+      });
+      
+      setBookings(allData);
+      // Update localStorage with real-time data (unified storage)
+      localStorage.setItem('bookings', JSON.stringify(allData));
+    };
 
     const bookingsQuery = query(
       collection(db, 'bookings'),
       where('userId', '==', currentUser.uid)
     );
 
+    const donationsQuery = query(
+      collection(db, 'donations'),
+      where('userId', '==', currentUser.uid)
+    );
+
     const unsubscribeBookings = onSnapshot(bookingsQuery, (snapshot) => {
-      const updatedBookings = [];
+      currentBookingsData = [];
       snapshot.forEach((doc) => {
         const bookingData = doc.data();
-        updatedBookings.push({
+        currentBookingsData.push({
           id: doc.id,
           ...bookingData,
           service: bookingData.celebrity?.name || 'Celebrity Experience',
@@ -210,20 +261,32 @@ const Dashboard = () => {
           paymentStatus: bookingData.paymentStatus || 'pending'
         });
       });
-      
-      // Sort by createdAt descending (client-side)
-      updatedBookings.sort((a, b) => {
-        const dateA = a.createdAt?.toDate?.() || new Date(a.createdAt) || new Date(0);
-        const dateB = b.createdAt?.toDate?.() || new Date(b.createdAt) || new Date(0);
-        return dateB - dateA;
-      });
-      
-      setBookings(updatedBookings);
-      // Update localStorage with real-time data
-      localStorage.setItem('userBookings', JSON.stringify(updatedBookings));
+      updateCombinedData();
     });
 
-    return () => unsubscribeBookings();
+    const unsubscribeDonations = onSnapshot(donationsQuery, (snapshot) => {
+      currentDonationsData = [];
+      snapshot.forEach((doc) => {
+        const donationData = doc.data();
+        currentDonationsData.push({
+          id: doc.id,
+          ...donationData,
+          service: donationData.campaign?.title || 'Charitable Donation',
+          date: '',
+          time: '',
+          status: donationData.status || 'pending',
+          total: donationData.amount || 0,
+          package: 'Donation',
+          paymentStatus: donationData.paymentStatus || 'pending'
+        });
+      });
+      updateCombinedData();
+    });
+
+    return () => {
+      unsubscribeBookings();
+      unsubscribeDonations();
+    };
   }, [currentUser?.uid]);
 
   // Listen for real-time notifications
@@ -714,30 +777,73 @@ const Dashboard = () => {
           )}
 
           {activeTab === 'videos' && (
-            <div className="videos-section">
+            <div className="personalized-videos-section">
               <div className="section-header">
                 <h2>Personalized Videos</h2>
                 <div className="section-actions">
+                  <button 
+                    onClick={() => {
+                      setMessage('');
+                      loadUserBookings();
+                    }} 
+                    className="secondary-btn"
+                    disabled={isLoading}
+                    style={{ marginRight: '10px' }}
+                  >
+                    {isLoading ? 'Refreshing...' : '🔄 Refresh'}
+                  </button>
                   <button onClick={() => navigate('/personalized-videos')} className="primary-btn">
                     Request Video
                   </button>
                 </div>
               </div>
               
-              {/* Active Personalized Video Requests */}
-              <div className="active-videos">
-                <h3>Active Video Requests</h3>
-                {bookings.filter(b => b.type === 'personalized_video' && (b.status === 'pending' || b.status === 'confirmed')).length === 0 ? (
+              {message && (
+                <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
+                  <div className="message-content">
+                    <span className="message-text">{message}</span>
+                    <div className="message-actions">
+                      {message.includes('longer than expected') && (
+                        <>
+                          <button 
+                            onClick={() => {
+                              setMessage('');
+                              loadUserBookings();
+                            }} 
+                            className="retry-btn"
+                          >
+                            Retry
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setMessage('');
+                              setIsLoading(false);
+                            }} 
+                            className="cancel-btn"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Pending Video Requests */}
+              <div className="pending-videos">
+                <h3>Pending Video Requests</h3>
+                {bookings.filter(b => b.type === 'personalized_video' && (b.status === 'pending' || b.status === 'pending_payment')).length === 0 ? (
                   <div className="empty-state-small">
-                    <p>No active video requests</p>
+                    <p>No pending video requests</p>
                   </div>
                 ) : (
                   <div className="videos-grid">
-                    {bookings.filter(b => b.type === 'personalized_video' && (b.status === 'pending' || b.status === 'confirmed')).map((booking) => (
-                      <div key={booking.id || booking.bookingId || `video-${booking.celebrity?.name}-${booking.createdAt}`} className="video-card">
+                    {bookings.filter(b => b.type === 'personalized_video' && (b.status === 'pending' || b.status === 'pending_payment')).map((booking) => (
+                      <div key={booking.id || booking.bookingId || `pending-video-${booking.celebrity?.name}`} className="video-card pending">
                         <div className="video-header">
-                          <div className="video-info">
-                            <h4>{booking.celebrity?.name || 'Celebrity'} - {booking.videoDetails?.videoTypeName || 'Personalized Video'}</h4>
+                          <div className="video-title">
+                            <h3>{booking.celebrity?.name || 'Celebrity'} - {booking.videoDetails?.videoTypeName || 'Personalized Video'}</h3>
                             <p className="video-id">ID: {booking.bookingId}</p>
                           </div>
                           <span 
@@ -755,15 +861,15 @@ const Dashboard = () => {
                           {booking.videoDetails?.urgentDelivery && (
                             <p><strong>Delivery:</strong> Urgent (24-48 hours)</p>
                           )}
-                          {booking.paymentStatus === 'pending' && (
+                          {booking.paymentStatus === 'submitted' && (
                             <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Approval</p>
                           )}
                         </div>
                         <div className="video-actions">
-                          <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
                           {booking.status === 'pending_payment' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
+                          <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
                         </div>
                       </div>
                     ))}
@@ -771,38 +877,70 @@ const Dashboard = () => {
                 )}
               </div>
               
-              {/* Video Request History */}
-              <div className="video-history">
+              {/* All Video Requests Section */}
+              <div className="all-videos">
                 <h3>Video Request History</h3>
-                {bookings.filter(b => b.type === 'personalized_video').length === 0 ? (
-                  <div className="empty-state">
-                    <div className="empty-icon">🎬</div>
-                    <h3>No personalized videos yet</h3>
-                    <p>Request custom video messages from your favorite celebrities!</p>
-                    <button onClick={() => navigate('/celebrities')} className="primary-btn">
-                      Browse Celebrities
-                    </button>
+                {isLoading ? (
+                  <div className="loading-state">
+                    <div className="loading-spinner"></div>
+                    <p>Loading your video requests...</p>
                   </div>
-                ) : (
-                  <div className="videos-list">
+                ) : bookings.filter(b => b.type === 'personalized_video').length > 0 ? (
+                  <div className="videos-grid">
                     {bookings.filter(b => b.type === 'personalized_video').map((booking) => (
-                      <div key={booking.id || booking.bookingId || `video-history-${booking.celebrity?.name}-${booking.createdAt}`} className="video-item">
-                        <div className="video-item-info">
-                          <h4>{booking.celebrity?.name || 'Celebrity'} - {booking.videoDetails?.videoTypeName || 'Personalized Video'}</h4>
-                          <p>For: {booking.personalInfo?.recipientName || 'Recipient'} • ${booking.pricing?.total || booking.total}</p>
-                          <p className="video-date">{booking.createdAt ? formatDate(booking.createdAt) : 'Recent'}</p>
+                      <div key={booking.id || booking.bookingId || `video-${booking.celebrity?.name}-${booking.createdAt}`} className="video-card">
+                        <div className="video-header">
+                          <div className="video-title">
+                            <h3>{booking.celebrity?.name || 'Celebrity'} - {booking.videoDetails?.videoTypeName || 'Personalized Video'}</h3>
+                            <p className="video-id">ID: {booking.bookingId}</p>
+                          </div>
+                          <span 
+                            className="video-status"
+                            style={{ backgroundColor: getStatusColor(booking.status) }}
+                          >
+                            {booking.status.replace('_', ' ').toUpperCase()}
+                          </span>
                         </div>
-                        <span 
-                          className="video-status"
-                          style={{ backgroundColor: getStatusColor(booking.status) }}
-                        >
-                          {booking.status.replace('_', ' ').toUpperCase()}
-                        </span>
+                        <div className="video-details">
+                          <p><strong>For:</strong> {booking.personalInfo?.recipientName || 'Recipient'}</p>
+                          <p><strong>From:</strong> {booking.personalInfo?.senderName || 'Sender'}</p>
+                          <p><strong>Type:</strong> {booking.videoDetails?.videoTypeName || 'Standard Video'}</p>
+                          <p><strong>Total:</strong> ${booking.pricing?.total || booking.total}</p>
+                          {booking.videoDetails?.urgentDelivery && (
+                            <p><strong>Delivery:</strong> Urgent (24-48 hours)</p>
+                          )}
+                          {booking.paymentStatus === 'submitted' && (
+                            <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Admin Approval</p>
+                          )}
+                          {booking.videoDetails?.specialRequests && (
+                            <p><strong>Special Requests:</strong> {booking.videoDetails.specialRequests}</p>
+                          )}
+                        </div>
+                        <div className="video-actions">
+                          <button className="secondary-btn" onClick={() => alert('Video details:\n\n' + JSON.stringify(booking, null, 2))}>View Details</button>
+                          {booking.status === 'pending_payment' && (
+                            <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
+                          )}
+                          {(booking.status === 'pending' || booking.status === 'pending_payment') && (
+                            <button className="danger-btn" onClick={() => alert('Cancellation feature coming soon!')}>Cancel</button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="empty-state">
+                    <div className="empty-icon">🎥</div>
+                    <h3>No video requests yet</h3>
+                    <p>Start by requesting your first personalized video.</p>
+                    <button onClick={() => navigate('/personalized-videos')} className="primary-btn">
+                      Request Video
+                    </button>
+                  </div>
                 )}
               </div>
+              
+
             </div>
           )}
 
@@ -816,13 +954,13 @@ const Dashboard = () => {
               {/* Active Celebrity Bookings */}
               <div className="active-bookings">
                 <h3>Active Celebrity Bookings</h3>
-                {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending')).length === 0 ? (
+                {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending')).length === 0 ? (
                   <div className="empty-state-small">
                     <p>No active celebrity bookings</p>
                   </div>
                 ) : (
                   <div className="bookings-grid">
-                    {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending')).map((booking) => (
+                    {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending')).map((booking) => (
                       <div key={booking.id || booking.bookingId || `celebrity-${booking.celebrity?.name || booking.service}-${booking.date || booking.createdAt}`} className="booking-card">
                         <div className="booking-header">
                           <h4>{booking.celebrity?.name || booking.service} - Meet & Greet</h4>
@@ -857,7 +995,7 @@ const Dashboard = () => {
               {/* Booking History */}
               <div className="booking-history">
                 <h3>Celebrity Booking History</h3>
-                {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet')))).length === 0 ? (
+                {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet')))).length === 0 ? (
                   <div className="empty-state">
                     <div className="empty-icon">⭐</div>
                     <h3>No celebrity bookings yet</h3>
@@ -868,7 +1006,7 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="bookings-list">
-                    {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet')))).map((booking) => (
+                    {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet')))).map((booking) => (
                       <div key={booking.id || booking.bookingId || `celebrity-list-${booking.celebrity?.name || booking.service}-${booking.date || booking.createdAt}`} className="booking-item">
                         <div className="booking-info">
                           <h4>{booking.celebrity?.name || booking.service} - Meet & Greet</h4>
@@ -1136,6 +1274,35 @@ const Dashboard = () => {
                   </div>
                 </div>
                 
+                <div className="promotion-history">
+                  <h3>Your Promotion History</h3>
+                  {bookings.filter(b => b.type === 'promotion').length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">🎯</div>
+                      <h4>No promotions used yet</h4>
+                      <p>Take advantage of our special offers and promotional deals.</p>
+                    </div>
+                  ) : (
+                    <div className="promotions-list">
+                      {bookings.filter(b => b.type === 'promotion').map((promotion) => (
+                        <div key={promotion.id || promotion.bookingId || `promotion-${promotion.createdAt}`} className="promotion-item">
+                          <div className="promotion-info">
+                            <h4>{promotion.celebrity || 'Promotional Booking'}</h4>
+                            <p>Package: {promotion.package} • Amount: ${promotion.amount}</p>
+                            <p className="promotion-date">{promotion.createdAt ? formatDate(promotion.createdAt) : 'Recent'}</p>
+                          </div>
+                          <span 
+                            className="promotion-status"
+                            style={{ backgroundColor: getStatusColor(promotion.status) }}
+                          >
+                            {promotion.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                
                 <div className="newsletter-signup">
                   <h3>Never Miss a Deal</h3>
                   <p>Subscribe to get exclusive promotions and early access to new celebrities</p>
@@ -1251,14 +1418,34 @@ const Dashboard = () => {
                 
                 <div className="donation-history">
                   <h3>Your Donation History</h3>
-                  <div className="empty-state">
-                    <div className="empty-icon">💝</div>
-                    <h4>No donations made yet</h4>
-                    <p>Support your favorite celebrities' charitable causes and make a difference.</p>
-                    <button onClick={() => navigate('/donations')} className="primary-btn">
-                      View All Causes
-                    </button>
-                  </div>
+                  {bookings.filter(b => b.type === 'donation').length === 0 ? (
+                    <div className="empty-state">
+                      <div className="empty-icon">💝</div>
+                      <h4>No donations made yet</h4>
+                      <p>Support your favorite celebrities' charitable causes and make a difference.</p>
+                      <button onClick={() => navigate('/donations')} className="primary-btn">
+                        View All Causes
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="donations-list">
+                      {bookings.filter(b => b.type === 'donation').map((donation) => (
+                        <div key={donation.id || donation.bookingId || `donation-${donation.campaign?.title}-${donation.createdAt}`} className="donation-item">
+                          <div className="donation-info">
+                            <h4>{donation.campaign?.title || 'Charitable Donation'}</h4>
+                            <p>Amount: ${donation.amount} • {donation.campaign?.celebrity || 'General Fund'}</p>
+                            <p className="donation-date">{donation.createdAt ? formatDate(donation.createdAt) : 'Recent'}</p>
+                          </div>
+                          <span 
+                            className="donation-status"
+                            style={{ backgroundColor: getStatusColor(donation.status) }}
+                          >
+                            {donation.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
