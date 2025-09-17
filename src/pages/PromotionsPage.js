@@ -3,9 +3,13 @@ import { createPayment } from '../services/paymentService';
 import BitcoinPayment from '../components/BitcoinPayment';
 import PaymentModal from '../components/PaymentModal';
 import CryptoTutorial from '../components/CryptoTutorial';
+import { useAuth } from '../contexts/AuthContext';
+import { db } from '../services/firebase';
+import { collection, addDoc } from 'firebase/firestore';
 import './PromotionsPage.css';
 
 const PromotionsPage = () => {
+  const { currentUser } = useAuth();
   const [selectedService, setSelectedService] = useState(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
@@ -137,14 +141,33 @@ const PromotionsPage = () => {
           type: 'promotion',
           service: selectedService,
           formData,
+          personalInfo: formData, // Add for admin panel compatibility
           total: selectedService.price,
           paymentUrl: response.invoice_url,
           status: 'pending_payment',
-          createdAt: new Date().toISOString()
+          paymentStatus: 'pending',
+          paymentMethod: 'crypto',
+          userId: currentUser?.uid || 'anonymous',
+          userEmail: formData.email,
+          createdAt: new Date(),
+          updatedAt: new Date()
         };
         
+        // Save to Firebase
+        try {
+          const docRef = await addDoc(collection(db, 'bookings'), bookingData);
+          console.log('Promotion booking saved to Firebase with ID:', docRef.id);
+        } catch (firebaseError) {
+          console.error('Error saving promotion to Firebase:', firebaseError);
+          // Still continue with localStorage as fallback
+        }
+        
+        // Also save to localStorage for backward compatibility
         const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-        existingBookings.push(bookingData);
+        existingBookings.push({
+          ...bookingData,
+          createdAt: new Date().toISOString()
+        });
         localStorage.setItem('bookings', JSON.stringify(existingBookings));
         
         window.open(response.invoice_url, '_blank');
@@ -178,7 +201,7 @@ const PromotionsPage = () => {
     setShowPaymentModal(false);
   };
 
-  const handleBitcoinPaymentComplete = () => {
+  const handleBitcoinPaymentComplete = async () => {
     // Now save the booking data after payment confirmation
     if (tempFormData && tempBookingId) {
       const bookingData = {
@@ -186,14 +209,32 @@ const PromotionsPage = () => {
         type: 'promotion',
         service: selectedService,
         formData: tempFormData,
+        personalInfo: tempFormData, // Add for admin panel compatibility
         total: selectedService.price,
         status: 'pending',
+        paymentStatus: 'pending',
         paymentMethod: 'bitcoin',
-        createdAt: new Date().toISOString()
+        userId: currentUser?.uid || 'anonymous',
+        userEmail: tempFormData.email,
+        createdAt: new Date(),
+        updatedAt: new Date()
       };
       
+      // Save to Firebase
+      try {
+        const docRef = await addDoc(collection(db, 'bookings'), bookingData);
+        console.log('Bitcoin promotion booking saved to Firebase with ID:', docRef.id);
+      } catch (firebaseError) {
+        console.error('Error saving bitcoin promotion to Firebase:', firebaseError);
+        // Still continue with localStorage as fallback
+      }
+      
+      // Also save to localStorage for backward compatibility
       const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push(bookingData);
+      existingBookings.push({
+        ...bookingData,
+        createdAt: new Date().toISOString()
+      });
       localStorage.setItem('bookings', JSON.stringify(existingBookings));
       
       // Clear temporary data
