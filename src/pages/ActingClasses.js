@@ -72,13 +72,22 @@ const ActingClasses = () => {
         }
       }
     };
+    
+    // Handle same-window storage updates (for real-time image updates)
+    const handleSameWindowUpdate = (e) => {
+      if (e.detail && e.detail.coaches) {
+        setCelebrities(e.detail.coaches);
+      }
+    };
   
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('actingCoachesUpdated', handleCoachUpdate);
+    window.addEventListener('actingCoachesStorageUpdate', handleSameWindowUpdate);
   
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('actingCoachesUpdated', handleCoachUpdate);
+      window.removeEventListener('actingCoachesStorageUpdate', handleSameWindowUpdate);
     };
   }, []);
 

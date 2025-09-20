@@ -791,8 +791,15 @@ const AdminPage = () => {
       });
       setShowAddActingCoachForm(false);
       
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new CustomEvent('actingCoachesUpdated'));
+      // Dispatch custom event to notify other components with detailed data
+      window.dispatchEvent(new CustomEvent('actingCoachesUpdated', {
+        detail: { coaches: updatedCoaches, action: 'add', newCoach: coach }
+      }));
+      
+      // Force trigger storage-like event for same-window updates
+      window.dispatchEvent(new CustomEvent('actingCoachesStorageUpdate', {
+        detail: { coaches: updatedCoaches }
+      }));
       
       alert('Acting coach added successfully!');
     } catch (error) {
@@ -836,8 +843,15 @@ const AdminPage = () => {
       
       setEditingActingCoach(null);
       
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new CustomEvent('actingCoachesUpdated'));
+      // Dispatch custom event to notify other components with detailed data
+      window.dispatchEvent(new CustomEvent('actingCoachesUpdated', {
+        detail: { coaches: updatedCoaches, action: 'update', updatedCoach }
+      }));
+      
+      // Force trigger storage-like event for same-window updates
+      window.dispatchEvent(new CustomEvent('actingCoachesStorageUpdate', {
+        detail: { coaches: updatedCoaches }
+      }));
       
       alert('Acting coach updated successfully!');
     } catch (error) {
@@ -865,8 +879,15 @@ const AdminPage = () => {
         // Update localStorage
         localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
         
-        // Dispatch custom event to notify other components
-        window.dispatchEvent(new CustomEvent('actingCoachesUpdated'));
+        // Dispatch custom event to notify other components with detailed data
+        window.dispatchEvent(new CustomEvent('actingCoachesUpdated', {
+          detail: { coaches: updatedCoaches, action: 'delete', deletedId: id }
+        }));
+        
+        // Force trigger storage-like event for same-window updates
+        window.dispatchEvent(new CustomEvent('actingCoachesStorageUpdate', {
+          detail: { coaches: updatedCoaches }
+        }));
         
         alert('Acting coach deleted successfully!');
       } catch (error) {
