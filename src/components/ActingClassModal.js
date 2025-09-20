@@ -1,13 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './ActingClassModal.css';
 import BitcoinPayment from './BitcoinPayment';
 import CryptoTutorial from './CryptoTutorial';
 import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const ActingClassModal = ({ coach, onClose }) => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
+  const modalRef = useRef(null);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -67,111 +70,28 @@ const ActingClassModal = ({ coach, onClose }) => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleBitcoinPayment = () => {
+  const handleBitcoinPayment = async () => {
     if (!validateForm()) {
       return;
     }
+    
+    // Prevent duplicate payment submissions
+    if (window.actingClassSubmitting) {
+      console.log('Payment submission already in progress');
+      return;
+    }
+    
+    window.actingClassSubmitting = true;
     
     // Only show Bitcoin payment modal - DO NOT create booking data until payment is confirmed
     setShowBitcoinPayment(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-    
-    setIsSubmitting(true);
-    
-    try {
-      const bookingId = `acting_${Date.now()}`;
-      
-      // Save booking data
-      const bookingData = {
-        id: bookingId,
-        bookingId,
-        type: 'acting_class',
-        coach: {
-          id: coach.id,
-          name: coach.name,
-          classType: coach.class_type,
-          duration: coach.class_duration
-        },
-        customerInfo: {
-          fullName: formData.fullName,
-          email: formData.email,
-          preferredDateTime: formData.preferredDateTime,
-          classTopic: formData.classTopic,
-          notes: formData.notes
-        },
-        pricing: {
-          total: coach.class_price
-        },
-        status: 'pending',
-        paymentStatus: 'pending',
-        paymentMethod: 'pending',
-        createdAt: new Date().toISOString()
-      };
-      
-      // Save to localStorage first
-      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push(bookingData);
-      localStorage.setItem('bookings', JSON.stringify(existingBookings));
-      console.log('Acting class booking saved to localStorage');
-      
-      // Save to Firebase for admin panel visibility
-      try {
-        const bookingsCollection = collection(db, 'bookings');
-        const docRef = await addDoc(bookingsCollection, {
-          ...bookingData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-        console.log('Acting class booking saved to Firebase with ID:', docRef.id);
-      } catch (firebaseError) {
-        console.error('Error saving acting class booking to Firebase:', firebaseError);
-        // Don't fail the entire process if Firebase save fails
-      }
-      
-      // Show success notification
-      try {
-        if (window.showNotification) {
-          window.showNotification(
-            `🎉 Acting class booking confirmed! Booking ID: ${bookingId}. Please complete your payment to secure your spot.`,
-            'success'
-          );
-        }
-      } catch (notificationError) {
-        console.log('Notification system not available:', notificationError);
-      }
-      
-      console.log('Acting class booking saved successfully:', bookingData);
-      
-      // Show simple confirmation message
-      alert(`Acting class booking confirmed! Your booking ID is: ${bookingId}\n\nPlease use the payment tutorial or Bitcoin payment options above to complete your payment.`);
-      
-      // Restore body scroll before closing
-      document.body.style.overflow = 'unset';
-      onClose();
-      
-      // Navigate to dashboard after a short delay
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 2000);
-      
-    } catch (error) {
-      console.error('Booking failed:', error);
-      alert('Booking failed. Please try again.');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content" ref={modalRef} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Book Acting Class</h2>
           <button className="close-btn" onClick={onClose}>×</button>
@@ -193,7 +113,7 @@ const ActingClassModal = ({ coach, onClose }) => {
               </div>
               
               {/* Booking Form */}
-              <form onSubmit={handleSubmit} className="booking-form">
+              <form className="booking-form">
                 <div className="form-group">
                   <label htmlFor="fullName">Full Name *</label>
                   <input
@@ -298,30 +218,131 @@ const ActingClassModal = ({ coach, onClose }) => {
                   <button type="button" className="cancel-btn" onClick={onClose}>
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
-                    className="submit-btn"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? 'Processing...' : `Proceed to Payment ($${coach.class_price})`}
-                  </button>
                 </div>
               </form>
             </>
           ) : (
             <BitcoinPayment 
               amount={coach.class_price}
-              onPaymentComplete={() => {
-                // Handle payment completion
-                alert('Payment confirmed! Your acting class booking has been submitted.');
-                setShowBitcoinPayment(false);
+              onPaymentComplete={async () => {
+                // Prevent multiple saves with a flag
+                if (window.actingClassSaving) {
+                  console.log('Booking save already in progress, skipping duplicate save.');
+                  return;
+                }
                 
-                // Restore body scroll before closing
-                document.body.style.overflow = 'unset';
-                onClose();
+                window.actingClassSaving = true;
+                
+                try {
+                  // Show success notification immediately
+                  if (window.showNotification) {
+                    window.showNotification('Payment confirmed! Processing your acting class booking...', 'success');
+                  }
+                } catch (notificationError) {
+                  console.log('Notification system not available:', notificationError);
+                }
+                
+                try {
+                  // Handle payment completion with proper data persistence
+                  const bookingId = `AC-${Date.now()}`;
+                  
+                  // Parse date and time from preferredDateTime
+                  let parsedDate = null;
+                  let parsedTime = null;
+                  if (formData.preferredDateTime) {
+                    const dateTime = new Date(formData.preferredDateTime);
+                    parsedDate = dateTime.toISOString().split('T')[0];
+                    parsedTime = dateTime.toTimeString().split(' ')[0].substring(0, 5);
+                  }
+                  
+                  // Use current user from auth context (already available from useAuth hook)
+                  
+                  // Create comprehensive booking data
+                  const bookingData = {
+                    bookingId: bookingId,
+                    userId: currentUser?.uid || 'guest',
+                    userEmail: currentUser?.email || formData.email,
+                    type: 'acting_class',
+                    service: `Acting Class - ${coach.class_type}`,
+                    coach: {
+                      id: coach.id,
+                      name: coach.name,
+                      classType: coach.class_type,
+                      duration: coach.class_duration
+                    },
+                    customerInfo: {
+                      fullName: formData.fullName,
+                      email: formData.email,
+                      preferredDateTime: formData.preferredDateTime,
+                      classTopic: formData.classTopic,
+                      notes: formData.notes
+                    },
+                    date: parsedDate,
+                    time: parsedTime,
+                    startDate: parsedDate,
+                    className: `${coach.class_type} with ${coach.name}`,
+                    pricing: {
+                      total: coach.class_price
+                    },
+                    status: 'pending_payment',
+                    paymentMethod: 'bitcoin',
+                    paymentStatus: 'submitted',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                  };
+                  
+                  // Check if this booking already exists to prevent duplicates
+                  const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+                  const isDuplicate = existingBookings.some(booking => 
+                    booking.coach?.id === coach.id && 
+                    booking.userEmail === (currentUser?.email || formData.email) &&
+                    booking.type === 'acting_class' &&
+                    Math.abs(new Date(booking.createdAt).getTime() - new Date().getTime()) < 30000
+                  );
+                  
+                  if (isDuplicate) {
+                    console.log('Duplicate booking detected, skipping save.');
+                    return;
+                  }
+                  
+                  // Save to localStorage for immediate display in dashboard
+                  existingBookings.push(bookingData);
+                  localStorage.setItem('bookings', JSON.stringify(existingBookings));
+                  
+                  // Save to Firebase
+                  try {
+                    await addDoc(collection(db, 'bookings'), {
+                      ...bookingData,
+                      createdAt: serverTimestamp()
+                    });
+                    console.log('Acting class booking saved to Firebase successfully');
+                  } catch (firebaseError) {
+                    console.error('Error saving to Firebase:', firebaseError);
+                  }
+                  
+                  console.log('Acting class booking saved successfully:', bookingData);
+                  
+                  // Close modal and navigate
+                  setShowBitcoinPayment(false);
+                  document.body.style.overflow = 'unset';
+                  onClose();
+                  
+                  // Navigate to dashboard
+                  setTimeout(() => {
+                    navigate('/dashboard');
+                  }, 1000);
+                  
+                } catch (error) {
+                  console.error('Error saving acting class booking:', error);
+                  alert('Error processing booking. Please try again.');
+                } finally {
+                  window.actingClassSaving = false;
+                  window.actingClassSubmitting = false;
+                }
               }}
               onCancel={() => {
                 setShowBitcoinPayment(false);
+                window.actingClassSubmitting = false;
                 // Restore body scroll when canceling payment
                 document.body.style.overflow = 'unset';
               }}

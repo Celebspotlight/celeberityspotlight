@@ -61,10 +61,35 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
 
     setTransactionHash(generateTxHash());
 
+    // Track if page is visible using Page Visibility API
+    let isPageVisible = !document.hidden;
+    let pausedTime = 0;
+    let lastVisibleTime = Date.now();
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page became hidden - record the time
+        lastVisibleTime = Date.now();
+        isPageVisible = false;
+        console.log('Payment tracker: Page hidden, continuing in background');
+      } else {
+        // Page became visible - add paused time
+        if (!isPageVisible) {
+          pausedTime += Date.now() - lastVisibleTime;
+          isPageVisible = true;
+          console.log('Payment tracker: Page visible again, resuming display');
+        }
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // Start the payment tracking simulation
     const interval = setInterval(() => {
       setTimeElapsed(prev => {
-        const newTime = prev + 1;
+        // Calculate actual elapsed time accounting for background time
+        const actualElapsed = Math.floor((Date.now() - pausedTime) / 1000) - Math.floor(Date.now() / 1000) + prev + 1;
+        const newTime = prev + 1; // Always increment regardless of visibility
         
         // Update status based on time elapsed
         if (newTime <= 5) {
@@ -91,6 +116,7 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
           // Notify parent component only once when first confirmed
           if (newTime === 91 && onStatusUpdate && !hasNotified) {
             setHasNotified(true);
+            clearInterval(interval); // Stop the interval immediately to prevent further calls
             
             // Play notification sound with a more reliable audio source
             try {
@@ -124,8 +150,10 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
               }
             }
             
-            // Call the status update callback (no alert here - let BookingModal handle it)
-            onStatusUpdate('confirmed');
+            // Defer the status update callback to avoid setState during render
+            setTimeout(() => {
+              onStatusUpdate('confirmed');
+            }, 0);
           }
           
           // Auto close after 5 seconds of confirmation
@@ -145,6 +173,7 @@ const PaymentStatusNotification = ({ bookingId, onClose, onStatusUpdate }) => {
     // Cleanup function to restore body scrolling when component unmounts
     return () => {
       clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.body.style.overflow = 'unset';
     };
   }, [onStatusUpdate, onClose, requiredConfirmations]);

@@ -27,8 +27,7 @@ const DonationsPage = () => {
       };
       
       const docRef = await addDoc(collection(db, 'donations'), testDonation);
-      console.log('Test donation saved successfully with ID:', docRef.id);
-      console.log('Test donation data:', testDonation);
+      // Test donation saved successfully
       return { success: true, id: docRef.id };
     } catch (error) {
       console.error('Test donation save failed:', error);
@@ -321,15 +320,39 @@ const DonationsPage = () => {
       const response = await createPayment(paymentRequestData);
       
       if (response && response.invoice_url) {
+        // Parse fullName into firstName and lastName for admin panel compatibility
+        const nameParts = (formData.fullName || '').trim().split(' ');
+        const firstName = nameParts[0] || 'Anonymous';
+        const lastName = nameParts.slice(1).join(' ') || 'Donor';
+        
         const donationData = {
           id: donationId,
           type: 'donation',
           campaign: selectedCampaign,
-          amount: donationAmount,
-          formData,
+          amount: parseFloat(donationAmount) || 0,
+          formData: {
+            ...formData,
+            firstName,
+            lastName
+          },
+          personalInfo: {
+            firstName,
+            lastName,
+            email: formData.email,
+            phone: formData.phone || 'N/A',
+            fullName: formData.fullName
+          },
+          donorInfo: {
+            firstName,
+            lastName,
+            email: formData.email,
+            phone: formData.phone || 'N/A'
+          },
           paymentUrl: response.invoice_url,
           status: 'pending_payment',
           paymentMethod: 'crypto',
+          userId: currentUser?.uid || 'anonymous',
+          userEmail: formData.email,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         };
@@ -341,7 +364,7 @@ const DonationsPage = () => {
           // Check for exact match on multiple fields
           const sameUser = donation.formData?.email === formData.email;
           const sameCampaign = donation.campaign?.id === selectedCampaign.id;
-          const sameAmount = Math.abs((donation.amount || 0) - donationAmount) < 0.01;
+          const sameAmount = Math.abs((donation.amount || 0) - (parseFloat(donationAmount) || 0)) < 0.01;
           const sameType = donation.type === 'donation';
           const recentTime = Math.abs(new Date(donation.createdAt).getTime() - new Date().getTime()) < 300000; // Within 5 minutes
           
@@ -349,7 +372,7 @@ const DonationsPage = () => {
         });
         
         if (isDuplicate) {
-          console.log('Duplicate donation detected, skipping save.');
+          // Duplicate donation detected, skipping save
           alert('A similar donation was recently submitted. Please check your dashboard.');
           setShowPaymentModal(false);
           return;
@@ -360,7 +383,7 @@ const DonationsPage = () => {
         
         // Note: Don't save to Firebase here - only save after payment completion
         // This prevents duplicate entries in the admin panel
-        console.log('Donation saved to localStorage, waiting for payment completion to save to Firebase');
+        // Donation saved to localStorage
         
         // Show notification (similar to celebrity booking)
         const notification = {
@@ -383,29 +406,21 @@ const DonationsPage = () => {
           [selectedCampaign.id]: ''
         }));
         
-        // Save completed donation to Firebase immediately for regular payments
-        // since we don't have a callback mechanism like Bitcoin payments
+        // Save to Firebase for regular payments after payment initiation
         try {
           const { addDoc, collection } = await import('firebase/firestore');
           const { db } = await import('../services/firebase');
           
-          const completedDonationData = {
+          const docRef = await addDoc(collection(db, 'donations'), {
             ...donationData,
-            status: 'pending', // Pending admin approval
-            paymentStatus: 'pending',
-            paymentMethod: 'crypto',
-            paymentReceived: true,
-            paymentVerifiedAt: new Date().toISOString(),
             userId: currentUser?.uid || 'anonymous',
             createdAt: new Date(),
             updatedAt: new Date()
-          };
-          
-          const docRef = await addDoc(collection(db, 'donations'), completedDonationData);
-          console.log('Regular payment donation saved to Firebase successfully with ID:', docRef.id);
-          console.log('Donation data saved:', completedDonationData);
+          });
+          // Regular donation saved to Firebase
         } catch (firebaseError) {
-          console.error('Error saving regular payment donation to Firebase:', firebaseError);
+          console.error('Error saving donation to Firebase:', firebaseError);
+          alert('Donation saved locally but failed to sync to cloud. Please contact support if payment completes.');
         }
         
         // Auto-redirect to dashboard after 2 seconds
@@ -421,14 +436,41 @@ const DonationsPage = () => {
 
   const handleBitcoinPayment = (formData) => {
     const donationId = 'DONATE' + Date.now();
+    
+    // Parse fullName into firstName and lastName for admin panel compatibility
+    const nameParts = (formData.fullName || '').trim().split(' ');
+    const firstName = nameParts[0] || 'Anonymous';
+    const lastName = nameParts.slice(1).join(' ') || 'Donor';
+    
     const donationData = {
       id: donationId,
       type: 'donation',
       campaign: selectedCampaign,
-      amount: donationAmount,
-      formData,
+      amount: parseFloat(donationAmount) || 0,
+      formData: {
+        ...formData,
+        firstName,
+        lastName
+      },
+      personalInfo: {
+        firstName,
+        lastName,
+        email: formData.email,
+        phone: formData.phone || 'N/A',
+        fullName: formData.fullName
+      },
+      donorInfo: {
+        firstName,
+        lastName,
+        email: formData.email,
+        phone: formData.phone || 'N/A'
+      },
       status: 'pending_bitcoin_payment',
-      createdAt: new Date().toISOString()
+      paymentMethod: 'bitcoin',
+      userId: currentUser?.uid || 'anonymous',
+      userEmail: formData.email,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
     
     const existingDonations = JSON.parse(localStorage.getItem('donations') || '[]');
@@ -455,7 +497,7 @@ const DonationsPage = () => {
         // Check for duplicates in Firebase before saving
         const isDuplicateInFirebase = await checkFirebaseDuplicates(currentDonation);
         if (isDuplicateInFirebase) {
-          console.log('Duplicate donation found in Firebase, skipping save.');
+          // Duplicate donation found in Firebase, skipping save
           alert('A similar donation already exists. Please check your dashboard.');
           setShowBitcoinPayment(false);
           setShowPaymentModal(false);
@@ -495,8 +537,7 @@ const DonationsPage = () => {
             createdAt: new Date(),
             updatedAt: new Date()
           });
-          console.log('Bitcoin donation saved to Firebase successfully with ID:', docRef.id);
-          console.log('Bitcoin donation data saved:', donationData);
+          // Bitcoin donation saved to Firebase
         }
       } catch (firebaseError) {
         console.error('Error saving donation to Firebase:', firebaseError);

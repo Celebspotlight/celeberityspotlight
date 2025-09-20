@@ -6,7 +6,7 @@ import '../styles/PaymentsTable.css';
 import visitorTracker from '../services/visitorTracker';
 import LiveVisitorTracker from '../components/LiveVisitorTracker';
 import { db } from '../services/firebase';
-import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import authService from '../services/authService';
 // import { createPayment } from '../services/paymentService';
 
@@ -135,7 +135,7 @@ const AdminPage = () => {
         ...doc.data()
       }));
       
-      console.log('All donations in Firebase:', allDonations);
+      // Loading all donations from Firebase
       
       const pendingDonations = allDonations.filter(donation => 
         donation.status === 'pending' || 
@@ -143,7 +143,7 @@ const AdminPage = () => {
         donation.status === 'pending_bitcoin_payment'
       );
       
-      console.log('Pending donations:', pendingDonations);
+      // Filtering pending donations
       return { allDonations, pendingDonations };
     } catch (error) {
       console.error('Test load failed:', error);
@@ -268,6 +268,22 @@ const AdminPage = () => {
   // PAYMENT CONFIRMATION STATE VARIABLES:
   const [pendingPayments, setPendingPayments] = useState([]);
   const [filteredPendingPayments, setFilteredPendingPayments] = useState([]);
+  // Initialize recently confirmed payments from localStorage to persist across refreshes
+  const [recentlyConfirmedPayments, setRecentlyConfirmedPayments] = useState(() => {
+    try {
+      const stored = localStorage.getItem('recentlyConfirmedPayments');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Only keep payments confirmed in the last 24 hours to prevent reappearance
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        const filtered = parsed.filter(item => item.timestamp > twentyFourHoursAgo);
+        return new Set(filtered.map(item => item.paymentId));
+      }
+    } catch (error) {
+      console.error('Error loading recently confirmed payments from localStorage:', error);
+    }
+    return new Set();
+  });
   const [showPendingPayments, setShowPendingPayments] = useState(false);
   const [paymentSearchTerm, setPaymentSearchTerm] = useState('');
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -364,16 +380,45 @@ const AdminPage = () => {
     setFilteredCelebrities(filtered);
   }, [searchTerm, selectedCategory, availabilityFilter, celebrities]);
 
-  // Load acting coaches from separate localStorage
-  useEffect(() => {
-    const savedActingCoaches = localStorage.getItem('actingCoaches');
-    if (savedActingCoaches) {
-      const parsed = JSON.parse(savedActingCoaches);
-      setActingCoaches(parsed);
+  // Load acting coaches from Firebase and localStorage
+  const loadActingCoaches = async () => {
+    try {
+      // Load from Firebase first
+      const actingCoachesCollection = collection(db, 'actingCoaches');
+      const querySnapshot = await getDocs(actingCoachesCollection);
+      
+      if (!querySnapshot.empty) {
+        const firebaseCoaches = querySnapshot.docs.map(doc => ({
+          firebaseId: doc.id,
+          ...doc.data()
+        }));
+        setActingCoaches(firebaseCoaches);
+        // Sync to localStorage for offline access
+        localStorage.setItem('actingCoaches', JSON.stringify(firebaseCoaches));
+      } else {
+        // Fallback to localStorage if Firebase is empty
+        const savedActingCoaches = localStorage.getItem('actingCoaches');
+        if (savedActingCoaches) {
+          const parsed = JSON.parse(savedActingCoaches);
+          setActingCoaches(parsed);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading acting coaches from Firebase:', error);
+      // Fallback to localStorage on error
+      const savedActingCoaches = localStorage.getItem('actingCoaches');
+      if (savedActingCoaches) {
+        const parsed = JSON.parse(savedActingCoaches);
+        setActingCoaches(parsed);
+      }
     }
-  }, []);
+  };
+  
+  useEffect(() => {
+    loadActingCoaches();
+  }, [loadActingCoaches]);
 
-  // Save acting coaches to separate localStorage
+  // Auto-sync acting coaches to localStorage when state changes
   useEffect(() => {
     if (actingCoaches.length > 0) {
       localStorage.setItem('actingCoaches', JSON.stringify(actingCoaches));
@@ -442,11 +487,14 @@ const AdminPage = () => {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (loginForm.username === 'admin' && loginForm.password === 'admin123') {
+    const adminUsername = process.env.REACT_APP_ADMIN_USERNAME || 'admin';
+    const adminPassword = process.env.REACT_APP_ADMIN_PASSWORD || 'SecureAdminPass2024!';
+    
+    if (loginForm.username === adminUsername && loginForm.password === adminPassword) {
       setIsAuthenticated(true);
       localStorage.setItem('adminAuth', 'true');
     } else {
-      alert('Invalid credentials! Use username: admin, password: admin123');
+      alert('Invalid credentials!');
     }
   };
 
@@ -705,43 +753,116 @@ const AdminPage = () => {
   };
 
   // Acting Coach Management Functions
-  const addActingCoach = (e) => {
+  const addActingCoach = async (e) => {
     e.preventDefault();
     const id = Date.now();
     const coach = {
       ...newActingCoach,
       id,
-      class_price: parseInt(newActingCoach.class_price)
+      class_price: parseInt(newActingCoach.class_price),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
-    setActingCoaches([...actingCoaches, coach]);
-    setNewActingCoach({
-      name: '',
-      class_type: 'Pre-recorded',
-      class_price: '',
-      class_duration: '',
-      class_description: '',
-      available: true,
-      image: null
-    });
-    setShowAddActingCoachForm(false);
+    
+    try {
+      // Save to Firebase
+      const actingCoachesCollection = collection(db, 'actingCoaches');
+      await addDoc(actingCoachesCollection, {
+        ...coach,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      
+      // Update local state
+      setActingCoaches([...actingCoaches, coach]);
+      
+      // Also save to localStorage for backward compatibility
+      const updatedCoaches = [...actingCoaches, coach];
+      localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
+      
+      setNewActingCoach({
+        name: '',
+        class_type: 'Pre-recorded',
+        class_price: '',
+        class_duration: '',
+        class_description: '',
+        available: true,
+        image: null
+      });
+      setShowAddActingCoachForm(false);
+      
+      alert('Acting coach added successfully!');
+    } catch (error) {
+      console.error('Error adding acting coach:', error);
+      alert('Failed to add acting coach. Please try again.');
+    }
   };
 
-  const updateActingCoach = (e) => {
+  const updateActingCoach = async (e) => {
     e.preventDefault();
-    setActingCoaches(actingCoaches.map(coach => 
-      coach.id === editingActingCoach.id 
-        ? { 
-            ...editingActingCoach, 
-            class_price: parseInt(editingActingCoach.class_price)
-          }
-        : coach
-    ));
-    setEditingActingCoach(null);
+    
+    try {
+      const updatedCoach = {
+        ...editingActingCoach,
+        class_price: parseInt(editingActingCoach.class_price),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Update in Firebase
+      const actingCoachesCollection = collection(db, 'actingCoaches');
+      const querySnapshot = await getDocs(query(actingCoachesCollection, where('id', '==', editingActingCoach.id)));
+      
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          ...updatedCoach,
+          updatedAt: serverTimestamp()
+        });
+      }
+      
+      // Update local state
+      setActingCoaches(actingCoaches.map(coach => 
+        coach.id === editingActingCoach.id ? updatedCoach : coach
+      ));
+      
+      // Update localStorage
+      const updatedCoaches = actingCoaches.map(coach => 
+        coach.id === editingActingCoach.id ? updatedCoach : coach
+      );
+      localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
+      
+      setEditingActingCoach(null);
+      alert('Acting coach updated successfully!');
+    } catch (error) {
+      console.error('Error updating acting coach:', error);
+      alert('Failed to update acting coach. Please try again.');
+    }
   };
 
-  const deleteActingCoach = (id) => {
+  const deleteActingCoach = async (id) => {
     if (window.confirm('Are you sure you want to delete this acting coach?')) {
-      setActingCoaches(actingCoaches.filter(coach => coach.id !== id));
+      try {
+        // Delete from Firebase
+        const actingCoachesCollection = collection(db, 'actingCoaches');
+        const querySnapshot = await getDocs(query(actingCoachesCollection, where('id', '==', id)));
+        
+        if (!querySnapshot.empty) {
+          const docRef = querySnapshot.docs[0].ref;
+          await deleteDoc(docRef);
+        }
+        
+        // Update local state
+        const updatedCoaches = actingCoaches.filter(coach => coach.id !== id);
+        setActingCoaches(updatedCoaches);
+        
+        // Update localStorage
+        localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
+        
+        alert('Acting coach deleted successfully!');
+      } catch (error) {
+        console.error('Error deleting acting coach:', error);
+        alert('Failed to delete acting coach. Please try again.');
+      }
     }
   };
 
@@ -767,25 +888,13 @@ const AdminPage = () => {
 
   // USER MANAGEMENT FUNCTIONS
   const loadUsers = async () => {
-    console.log('🔍 Loading users from Firebase...');
     setLoadingUsers(true);
     try {
       const usersCollection = collection(db, 'users');
-      console.log('📊 Querying users collection...');
-      console.log('🔧 Database instance:', db);
-      console.log('🔧 Collection reference:', usersCollection);
-      
       const usersSnapshot = await getDocs(usersCollection);
-      console.log('📋 Users snapshot size:', usersSnapshot.size);
-      console.log('📋 Users snapshot empty?', usersSnapshot.empty);
       
       if (usersSnapshot.empty) {
-        console.log('⚠️ No users found in Firestore!');
-        console.log('💡 This could mean:');
-        console.log('   1. No users have been registered yet');
-        console.log('   2. Firestore security rules are blocking reads');
-        console.log('   3. Wrong collection name or database');
-        console.log('   4. Network/permission issues');
+        console.warn('No users found in Firestore');
       }
       
       const usersList = await Promise.all(usersSnapshot.docs.map(async (doc) => {
@@ -874,19 +983,11 @@ const AdminPage = () => {
           userData.allActivities = [];
         }
         
-        console.log('👤 User found:', userData);
+        // User found in Firebase
         return userData;
       }));
       
-      console.log('✅ Total users loaded:', usersList.length);
       setUsers(usersList);
-      
-      if (usersList.length === 0) {
-        console.log('🧪 To test user creation, run in browser console:');
-        console.log('   window.testUserCreationAndVerification()');
-        console.log('   or');
-        console.log('   window.checkUsersInFirestore()');
-      }
     } catch (error) {
       console.error('❌ Error loading users:', error);
       console.error('Error details:', {
@@ -916,13 +1017,13 @@ const AdminPage = () => {
     }
 
     try {
-      console.log('🗑️ Deleting user:', userId);
+      // Deleting user from Firebase
       
       // Delete user account and all associated data
       const result = await authService.deleteUserAccount(userId);
       
       if (result.success) {
-        console.log('✅ User deleted successfully');
+        // User deleted successfully
         alert('User account and all associated data have been deleted successfully.');
         
         // Refresh the users list
@@ -963,20 +1064,16 @@ const AdminPage = () => {
         type: 'donation' // Mark as donation type
       }));
       
-      // Combine bookings and donations
-      const allBookings = [...firebaseBookings, ...firebaseDonations]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Show ALL bookings in the bookings tab as a complete history/database
+      const allBookings = firebaseBookings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
       
-      // Update both bookings and pending payments from database only
+      // Update bookings with ALL bookings for complete history
       setBookings(allBookings);
-      setPendingPayments(allBookings.filter(b => 
-        b.paymentStatus === 'pending' || 
-        b.status === 'pending' || 
-        b.status === 'pending_payment' || 
-        b.status === 'pending_bitcoin_payment'
-      ));
       
-      console.log(`Loaded ${firebaseBookings.length} bookings and ${firebaseDonations.length} donations from database`);
+      // Note: pendingPayments is handled by loadPendingPayments() function with proper filtering
+      // Removed setPendingPayments from here to avoid conflicts with detailed filtering logic
+      
+      // Loaded bookings and donations from database
     } catch (error) {
       console.error('Error loading bookings from database:', error);
       // Set empty arrays if database fails
@@ -1002,7 +1099,7 @@ const AdminPage = () => {
       });
       
       await Promise.all(updatePromises);
-      console.log('All bookings reset to pending status');
+      // All bookings reset to pending status
       
       // Reload data
       await loadAllBookings();
@@ -1029,7 +1126,7 @@ const AdminPage = () => {
       
       const deleteBookingPromises = pendingSnapshot.docs.map(async (docSnapshot) => {
         await deleteDoc(doc(db, 'bookings', docSnapshot.id));
-        console.log(`Deleted pending booking: ${docSnapshot.id}`);
+        // Deleted pending booking
       });
       
       // Clear pending donations
@@ -1042,11 +1139,11 @@ const AdminPage = () => {
       
       const deleteDonationPromises = pendingDonations.map(async (docSnapshot) => {
         await deleteDoc(doc(db, 'donations', docSnapshot.id));
-        console.log(`Deleted pending donation: ${docSnapshot.id}`);
+        // Deleted pending donation
       });
       
       await Promise.all([...deleteBookingPromises, ...deleteDonationPromises]);
-      console.log(`Deleted ${pendingSnapshot.docs.length} pending bookings and ${pendingDonations.length} pending donations from Firebase`);
+      // Deleted pending bookings and donations from Firebase
       
       // Reload data
       await loadAllBookings();
@@ -1109,11 +1206,11 @@ const AdminPage = () => {
       // Delete duplicates
       const deletePromises = toDelete.map(async (docId) => {
         await deleteDoc(doc(db, 'donations', docId));
-        console.log(`Deleted duplicate donation: ${docId}`);
+        // Deleted duplicate donation
       });
       
       await Promise.all(deletePromises);
-      console.log(`Deleted ${toDelete.length} duplicate donations from Firebase`);
+      // Deleted duplicate donations from Firebase
       
       // Reload data
       await loadAllBookings();
@@ -1126,30 +1223,87 @@ const AdminPage = () => {
     }
   };
 
-  const loadPendingPayments = async () => {
+  const loadPendingPayments = async (recentlyConfirmedSet = null) => {
     setLoadingPayments(true);
     try {
-      // Load pending bookings from Firebase database
-      const bookingsCollection = collection(db, 'bookings');
-      const pendingQuery = query(
-        bookingsCollection,
-        where('paymentStatus', '==', 'pending')
-      );
-      const bookingsSnapshot = await getDocs(pendingQuery);
+      // Loading pending payments
+      
+      // Load pending bookings using Firestore query for better performance and accuracy
+      // Use multiple attempts to handle Firestore consistency issues
+      let bookingsSnapshot;
+      let attempts = 0;
+      const maxAttempts = 3;
+      
+      while (attempts < maxAttempts) {
+        attempts++;
+        // Loading pending bookings
+        
+        const bookingsCollection = collection(db, 'bookings');
+        const pendingBookingsQuery = query(bookingsCollection, where('paymentStatus', '==', 'pending'));
+        bookingsSnapshot = await getDocs(pendingBookingsQuery);
+        
+        // Found pending bookings in Firestore
+        
+        // If this is not the first attempt, add a small delay
+        if (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+        
+        break; // For now, don't retry - just log the attempt
+      }
+      
       const firebaseBookings = bookingsSnapshot.docs.map(doc => {
         const data = doc.data();
-        console.log('Pending booking data:', { id: doc.id, ...data }); // Debug log
         return {
           id: doc.id,
           ...data,
           createdAt: data.createdAt?.toDate?.() || new Date(),
           type: data.type || 'booking'
         };
+      }).filter(booking => {
+        // Debug logging for each booking
+        // Filtering booking data
+        
+        // Only include truly pending bookings - exclude confirmed and completed
+        // If ANY status field indicates confirmation or completion, exclude the item
+        const isConfirmed = booking.paymentStatus === 'confirmed' || 
+                           booking.status === 'confirmed' || 
+                           booking.bookingStatus === 'confirmed' ||
+                           booking.confirmedAt;
+        const isCompleted = booking.paymentStatus === 'completed' || 
+                           booking.status === 'completed' || 
+                           booking.bookingStatus === 'completed' ||
+                           booking.completedAt;
+        const isPending = booking.paymentStatus === 'pending' || 
+                         booking.paymentStatus === 'submitted' || 
+                         booking.paymentStatus === 'pending_payment' ||
+                         booking.paymentStatus === 'pending_bitcoin_payment' ||
+                         booking.status === 'pending' ||
+                         booking.status === 'pending_payment';
+        
+        // Additional check for recently confirmed payments to prevent reappearing
+        const confirmedSet = recentlyConfirmedSet || recentlyConfirmedPayments;
+        const isRecentlyConfirmed = confirmedSet.has(booking.id) || 
+                                   confirmedSet.has(booking.originalId) ||
+                                   confirmedSet.has(booking.bookingId) ||
+                                   (booking.paymentId && confirmedSet.has(booking.paymentId));
+        
+        const shouldInclude = !isConfirmed && !isCompleted && !isRecentlyConfirmed && isPending;
+        
+        // Booking filter result processed
+        if (isRecentlyConfirmed) {
+          // Excluding recently confirmed booking
+          return false;
+        }
+        
+        return shouldInclude;
       });
       
-      // Load pending donations from Firebase database
+      // Load pending donations using Firestore query for better performance and accuracy
       const donationsCollection = collection(db, 'donations');
-      const donationsSnapshot = await getDocs(donationsCollection);
+      const pendingDonationsQuery = query(donationsCollection, where('paymentStatus', '==', 'pending'));
+      const donationsSnapshot = await getDocs(pendingDonationsQuery);
+      // Found pending donations in Firestore
       const firebaseDonations = donationsSnapshot.docs
         .map(doc => {
           const data = doc.data();
@@ -1160,21 +1314,95 @@ const AdminPage = () => {
             type: 'donation'
           };
         })
-        .filter(donation => 
-          donation.status === 'pending' || 
-          donation.status === 'pending_payment' || 
-          donation.status === 'pending_bitcoin_payment'
-        );
+        .filter(donation => {
+          // Debug logging for each donation
+          // Filtering donation
+          
+          // Defensive filtering: exclude donations that are confirmed or completed in ANY way
+          // Return false (exclude) if ANY of these conditions are true:
+          if (donation.status === 'confirmed' || 
+              donation.paymentStatus === 'confirmed' ||
+              donation.status === 'completed' || 
+              donation.paymentStatus === 'completed' ||
+              donation.confirmedAt ||
+              donation.completedAt) {
+            // Excluding confirmed/completed donation
+            return false;
+          }
+          
+          // Only include if it has pending-like status
+          const isPending = donation.status === 'pending' || 
+                           donation.status === 'pending_payment' || 
+                           donation.status === 'pending_bitcoin_payment' ||
+                           donation.paymentStatus === 'pending' ||
+                           donation.paymentStatus === 'pending_payment' ||
+                           donation.paymentStatus === 'submitted';
+          
+          // Donation filter result processed
+          
+          // Additional filter: exclude recently confirmed payments
+          const confirmedSet = recentlyConfirmedSet || recentlyConfirmedPayments;
+          const isRecentlyConfirmed = confirmedSet.has(donation.id) || 
+                                     confirmedSet.has(donation.donationId) ||
+                                     (donation.paymentId && confirmedSet.has(donation.paymentId));
+          if (isRecentlyConfirmed) {
+            // Excluding recently confirmed donation
+            return false;
+          }
+          
+          return isPending;
+        });
       
-      // Combine pending bookings and donations
-      const allPendingPayments = [...firebaseBookings, ...firebaseDonations]
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      // Enhanced duplicate removal logic - bookings and donations are already properly filtered
+      const allPendingPayments = [...firebaseBookings, ...firebaseDonations];
+      const uniquePayments = [];
+      const seenIdentifiers = new Set();
       
-      setPendingPayments(allPendingPayments);
-      console.log(`Loaded ${firebaseBookings.length} pending bookings and ${firebaseDonations.length} pending donations from database`);
-      console.log('Raw donations from Firebase:', donationsSnapshot.docs.map(doc => ({id: doc.id, ...doc.data()})));
-      console.log('Filtered donations:', firebaseDonations);
-      console.log('All pending payments:', allPendingPayments); // Debug log
+      allPendingPayments.forEach(payment => {
+        // Normalize ID to use Firestore document ID consistently
+        // For donations, ensure we use the Firestore doc.id as the primary identifier
+        if (payment.type === 'donation') {
+          // The payment.id should already be the Firestore doc.id from the mapping above
+          // But let's ensure consistency by logging any mismatches
+          const firestoreDocId = payment.id; // This comes from doc.id in the mapping
+          const originalDonationId = payment.donationId;
+          
+          if (originalDonationId && originalDonationId !== firestoreDocId) {
+            // ID mismatch detected for donation
+          }
+          
+          // Ensure the payment uses the Firestore doc ID as its primary ID
+          payment.id = firestoreDocId;
+        }
+        
+        // Create unique identifier based on multiple criteria
+        const userEmail = payment.userEmail || payment.donorInfo?.email || payment.personalInfo?.email || payment.formData?.email;
+        const amount = payment.amount || payment.total || payment.pricing?.total || 0;
+        const campaignId = payment.campaign?.id || payment.celebrity?.id || 'unknown';
+        const primaryId = payment.id; // Use the normalized Firestore doc ID
+        
+        // Create composite key for duplicate detection
+        const uniqueKey = `${userEmail}-${amount}-${campaignId}-${payment.type}`;
+        const timeKey = Math.floor(new Date(payment.createdAt).getTime() / 60000); // Group by minute
+        const compositeKey = `${uniqueKey}-${timeKey}`;
+        
+        // Also check for exact ID matches using the primary ID
+        const hasExactId = seenIdentifiers.has(primaryId);
+        const hasCompositeMatch = seenIdentifiers.has(compositeKey);
+        
+        if (!hasExactId && !hasCompositeMatch) {
+          uniquePayments.push(payment);
+          seenIdentifiers.add(primaryId);
+          seenIdentifiers.add(compositeKey);
+        } else {
+          // Duplicate payment filtered out
+        }
+      });
+      
+      // Sort by creation date
+      const sortedPayments = uniquePayments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      
+      setPendingPayments(sortedPayments);
     } catch (error) {
       console.error('Error loading pending payments from database:', error);
       setPendingPayments([]);
@@ -1187,12 +1415,32 @@ const AdminPage = () => {
   const sendPaymentApprovalNotification = async (booking) => {
     try {
       // Add notification to Firebase for in-app notifications
+      // Build notification data object conditionally
       const notificationData = {
         userId: booking.userId,
         type: 'payment_approved',
         title: 'Payment Approved!',
-        message: `Your payment for ${booking.celebrity?.name || 'your booking'} has been approved. Your booking is now confirmed!`,
+        message: booking.type === 'acting_class' 
+          ? `Your payment for Acting Coach ${booking.actingCoach || booking.coach?.name || 'session'} has been approved. Your acting class booking is now confirmed!`
+          : booking.type === 'promotion'
+            ? `Your payment for ${booking.service?.title || booking.celebrity?.name || 'Brand Ambassador Program'} has been approved. Your promotion booking is now confirmed!`
+            : `Your payment for ${booking.celebrity?.name || 'your booking'} has been approved. Your booking is now confirmed!`,
         bookingId: booking.id,
+        data: {
+          type: booking.type,
+          bookingType: booking.type,
+          ...(booking.type === 'acting_class' && {
+            actingCoach: booking.actingCoach || booking.coach?.name,
+            className: booking.className
+          }),
+          ...(booking.type === 'promotion' && {
+            serviceTitle: booking.service?.title,
+            promotionType: booking.service?.title || 'Brand Ambassador Program'
+          }),
+          ...(booking.celebrity?.name && {
+            celebrityName: booking.celebrity?.name
+          })
+        },
         createdAt: new Date(),
         read: false
       };
@@ -1200,9 +1448,51 @@ const AdminPage = () => {
       // Store notification in Firebase
       await addDoc(collection(db, 'notifications'), notificationData);
       
-      console.log('Payment approval notification sent successfully');
+      // Payment approval notification sent successfully
     } catch (error) {
       console.error('Error sending payment approval notification:', error);
+    }
+  };
+
+  // Notification function for order completion
+  const sendOrderCompletionNotification = async (booking) => {
+    try {
+      // Add notification to Firebase for in-app notifications
+      const notificationData = {
+        userId: booking.userId,
+        type: 'order_completed',
+        title: 'Order Completed!',
+        message: booking.type === 'acting_class' 
+          ? `Your acting class with ${booking.actingCoach || booking.coach?.name || 'Acting Coach'} has been completed. Thank you for your booking!`
+          : booking.type === 'promotion'
+            ? `Your ${booking.service?.title || 'Brand Ambassador Program'} booking has been completed. Thank you for your order!`
+            : `Your booking with ${booking.celebrity?.name || 'the celebrity'} has been completed. Thank you for your order!`,
+        bookingId: booking.id,
+        data: {
+          type: booking.type,
+          bookingType: booking.type,
+          ...(booking.type === 'acting_class' && {
+            actingCoach: booking.actingCoach || booking.coach?.name,
+            className: booking.className
+          }),
+          ...(booking.type === 'promotion' && {
+            serviceTitle: booking.service?.title,
+            promotionType: booking.service?.title || 'Brand Ambassador Program'
+          }),
+          ...(booking.celebrity?.name && {
+            celebrityName: booking.celebrity?.name
+          })
+        },
+        createdAt: new Date(),
+        read: false
+      };
+      
+      // Store notification in Firebase
+      await addDoc(collection(db, 'notifications'), notificationData);
+      
+      // Order completion notification sent successfully
+    } catch (error) {
+      console.error('Error sending order completion notification:', error);
     }
   };
 
@@ -1210,7 +1500,7 @@ const AdminPage = () => {
     if (!window.confirm('Are you sure you want to approve this payment?')) return;
     
     try {
-      console.log('Attempting to approve payment with ID:', paymentId);
+      // Attempting to approve payment
       
       // First, try to find the payment in bookings collection
       let paymentData = null;
@@ -1222,10 +1512,10 @@ const AdminPage = () => {
         const bookingSnapshot = await getDoc(bookingDoc);
         if (bookingSnapshot.exists()) {
           paymentData = bookingSnapshot.data();
-          console.log('Found payment in bookings collection');
+          // Found payment in bookings collection
         }
       } catch (error) {
-        console.log('Payment not found in bookings, checking donations...', error.message);
+        // Payment not found in bookings, checking donations
       }
       
       // If not found in bookings, check donations collection
@@ -1236,17 +1526,37 @@ const AdminPage = () => {
           if (donationSnapshot.exists()) {
             paymentData = donationSnapshot.data();
             isBooking = false;
-            console.log('Found payment in donations collection');
           }
         } catch (error) {
-          console.log('Payment not found in donations either', error.message);
+          // Payment not found in donations
+        }
+      }
+      
+      // If still not found, try to find by original ID in bookings collection
+      if (!paymentData) {
+        try {
+          const bookingsCollection = collection(db, 'bookings');
+          const bookingsSnapshot = await getDocs(bookingsCollection);
+          
+          for (const docSnapshot of bookingsSnapshot.docs) {
+            const data = docSnapshot.data();
+            if (data.id === paymentId || data.bookingId === paymentId) {
+              paymentData = data;
+              actualDocId = docSnapshot.id;
+              isBooking = true;
+              // Found booking by original ID
+              break;
+            }
+          }
+        } catch (error) {
+          // Error searching bookings by original ID
         }
       }
       
       // If still not found, try to find by original donation ID in donations
       if (!paymentData) {
         try {
-          console.log('Searching donations by original ID...');
+          // Searching donations by original ID
           const donationsCollection = collection(db, 'donations');
           const donationsSnapshot = await getDocs(donationsCollection);
           
@@ -1256,12 +1566,12 @@ const AdminPage = () => {
               paymentData = data;
               actualDocId = docSnapshot.id;
               isBooking = false;
-              console.log('Found donation by original ID:', paymentId, 'Firebase doc ID:', actualDocId);
+              // Found donation by original ID
               break;
             }
           }
         } catch (error) {
-          console.log('Error searching donations by original ID:', error.message);
+          // Error searching donations by original ID
         }
       }
       
@@ -1270,26 +1580,66 @@ const AdminPage = () => {
         throw new Error('Payment not found in either bookings or donations collection');
       }
       
+      // Found payment data
+      
       // Update the appropriate collection using the correct document ID
       if (isBooking) {
         const bookingDoc = doc(db, 'bookings', actualDocId);
-        await updateDoc(bookingDoc, {
+        const updateData = {
           paymentStatus: 'confirmed',
           bookingStatus: 'confirmed',
           status: 'confirmed',
           confirmedAt: new Date(),
           confirmedBy: 'admin'
-        });
-        console.log('Updated booking with doc ID:', actualDocId);
+        };
+        // Updating booking with doc ID
+        try {
+          await updateDoc(bookingDoc, updateData);
+          // Successfully updated booking
+          
+          // Verify the update
+          const verifyDoc = await getDoc(bookingDoc);
+          if (verifyDoc.exists()) {
+            const verifiedData = verifyDoc.data();
+            // Verified booking update
+            if (verifiedData.paymentStatus !== 'confirmed') {
+              throw new Error(`Update failed: paymentStatus is ${verifiedData.paymentStatus}, expected 'confirmed'`);
+            }
+          } else {
+            throw new Error('Document not found after update');
+          }
+        } catch (updateError) {
+          console.error('Failed to update booking:', updateError);
+          throw updateError;
+        }
       } else {
         const donationDoc = doc(db, 'donations', actualDocId);
-        await updateDoc(donationDoc, {
+        const updateData = {
           status: 'confirmed',
           paymentStatus: 'confirmed',
           confirmedAt: new Date(),
           confirmedBy: 'admin'
-        });
-        console.log('Updated donation with doc ID:', actualDocId);
+        };
+        // Updating donation with doc ID
+        try {
+          await updateDoc(donationDoc, updateData);
+          // Successfully updated donation
+          
+          // Verify the update
+          const verifyDoc = await getDoc(donationDoc);
+          if (verifyDoc.exists()) {
+            const verifiedData = verifyDoc.data();
+            // Verified donation update
+            if (verifiedData.paymentStatus !== 'confirmed') {
+              throw new Error(`Update failed: paymentStatus is ${verifiedData.paymentStatus}, expected 'confirmed'`);
+            }
+          } else {
+            throw new Error('Document not found after update');
+          }
+        } catch (updateError) {
+          console.error('Failed to update donation:', updateError);
+          throw updateError;
+        }
       }
       
       // Send notification to user
@@ -1297,37 +1647,225 @@ const AdminPage = () => {
         await sendPaymentApprovalNotification({ id: paymentId, ...paymentData, type: isBooking ? 'booking' : 'donation' });
       }
       
-      // Refresh all data to reflect changes
-      await loadAllBookings();
-      await loadPendingPayments();
-      await loadUsers();
-      
       const paymentType = isBooking ? 'booking' : 'donation';
       alert(`${paymentType.charAt(0).toUpperCase() + paymentType.slice(1)} payment approved successfully! The ${paymentType} is now confirmed and notification sent to user.`);
+      
+      // Enhanced Firestore consistency handling with multiple verification attempts
+      // Waiting for Firestore propagation with verification
+      let verificationAttempts = 0;
+      const maxVerificationAttempts = 5;
+      let isConsistent = false;
+      
+      while (verificationAttempts < maxVerificationAttempts && !isConsistent) {
+        verificationAttempts++;
+        // Verification attempt in progress
+        
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2 second intervals
+        
+        try {
+          const verifyDoc = await getDoc(doc(db, isBooking ? 'bookings' : 'donations', actualDocId));
+          if (verifyDoc.exists()) {
+            const verifyData = verifyDoc.data();
+            
+            // Checking document state
+            
+            // Check if the document is consistently updated
+            if (verifyData.paymentStatus === 'confirmed' && 
+                verifyData.status === 'confirmed' && 
+                verifyData.confirmedAt) {
+              isConsistent = true;
+              // Document consistency verified
+            } else {
+              // Document not yet consistent, retrying
+            }
+          }
+        } catch (verifyError) {
+          console.error(`Verification attempt ${verificationAttempts} failed:`, verifyError);
+        }
+      }
+      
+      if (!isConsistent) {
+        console.warn('⚠️ Document consistency could not be verified after all attempts');
+        console.warn('⚠️ Proceeding with data refresh despite potential inconsistency');
+      }
+      
+      // Force clear pending payments cache first
+      // Clearing pending payments cache before refresh
+      setPendingPayments([]);
+      
+      // Add payment to recently confirmed list to prevent reappearance
+      // Adding payment to recently confirmed list
+      // Also add the actual document ID and any original booking ID to prevent reappearance
+      const idsToTrack = [paymentId, actualDocId];
+      if (paymentData.id && paymentData.id !== paymentId) {
+        idsToTrack.push(paymentData.id);
+      }
+      if (paymentData.bookingId && paymentData.bookingId !== paymentId) {
+        idsToTrack.push(paymentData.bookingId);
+      }
+      // Tracking IDs for recently confirmed
+      const updatedRecentlyConfirmed = new Set([...recentlyConfirmedPayments, ...idsToTrack]);
+      setRecentlyConfirmedPayments(updatedRecentlyConfirmed);
+      
+      // Persist to localStorage with timestamp for cross-refresh persistence
+      try {
+        const stored = localStorage.getItem('recentlyConfirmedPayments');
+        let storedPayments = [];
+        if (stored) {
+          storedPayments = JSON.parse(stored);
+        }
+        
+        // Add new payment IDs with timestamp
+        idsToTrack.forEach(id => {
+          storedPayments.push({
+            paymentId: id,
+            timestamp: Date.now()
+          });
+        });
+        
+        // Clean up old entries (older than 24 hours)
+        const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
+        storedPayments = storedPayments.filter(item => item.timestamp > twentyFourHoursAgo);
+        
+        localStorage.setItem('recentlyConfirmedPayments', JSON.stringify(storedPayments));
+        // Payment persisted to localStorage for cross-refresh protection
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
+      
+      // Refresh all data to reflect changes with delays between calls
+      // Refreshing data after payment confirmation
+      await loadAllBookings();
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await loadPendingPayments(updatedRecentlyConfirmed);
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      await loadUsers();
+      
+      // Payment confirmation process completed
+      // Pending payments after refresh logged
+      // Recently confirmed payments logged
     } catch (error) {
       console.error('Error approving payment:', error);
       alert('Failed to approve payment. Please try again.');
     }
   };
 
-  const markOrderCompleted = async (bookingId) => {
+  const markOrderCompleted = async (orderId) => {
     if (!window.confirm('Are you sure you want to mark this order as completed?')) return;
     
     try {
-      // Update in Firebase database
-      const bookingDoc = doc(db, 'bookings', bookingId);
-      await updateDoc(bookingDoc, {
-        status: 'completed',
-        bookingStatus: 'completed',
-        completedAt: new Date(),
-        completedBy: 'admin'
-      });
+      // Attempting to mark order as completed
+      
+      // First, try to find the order in bookings collection
+      let orderData = null;
+      let isBooking = true;
+      let actualDocId = orderId;
+      
+      try {
+        const bookingDoc = doc(db, 'bookings', orderId);
+        const bookingSnapshot = await getDoc(bookingDoc);
+        if (bookingSnapshot.exists()) {
+          orderData = bookingSnapshot.data();
+          // Found order in bookings collection
+        }
+      } catch (error) {
+        // Order not found in bookings, checking donations
+      }
+      
+      // If not found in bookings, check donations collection
+      if (!orderData) {
+        try {
+          const donationDoc = doc(db, 'donations', orderId);
+          const donationSnapshot = await getDoc(donationDoc);
+          if (donationSnapshot.exists()) {
+            orderData = donationSnapshot.data();
+            isBooking = false;
+            // Found order in donations collection
+          }
+        } catch (error) {
+          // Order not found in donations either
+        }
+      }
+      
+      // If still not found, try to find by original ID
+      if (!orderData) {
+        try {
+          // Searching by original ID
+          const bookingsCollection = collection(db, 'bookings');
+          const bookingsSnapshot = await getDocs(bookingsCollection);
+          
+          for (const docSnapshot of bookingsSnapshot.docs) {
+            const data = docSnapshot.data();
+            if (data.id === orderId || data.bookingId === orderId) {
+              orderData = data;
+              actualDocId = docSnapshot.id;
+              isBooking = true;
+              // Found booking by original ID
+              break;
+            }
+          }
+          
+          // If not found in bookings, search donations
+          if (!orderData) {
+            const donationsCollection = collection(db, 'donations');
+            const donationsSnapshot = await getDocs(donationsCollection);
+            
+            for (const docSnapshot of donationsSnapshot.docs) {
+              const data = docSnapshot.data();
+              if (data.id === orderId || data.donationId === orderId) {
+                orderData = data;
+                actualDocId = docSnapshot.id;
+                isBooking = false;
+                // Found donation by original ID
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          // Error searching by original ID
+        }
+      }
+      
+      if (!orderData) {
+        console.error('Order not found anywhere. ID searched:', orderId);
+        throw new Error('Order not found in either bookings or donations collection');
+      }
+      
+      // Update the appropriate collection using the correct document ID
+      if (isBooking) {
+        const bookingDoc = doc(db, 'bookings', actualDocId);
+        await updateDoc(bookingDoc, {
+          status: 'completed',
+          bookingStatus: 'completed',
+          paymentStatus: 'completed',
+          completedAt: new Date(),
+          completedBy: 'admin'
+        });
+        // Updated booking with doc ID
+      } else {
+        const donationDoc = doc(db, 'donations', actualDocId);
+        await updateDoc(donationDoc, {
+          status: 'completed',
+          paymentStatus: 'completed',
+          completedAt: new Date(),
+          completedBy: 'admin'
+        });
+        // Updated donation with doc ID
+      }
+      
+      // Send completion notification to user
+      await sendOrderCompletionNotification(orderData);
+      
+      // Add a small delay to ensure Firestore changes have propagated
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Refresh all data to reflect changes
       await loadAllBookings();
+      await loadPendingPayments();
       await loadUsers();
       
-      alert('Order marked as completed successfully!');
+      const orderType = isBooking ? 'booking' : 'donation';
+      alert(`${orderType.charAt(0).toUpperCase() + orderType.slice(1)} marked as completed successfully!`);
     } catch (error) {
       console.error('Error marking order as completed:', error);
       alert('Failed to mark order as completed. Please try again.');
@@ -1407,7 +1945,7 @@ const AdminPage = () => {
             </div>
             <button type="submit" className="login-btn">Login</button>
           </form>
-          <p className="login-hint">Hint: username: admin, password: admin123</p>
+          {/* Login credentials are configured via environment variables */}
         </div>
       </div>
       );
@@ -1529,7 +2067,7 @@ const AdminPage = () => {
               setShowActingCoaches(false);
               setShowPersonalizedVideos(false);
               setShowPendingPayments(false);
-              console.log('📱 Users tab clicked - calling loadUsers()');
+              // Users tab clicked - calling loadUsers()
               loadUsers();
             }}
             className={`nav-tab ${showUsers ? 'active' : ''}`}
@@ -2355,7 +2893,7 @@ const AdminPage = () => {
                   <th>Booking ID</th>
                   <th>Customer</th>
                   <th>Celebrity</th>
-                  <th>Date & Time</th>
+                  <th>Date & Time / Payment</th>
                   <th>Package</th>
                   <th>Total</th>
                   <th>Status</th>
@@ -2363,8 +2901,8 @@ const AdminPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {bookings.map((booking) => (
-                  <tr key={booking.id}>
+                {bookings.map((booking, index) => (
+                  <tr key={`main-booking-${booking.id || booking.bookingId || index}`}>
                     <td>
                       <div className="booking-id-cell">
                         <span>{booking.id}</span>
@@ -2382,6 +2920,8 @@ const AdminPage = () => {
                         <strong>
                           {booking.type === 'donation' 
                             ? (booking.donorInfo?.firstName || booking.donorName?.split(' ')[0] || 'Anonymous') + ' ' + (booking.donorInfo?.lastName || booking.donorName?.split(' ').slice(1).join(' ') || 'Donor')
+                            : booking.type === 'acting_class'
+                            ? (booking.customerInfo?.fullName || 'N/A')
                             : (booking.personalInfo?.firstName || booking.formData?.firstName || booking.firstName || 'N/A') + ' ' + (booking.personalInfo?.lastName || booking.formData?.lastName || booking.lastName || 'N/A')
                           }
                         </strong>
@@ -2389,6 +2929,8 @@ const AdminPage = () => {
                         <small>
                           {booking.type === 'donation' 
                             ? (booking.donorInfo?.email || booking.personalInfo?.email || booking.formData?.email || booking.userEmail || booking.email || 'N/A')
+                            : booking.type === 'acting_class'
+                            ? (booking.customerInfo?.email || booking.userEmail || 'N/A')
                             : (booking.personalInfo?.email || booking.formData?.email || booking.userEmail || booking.email || 'N/A')
                           }
                         </small>
@@ -2396,20 +2938,91 @@ const AdminPage = () => {
                     </td>
                     <td>
                       {booking.type === 'donation' 
-                        ? `Donation - ${typeof booking.campaign === 'string' ? booking.campaign : (booking.campaign?.name || 'General Fund')}`
+                        ? `Donation - ${typeof booking.campaign === 'string' ? booking.campaign : (booking.campaign?.title || 'General Fund')}`
+                        : booking.type === 'acting_class'
+                        ? `Acting Coach - ${booking.coach?.name || 'N/A'}`
                         : (booking.celebrity?.name || 'N/A')
                       }
                     </td>
                     <td>
                       {booking.type === 'donation' 
                         ? 'N/A'
-                        : `${booking.sessionDetails?.date || booking.formData?.date || booking.date || 'N/A'} at ${booking.sessionDetails?.time || booking.formData?.time || booking.time || 'N/A'}`
+                        : (() => {
+                            // Handle different booking types with different date/time field structures
+                            let date, time;
+                            
+                            if (booking.type === 'acting_class') {
+                              // Acting class bookings store date/time in customerInfo.preferredDateTime
+                              const preferredDateTime = booking.customerInfo?.preferredDateTime;
+                              if (preferredDateTime) {
+                                // Split preferredDateTime if it contains both date and time
+                                if (preferredDateTime.includes('T')) {
+                                  const dateTime = new Date(preferredDateTime);
+                                  date = dateTime.toISOString().split('T')[0];
+                                  time = dateTime.toTimeString().split(' ')[0].substring(0, 5);
+                                } else {
+                                  date = preferredDateTime;
+                                }
+                              }
+                              // Also check for startDate field
+                              date = date || booking.startDate;
+                            } else {
+                              // Regular bookings use sessionDetails or formData
+                              date = booking.sessionDetails?.date || booking.formData?.date || booking.date || booking.eventDate;
+                              time = booking.sessionDetails?.time || booking.formData?.time || booking.time || booking.eventTime;
+                            }
+                            
+                            if (date && time) {
+                              // Format date if it's a valid date
+                              const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              });
+                              return `${formattedDate} at ${time}`;
+                            } else if (date) {
+                              const formattedDate = new Date(date).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              });
+                              return `${formattedDate} (Time TBD)`;
+                            } else if (time) {
+                              return `Date TBD at ${time}`;
+                            } else {
+                              // Show payment/booking creation date when no scheduled date is available
+                              const paymentDate = booking.createdAt || booking.paymentDate || booking.timestamp;
+                              if (paymentDate) {
+                                const formattedPaymentDate = paymentDate.seconds 
+                                  ? new Date(paymentDate.seconds * 1000).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    }) + ' at ' + new Date(paymentDate.seconds * 1000).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })
+                                  : new Date(paymentDate).toLocaleDateString('en-US', {
+                                      year: 'numeric',
+                                      month: 'short',
+                                      day: 'numeric'
+                                    }) + ' at ' + new Date(paymentDate).toLocaleTimeString('en-US', {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    });
+                                return formattedPaymentDate;
+                              }
+                              return 'Date & Time TBD';
+                            }
+                          })()
                       }
                     </td>
                     <td>
                       {booking.type === 'donation' 
                         ? 'Donation'
-                        : (booking.sessionDetails?.packageName || booking.sessionDetails?.package || booking.formData?.package || booking.package || booking.podcastType || 'N/A')
+                        : booking.type === 'acting_class'
+                        ? (booking.coach?.packageName || booking.sessionDetails?.package || booking.formData?.package || booking.package || 'Acting Class Package')
+                        : (booking.sessionDetails?.packageName || booking.sessionDetails?.package || booking.formData?.package || booking.package || booking.podcastType || (booking.service && typeof booking.service === 'object' ? booking.service.title || booking.service.name : booking.service) || 'Standard Package')
                       }
                     </td>
                     <td>
@@ -2426,7 +3039,7 @@ const AdminPage = () => {
                     <td>
                       <div className="booking-actions">
                         <button className="view-btn">View Details</button>
-                        {booking.status !== 'completed' && booking.bookingStatus !== 'completed' && (
+                        {booking.status !== 'completed' && booking.bookingStatus !== 'completed' && booking.paymentStatus !== 'completed' && (
                           <button 
                             onClick={() => markOrderCompleted(booking.id)}
                             className="complete-btn"
@@ -2618,9 +3231,14 @@ const AdminPage = () => {
                                         </thead>
                                         <tbody>
                                           {user.bookings.slice(0, 5).map((booking, index) => (
-                                            <tr key={booking.id || booking.bookingId || index}>
+                                            <tr key={`user-${user.id}-booking-${booking.id || booking.bookingId || index}`}>
                                               <td>#{(booking.id || booking.bookingId || 'N/A').substring(0, 8)}</td>
-                                              <td>{booking.celebrity?.name || 'N/A'}</td>
+                                              <td>
+                                                {booking.type === 'acting_class' 
+                                                  ? `Acting Coach - ${booking.coach?.name || 'Unknown Coach'}` 
+                                                  : booking.celebrity?.name || 'N/A'
+                                                }
+                                              </td>
                                               <td>{booking.sessionDetails?.date || booking.date || 'N/A'}</td>
                                               <td>{booking.package || booking.podcastType || 'Standard'}</td>
                                               <td>${booking.pricing?.total || booking.total || 0}</td>
@@ -2725,17 +3343,26 @@ const AdminPage = () => {
                   let firstName, lastName, email, phone;
                   
                   if (payment.type === 'donation') {
-                    // For donations, check donation-specific fields
-                    firstName = payment.donorInfo?.firstName || payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || payment.donorName?.split(' ')[0] || 'Anonymous';
-                    lastName = payment.donorInfo?.lastName || payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || payment.donorName?.split(' ').slice(1).join(' ') || 'Donor';
+                    // For donations, check donation-specific fields with enhanced extraction
+                    const fullName = payment.personalInfo?.fullName || payment.formData?.fullName || payment.donorName || '';
+                    const nameParts = fullName.trim().split(' ');
+                    
+                    firstName = payment.donorInfo?.firstName || payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || nameParts[0] || 'Anonymous';
+                    lastName = payment.donorInfo?.lastName || payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || nameParts.slice(1).join(' ') || 'Donor';
                     email = payment.donorInfo?.email || payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A';
                     phone = payment.donorInfo?.phone || payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A';
+                  } else if (payment.type === 'podcast_booking' || payment.type === 'podcast_request') {
+                    // For podcast requests, check contactInfo field specifically
+                    firstName = payment.contactInfo?.firstName || payment.podcastDetails?.hostName?.split(' ')[0] || payment.customerInfo?.firstName || payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || 'Unknown';
+                    lastName = payment.contactInfo?.lastName || payment.podcastDetails?.hostName?.split(' ').slice(1).join(' ') || payment.customerInfo?.lastName || payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || 'Host';
+                    email = payment.contactInfo?.email || payment.customerInfo?.email || payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A';
+                    phone = payment.contactInfo?.phone || payment.customerInfo?.phone || payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A';
                   } else {
-                    // For bookings, use existing logic
-                    firstName = payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || 'Unknown';
-                    lastName = payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || 'Customer';
-                    email = payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A';
-                    phone = payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A';
+                    // For other bookings, use existing logic with acting class support
+                    firstName = payment.customerInfo?.firstName || payment.personalInfo?.firstName || payment.formData?.firstName || payment.firstName || 'Unknown';
+                    lastName = payment.customerInfo?.lastName || payment.personalInfo?.lastName || payment.formData?.lastName || payment.lastName || 'Customer';
+                    email = payment.customerInfo?.email || payment.personalInfo?.email || payment.formData?.email || payment.userEmail || payment.email || 'N/A';
+                    phone = payment.customerInfo?.phone || payment.personalInfo?.phone || payment.formData?.phone || payment.phone || 'N/A';
                   }
                   
                   const customerKey = `${firstName} ${lastName}`;
@@ -2773,27 +3400,43 @@ const AdminPage = () => {
                     
                     <div className="customer-payments">
                       {group.payments.map((payment, index) => (
-                        <div key={`${payment.type || 'booking'}-${payment.id}-${index}`} className="payment-item">
+                        <div key={`${payment.type || 'booking'}-${payment.id || payment.donationId || payment.bookingId}-${index}-${payment.createdAt?.getTime?.() || Date.now()}`} className="payment-item">
                           <div className="payment-main">
                             <div className="payment-info">
                               <div className="booking-reference">#{payment.id.substring(0, 8)}</div>
                               <div className="celebrity-name">
                                 {payment.type === 'donation' 
-                                  ? `Donation - ${typeof payment.campaign === 'string' ? payment.campaign : (payment.campaign?.name || 'General Fund')}` 
-                                  : (payment.celebrity?.name || 'N/A')
+                                  ? `Donation - ${typeof payment.campaign === 'string' ? payment.campaign : (payment.campaign?.title || payment.campaign?.name || 'General Fund')}` 
+                                  : payment.type === 'acting_class'
+                                    ? `Acting Coach - ${payment.coach?.name || 'N/A'}`
+                                    : payment.type === 'promotion'
+                                      ? `Promotion - ${payment.service?.title || payment.celebrity?.name || 'Brand Ambassador Program'}`
+                                      : (payment.celebrity?.name || 'N/A')
                                 }
                               </div>
                               <div className="session-details">
                                 <span className="package-type">
                                   {payment.type === 'donation' 
-                                    ? `$${payment.amount || payment.totalAmount || 0} Donation` 
-                                    : (payment.sessionDetails?.package || payment.formData?.package || payment.package || payment.podcastType || 'Standard')
+                                    ? `$${payment.amount || payment.totalAmount || 0} Donation to ${payment.campaign?.title || payment.campaign?.name || 'General Fund'}` 
+                                    : payment.type === 'promotion'
+                                      ? (payment.service?.title || payment.sessionDetails?.package || payment.formData?.package || payment.package || 'Brand Ambassador Program')
+                                      : (payment.sessionDetails?.package || payment.formData?.package || payment.package || payment.podcastType || 'Standard Package')
                                   }
                                 </span>
                                 <span className="session-date">
                                   {payment.type === 'donation' 
-                                    ? (payment.createdAt ? new Date(payment.createdAt).toLocaleDateString() : 'N/A')
-                                    : (payment.sessionDetails?.date || payment.formData?.date || payment.date || 'TBD')
+                                    ? (payment.createdAt ? (
+                                        payment.createdAt.seconds ? 
+                                          new Date(payment.createdAt.seconds * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) + ' at ' + new Date(payment.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) :
+                                          new Date(payment.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) + ' at ' + new Date(payment.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                                      ) : 'N/A')
+                                    : payment.type === 'acting_class'
+                                      ? (payment.createdAt ? (
+                                          payment.createdAt.seconds ? 
+                                            'Paid on ' + new Date(payment.createdAt.seconds * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) + ' at ' + new Date(payment.createdAt.seconds * 1000).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) :
+                                            'Paid on ' + new Date(payment.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) + ' at ' + new Date(payment.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+                                        ) : 'Payment date N/A')
+                                      : `${payment.sessionDetails?.date || payment.formData?.date || payment.date || 'TBD'} ${payment.sessionDetails?.time || payment.formData?.time || payment.time ? 'at ' + (payment.sessionDetails?.time || payment.formData?.time || payment.time) : ''}`
                                   }
                                 </span>
                               </div>
@@ -2827,11 +3470,11 @@ const AdminPage = () => {
                               <div className="details-row">
                                 <div className="detail-group">
                                   <label>Session Time</label>
-                                  <span>{payment.sessionDetails?.time || payment.formData?.time || payment.time || 'TBD'}</span>
+                                  <span>{payment.sessionDetails?.time || payment.formData?.time || payment.time || 'Time TBD'}</span>
                                 </div>
                                 <div className="detail-group">
                                   <label>Duration</label>
-                                  <span>{payment.sessionDetails?.duration ? `${payment.sessionDetails.duration} min` : 'Standard'}</span>
+                                  <span>{payment.sessionDetails?.duration ? `${payment.sessionDetails.duration} min` : payment.packageName || 'Standard Package'}</span>
                                 </div>
                                 <div className="detail-group">
                                   <label>Location</label>
@@ -3425,8 +4068,8 @@ const AdminPage = () => {
                 <div className="recent-activities">
                   <h5>Recent Activities</h5>
                   <div className="activity-list">
-                    {selectedUser.allActivities.slice(0, 5).map((activity) => (
-                      <div key={activity.id || activity.bookingId} className="activity-item">
+                    {selectedUser.allActivities.slice(0, 5).map((activity, index) => (
+                      <div key={`activity-${selectedUser.id}-${activity.id || activity.bookingId || index}`} className="activity-item">
                         <div className="activity-info">
                           <span className="activity-type">
                             {activity.type === 'donation' ? '💝' : '🎭'} 

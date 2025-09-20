@@ -1069,11 +1069,11 @@
   padding: 0;
 }
 
-.pending-orders, .all-orders {
+.pending-orders, .completed-orders, .all-orders {
   margin-bottom: 3rem;
 }
 
-.pending-orders h3, .all-orders h3 {
+.pending-orders h3, .completed-orders h3, .all-orders h3 {
   font-size: 1.75rem;
   font-weight: 800;
   color: #0f172a;
@@ -1107,6 +1107,11 @@
 .order-card.pending {
   border-left: 4px solid #f59e0b;
   background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+}
+
+.order-card.completed {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
 }
 
 .order-card:hover {
@@ -1159,6 +1164,7 @@
 
 /* Dark mode styles for orders section */
 [data-theme="dark"] .pending-orders h3,
+[data-theme="dark"] .completed-orders h3,
 [data-theme="dark"] .all-orders h3 {
   color: var(--text-primary);
   border-bottom-color: var(--border-color);
@@ -1175,6 +1181,11 @@
 [data-theme="dark"] .order-card.pending {
   background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
   border-left-color: var(--warning-color);
+}
+
+[data-theme="dark"] .order-card.completed {
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  border-left-color: var(--success-color);
 }
 
 [data-theme="dark"] .order-card:hover {
@@ -1521,6 +1532,163 @@
   padding: 2rem;
 }
 
+/* Enrollments Grid Styling */
+.enrollments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.enrollment-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
+}
+
+.enrollment-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  border-color: #cbd5e1;
+}
+
+.enrollment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.enrollment-header h4 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.enrollment-status {
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: white;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.enrollment-details {
+  margin-bottom: 1.5rem;
+}
+
+.enrollment-details p {
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.enrollment-details p:last-child {
+  margin-bottom: 0;
+}
+
+.enrollment-details strong {
+  color: #374151;
+  font-weight: 600;
+}
+
+.enrollment-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.enrollment-actions .primary-btn,
+.enrollment-actions .secondary-btn {
+  flex: 1;
+  min-width: 120px;
+  justify-content: center;
+  font-size: 0.875rem;
+  padding: 0.75rem 1rem;
+}
+
+/* Payment Status Indicator */
+.payment-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #475569;
+  margin-top: 0.5rem;
+}
+
+.payment-status-indicator.submitted {
+  background: #fef3c7;
+  border-color: #fbbf24;
+  color: #92400e;
+}
+
+.payment-status-indicator.confirmed {
+  background: #d1fae5;
+  border-color: #10b981;
+  color: #065f46;
+}
+
+/* Dark mode support for enrollments */
+[data-theme="dark"] .enrollment-card {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .enrollment-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .enrollment-header h4 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .enrollment-details p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .enrollment-details strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .payment-status-indicator {
+  background: var(--bg-tertiary);
+  border-color: var(--border-color);
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .payment-status-indicator.submitted {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+[data-theme="dark"] .payment-status-indicator.confirmed {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: #10b981;
+  color: #10b981;
+}
+
 .current-enrollments, .completed-classes, .available-classes {
   margin-bottom: 3rem;
 }
@@ -1586,6 +1754,134 @@
   border-bottom: 2px solid #e2e8f0;
 }
 
+/* Request Cards Grid */
+.requests-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.request-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.request-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
+}
+
+.request-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.request-header h4 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  flex: 1;
+}
+
+.request-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  margin-left: 1rem;
+}
+
+.request-details {
+  margin-bottom: 1.5rem;
+}
+
+.request-details p {
+  margin: 0.5rem 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
+.request-details strong {
+  color: #374151;
+  font-weight: 600;
+}
+
+.request-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #f1f5f9;
+}
+
+.request-actions .secondary-btn,
+.request-actions .primary-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+}
+
+/* Request History List */
+.requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.request-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.request-item:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.request-info {
+  flex: 1;
+}
+
+.request-info h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.request-info p {
+  margin: 0.25rem 0;
+  font-size: 0.875rem;
+  color: #64748b;
+}
+
+.request-date {
+  font-size: 0.8rem !important;
+  color: #94a3b8 !important;
+}
+
 .request-options {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -1642,10 +1938,58 @@
 
 [data-theme="dark"] .order-card,
 [data-theme="dark"] .class-preview-card,
-[data-theme="dark"] .request-option-card {
+[data-theme="dark"] .request-option-card,
+[data-theme="dark"] .request-card {
   background: var(--bg-secondary);
   border-color: var(--border-color);
   color: var(--text-primary);
+}
+
+[data-theme="dark"] .request-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .request-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-theme="dark"] .request-header h4 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .request-details p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .request-details strong {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .request-actions {
+  border-top-color: var(--border-color);
+}
+
+[data-theme="dark"] .request-item {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+[data-theme="dark"] .request-item:hover {
+  border-color: var(--border-hover);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .request-info h4 {
+  color: var(--text-primary);
+}
+
+[data-theme="dark"] .request-info p {
+  color: var(--text-secondary);
+}
+
+[data-theme="dark"] .request-date {
+  color: var(--text-tertiary) !important;
 }
 
 [data-theme="dark"] .order-card.pending {

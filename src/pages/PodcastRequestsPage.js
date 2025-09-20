@@ -3,8 +3,8 @@ import './PodcastRequestsPage.css';
 import { createPayment } from '../services/paymentService';
 import BitcoinPayment from '../components/BitcoinPayment';
 import CryptoTutorial from '../components/CryptoTutorial';
-import { db } from '../services/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db, auth } from '../services/firebase';
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 
 const PodcastRequestsPage = () => {
@@ -18,6 +18,8 @@ const PodcastRequestsPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [isBookingProcessed, setIsBookingProcessed] = useState(false);
+  const [currentBookingId, setCurrentBookingId] = useState(null);
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
   const paymentModalRef = useRef(null);
   const [originalScrollPosition, setOriginalScrollPosition] = useState(0);
@@ -120,6 +122,10 @@ const PodcastRequestsPage = () => {
     setOriginalScrollPosition(window.pageYOffset);
     setSelectedCelebrity(celebrity);
     setShowBookingForm(true);
+    // Reset booking processed flag for new booking
+    setIsBookingProcessed(false);
+    // Generate a consistent booking ID for this booking session
+    setCurrentBookingId(`PC-${Date.now()}`);
     
     // Prevent body scroll when modal is open
     document.body.style.overflow = 'hidden';
@@ -153,7 +159,7 @@ const PodcastRequestsPage = () => {
   // ADD THIS MISSING FUNCTION BACK:
   const handlePayment = async (paymentFormData) => {
     try {
-      const bookingId = 'PODCAST' + Date.now();
+      const bookingId = currentBookingId || `PC-${Date.now()}`;
       const totalAmount = getPodcastPrice(selectedCelebrity, formData.podcastType);
       
       const paymentRequestData = {
@@ -187,14 +193,23 @@ const PodcastRequestsPage = () => {
   };
 
   const handleBitcoinPaymentComplete = async () => {
+    // Prevent duplicate processing
+    if (isBookingProcessed) {
+      // Booking already processed, skipping duplicate call
+      return;
+    }
+    
+    setIsBookingProcessed(true);
+    
     try {
-      const bookingId = `PC-${Date.now()}`;
+      const bookingId = currentBookingId || `PC-${Date.now()}`;
       const totalAmount = getPodcastPrice(selectedCelebrity, formData.podcastType);
       
       // Create booking data object
       const bookingData = {
         id: bookingId,
         bookingId: bookingId,
+        userId: auth.currentUser?.uid || null,
         type: 'podcast_booking',
         celebrity: {
           id: selectedCelebrity.id,
@@ -216,6 +231,20 @@ const PodcastRequestsPage = () => {
           email: formData.email,
           phone: formData.phone
         },
+        // Add customerInfo for admin panel compatibility
+        customerInfo: {
+          firstName: formData.hostName?.split(' ')[0] || 'Unknown',
+          lastName: formData.hostName?.split(' ').slice(1).join(' ') || 'Host',
+          email: formData.email,
+          phone: formData.phone
+        },
+        // Add personalInfo as fallback
+        personalInfo: {
+          firstName: formData.hostName?.split(' ')[0] || 'Unknown',
+          lastName: formData.hostName?.split(' ').slice(1).join(' ') || 'Host',
+          email: formData.email,
+          phone: formData.phone
+        },
         sessionDetails: {
           preferredDate: formData.preferredDate,
           preferredTime: formData.preferredTime
@@ -233,21 +262,51 @@ const PodcastRequestsPage = () => {
         createdAt: new Date().toISOString()
       };
       
-      // Save to localStorage first
+      // Check for duplicates before saving to localStorage
       const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
+      const isDuplicate = existingBookings.some(booking => 
+        booking.bookingId === bookingId || 
+        (booking.celebrity?.id === selectedCelebrity.id && 
+         booking.contactInfo?.email === formData.email &&
+         booking.type === 'podcast_booking' &&
+         Math.abs(new Date(booking.createdAt).getTime() - new Date().getTime()) < 300000) // Within 5 minutes
+      );
+      
+      if (isDuplicate) {
+        // Duplicate podcast booking detected, skipping save
+        setShowBitcoinPayment(false);
+        document.body.style.overflow = 'unset';
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 500);
+        return;
+      }
+      
+      // Save to localStorage
       existingBookings.push(bookingData);
       localStorage.setItem('bookings', JSON.stringify(existingBookings));
-      console.log('Podcast booking saved to localStorage');
+      // Podcast booking saved to localStorage
       
       // Save to Firebase for admin panel visibility
       try {
+        // Check for existing Firebase entries to prevent duplicates
         const bookingsCollection = collection(db, 'bookings');
-        const docRef = await addDoc(bookingsCollection, {
-          ...bookingData,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-        console.log('Podcast booking saved to Firebase with ID:', docRef.id);
+        const existingQuery = query(
+          bookingsCollection,
+          where('bookingId', '==', bookingId)
+        );
+        const existingSnapshot = await getDocs(existingQuery);
+        
+        if (existingSnapshot.empty) {
+          const docRef = await addDoc(bookingsCollection, {
+            ...bookingData,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          });
+          // Podcast booking saved to Firebase
+        } else {
+          // Podcast booking already exists in Firebase, skipping duplicate save
+        }
       } catch (firebaseError) {
         console.error('Error saving podcast booking to Firebase:', firebaseError);
         // Don't fail the entire process if Firebase save fails
@@ -262,10 +321,10 @@ const PodcastRequestsPage = () => {
           );
         }
       } catch (notificationError) {
-        console.log('Notification system not available:', notificationError);
+        // Notification system not available
       }
       
-      console.log('Podcast booking saved successfully:', bookingData);
+      // Podcast booking saved successfully
       
     } catch (error) {
       console.error('Error saving podcast booking:', error);
@@ -275,10 +334,10 @@ const PodcastRequestsPage = () => {
       // Restore body scroll
       document.body.style.overflow = 'unset';
       
-      // Navigate to dashboard after a short delay
+      // Navigate to dashboard with a small delay to ensure data is saved
       setTimeout(() => {
         navigate('/dashboard');
-      }, 2000);
+      }, 500);
     }
   };
 
@@ -621,7 +680,7 @@ const PodcastRequestsPage = () => {
               amount={getPodcastPrice(selectedCelebrity, formData.podcastType)}
               onPaymentComplete={handleBitcoinPaymentComplete}
               onCancel={() => setShowBitcoinPayment(false)}
-              bookingId={`PC-${Date.now()}`}
+              bookingId={currentBookingId}
             />
           </div>
         </div>

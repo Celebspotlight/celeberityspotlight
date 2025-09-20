@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../contexts/ToastContext';
+
 import './Auth.css';
 
 const ForgotPassword = () => {
@@ -31,17 +32,24 @@ const ForgotPassword = () => {
     
     setIsLoading(true);
     
+    console.log('🔄 Starting password reset for:', email);
     const result = await resetPassword(email);
+    
+    console.log('📋 Password reset result:', result);
     
     if (result.success) {
       setIsSuccess(true);
-      toast.showSuccess('Password reset email sent! Check your inbox for instructions.');
+      console.log('✅ Password reset email sent successfully');
+      toast.showSuccess('Password reset email sent! Check your inbox and spam folder for instructions.');
     } else {
+      console.error('❌ Password reset failed:', result.error);
       toast.showError(result.error || 'Failed to send reset email. Please try again.');
     }
     
     setIsLoading(false);
   };
+
+
 
   return (
     <div className="auth-container">
@@ -83,6 +91,12 @@ const ForgotPassword = () => {
                 'Send Reset Email'
               )}
             </button>
+            
+
+            
+            <div style={{ marginTop: '15px', fontSize: '14px', color: '#666', textAlign: 'left' }}>
+               <p><strong>Important:</strong> Please check your spam or junk folder if you don't receive the reset email within a few minutes. Reset emails are sometimes filtered by email providers.</p>
+             </div>
 
             <div className="auth-actions">
               <Link to="/login" className="back-to-signin-btn">
@@ -104,7 +118,7 @@ const ForgotPassword = () => {
             </div>
             <h3 className="success-title">Check Your Email</h3>
             <p className="success-message">
-              If an account with <strong>{email}</strong> exists, you'll receive a password reset link shortly.
+              If an account with <strong>{email}</strong> exists, you'll receive a password reset link shortly. Please check your spam or junk folder if you don't see the email in your inbox.
             </p>
             <div className="success-actions">
               <Link to="/login" className="primary-action-btn">

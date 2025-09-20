@@ -100,15 +100,50 @@ class AuthService {
   // Reset password
   async resetPassword(email) {
     try {
+      console.log('Attempting to send password reset email to:', email);
+      console.log('Auth domain:', auth.app.options.authDomain);
+      
       await sendPasswordResetEmail(auth, email);
+      
+      console.log('Password reset email sent successfully');
       return {
         success: true,
         message: 'Password reset email sent successfully'
       };
     } catch (error) {
+      console.error('Password reset error details:', {
+        code: error.code,
+        message: error.message,
+        email: email,
+        authDomain: auth.app.options.authDomain
+      });
+      
+      // Provide more specific error messages
+      let userFriendlyMessage = error.message;
+      
+      switch (error.code) {
+        case 'auth/user-not-found':
+          userFriendlyMessage = 'No account found with this email address. Please check the email or create a new account.';
+          break;
+        case 'auth/invalid-email':
+          userFriendlyMessage = 'Please enter a valid email address.';
+          break;
+        case 'auth/operation-not-allowed':
+          userFriendlyMessage = 'Password reset is not enabled. Please contact support.';
+          break;
+        case 'auth/too-many-requests':
+          userFriendlyMessage = 'Too many password reset attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          userFriendlyMessage = 'Network error. Please check your internet connection and try again.';
+          break;
+        default:
+          userFriendlyMessage = `Password reset failed: ${error.message}`;
+      }
+      
       return {
         success: false,
-        error: error.message
+        error: userFriendlyMessage
       };
     }
   }

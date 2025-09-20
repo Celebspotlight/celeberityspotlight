@@ -123,7 +123,7 @@ const PromotionsPage = () => {
 
   const handleRegularPayment = async (formData) => {
     try {
-      const bookingId = 'PROMO' + Date.now();
+      const bookingId = 'PROMO' + Date.now() + Math.random().toString(36).substr(2, 9);
       
       const paymentRequestData = {
         bookingId,
@@ -136,15 +136,31 @@ const PromotionsPage = () => {
       const response = await createPayment(paymentRequestData);
       
       if (response && response.invoice_url) {
+        // Parse fullName into firstName and lastName for admin panel compatibility
+        const nameParts = (formData.fullName || '').trim().split(' ');
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName = nameParts.slice(1).join(' ') || 'Customer';
+        
         const bookingData = {
           id: bookingId,
           type: 'promotion',
           service: selectedService,
-          formData,
-          personalInfo: formData, // Add for admin panel compatibility
+          celebrity: { name: selectedService.title }, // Add celebrity name for admin panel
+          formData: {
+            ...formData,
+            firstName,
+            lastName
+          },
+          personalInfo: {
+            firstName,
+            lastName,
+            email: formData.email,
+            phone: formData.phone || 'N/A',
+            fullName: formData.fullName
+          },
           total: selectedService.price,
           paymentUrl: response.invoice_url,
-          status: 'pending_payment',
+          status: 'pending',
           paymentStatus: 'pending',
           paymentMethod: 'crypto',
           userId: currentUser?.uid || 'anonymous',
@@ -153,35 +169,37 @@ const PromotionsPage = () => {
           updatedAt: new Date()
         };
         
-        // Save to Firebase
+        // Save to Firebase only
         try {
           const docRef = await addDoc(collection(db, 'bookings'), bookingData);
-          console.log('Promotion booking saved to Firebase with ID:', docRef.id);
+          // Promotion booking saved to Firebase
         } catch (firebaseError) {
           console.error('Error saving promotion to Firebase:', firebaseError);
-          // Still continue with localStorage as fallback
+          alert('Failed to save promotion booking. Please try again.');
+          return;
         }
         
-        // Also save to localStorage for backward compatibility
-        const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-        existingBookings.push({
-          ...bookingData,
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem('bookings', JSON.stringify(existingBookings));
+        // Show notification (similar to donation)
+        const notification = {
+          id: Date.now(),
+          type: 'payment_reminder',
+          title: 'Promotion Payment Initiated!',
+          message: 'Your promotion payment has been initiated. Complete the payment and check your User Management section to track status.',
+          timestamp: new Date().toISOString(),
+          read: false
+        };
+        
+        const existingNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+        existingNotifications.unshift(notification);
+        localStorage.setItem('notifications', JSON.stringify(existingNotifications));
         
         window.open(response.invoice_url, '_blank');
         setShowPaymentModal(false);
         
-        // Scroll back to the clicked button
+        // Auto-redirect to dashboard after 2 seconds (like donations)
         setTimeout(() => {
-          if (clickedButtonRef) {
-            clickedButtonRef.scrollIntoView({ 
-              behavior: 'smooth', 
-              block: 'center' 
-            });
-          }
-        }, 100);
+          window.location.href = '/dashboard';
+        }, 2000);
       }
     } catch (error) {
       console.error('Payment error:', error);
@@ -191,7 +209,7 @@ const PromotionsPage = () => {
 
   const handleBitcoinPayment = (formData) => {
     // Generate booking ID but DO NOT save booking data until payment is confirmed
-    const bookingId = 'PROMO' + Date.now();
+    const bookingId = 'PROMO' + Date.now() + Math.random().toString(36).substr(2, 9);
     
     // Store form data temporarily for payment completion
     setTempFormData(formData);
@@ -204,12 +222,28 @@ const PromotionsPage = () => {
   const handleBitcoinPaymentComplete = async () => {
     // Now save the booking data after payment confirmation
     if (tempFormData && tempBookingId) {
+      // Parse fullName into firstName and lastName for admin panel compatibility
+      const nameParts = (tempFormData.fullName || '').trim().split(' ');
+      const firstName = nameParts[0] || 'Unknown';
+      const lastName = nameParts.slice(1).join(' ') || 'Customer';
+      
       const bookingData = {
         id: tempBookingId,
         type: 'promotion',
         service: selectedService,
-        formData: tempFormData,
-        personalInfo: tempFormData, // Add for admin panel compatibility
+        celebrity: { name: selectedService.title }, // Add celebrity name for admin panel
+        formData: {
+          ...tempFormData,
+          firstName,
+          lastName
+        },
+        personalInfo: {
+          firstName,
+          lastName,
+          email: tempFormData.email,
+          phone: tempFormData.phone || 'N/A',
+          fullName: tempFormData.fullName
+        },
         total: selectedService.price,
         status: 'pending',
         paymentStatus: 'pending',
@@ -220,22 +254,29 @@ const PromotionsPage = () => {
         updatedAt: new Date()
       };
       
-      // Save to Firebase
+      // Save to Firebase only
       try {
         const docRef = await addDoc(collection(db, 'bookings'), bookingData);
-        console.log('Bitcoin promotion booking saved to Firebase with ID:', docRef.id);
+        // Bitcoin promotion booking saved to Firebase
       } catch (firebaseError) {
         console.error('Error saving bitcoin promotion to Firebase:', firebaseError);
-        // Still continue with localStorage as fallback
+        alert('Failed to save promotion booking. Please try again.');
+        return;
       }
       
-      // Also save to localStorage for backward compatibility
-      const existingBookings = JSON.parse(localStorage.getItem('bookings') || '[]');
-      existingBookings.push({
-        ...bookingData,
-        createdAt: new Date().toISOString()
-      });
-      localStorage.setItem('bookings', JSON.stringify(existingBookings));
+      // Show notification (similar to donation)
+      const notification = {
+        id: Date.now(),
+        type: 'payment_completed',
+        title: 'Promotion Payment Completed!',
+        message: 'Your promotion payment has been completed successfully. Check your User Management section to track status.',
+        timestamp: new Date().toISOString(),
+        read: false
+      };
+      
+      const existingNotifications = JSON.parse(localStorage.getItem('notifications') || '[]');
+      existingNotifications.unshift(notification);
+      localStorage.setItem('notifications', JSON.stringify(existingNotifications));
       
       // Clear temporary data
       setTempFormData(null);
@@ -244,15 +285,10 @@ const PromotionsPage = () => {
     
     setShowBitcoinPayment(false);
     
-    // Scroll back to the clicked button
+    // Auto-redirect to dashboard after 3 seconds (like donation Bitcoin payment)
     setTimeout(() => {
-      if (clickedButtonRef) {
-        clickedButtonRef.scrollIntoView({ 
-          behavior: 'smooth', 
-          block: 'center' 
-        });
-      }
-    }, 100);
+      window.location.href = '/dashboard';
+    }, 3000);
   };
 
   const handleCloseModal = () => {
@@ -381,7 +417,7 @@ const PromotionsPage = () => {
               amount={selectedService?.price}
               onPaymentComplete={handleBitcoinPaymentComplete}
               onCancel={() => setShowBitcoinPayment(false)}
-              bookingId={`PR-${Date.now()}`}
+              bookingId={`PR-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}
             />
           </div>
         </div>

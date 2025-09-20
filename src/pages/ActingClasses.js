@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import ActingClassModal from '../components/ActingClassModal';
 import './ActingClasses.css';
+import { db } from '../services/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 const ActingClasses = () => {
   const [celebrities, setCelebrities] = useState([]);
@@ -13,25 +15,56 @@ const ActingClasses = () => {
   const [savedScrollPosition, setSavedScrollPosition] = useState(0); // Add this state
 
   useEffect(() => {
-    // Load acting coaches from separate localStorage
-    const loadActingCoaches = () => {
-      const savedActingCoaches = localStorage.getItem('actingCoaches');
-      if (savedActingCoaches) {
-        const parsed = JSON.parse(savedActingCoaches);
-        setCelebrities(parsed); // Use the same state but load from actingCoaches
-      } else {
-        setCelebrities([]); // No acting coaches yet
+    // Load acting coaches from Firebase and localStorage
+    const loadActingCoaches = async () => {
+      try {
+        // Load from Firebase first
+        const actingCoachesCollection = collection(db, 'actingCoaches');
+        const querySnapshot = await getDocs(actingCoachesCollection);
+        
+        if (!querySnapshot.empty) {
+          const firebaseCoaches = querySnapshot.docs.map(doc => ({
+            firebaseId: doc.id,
+            ...doc.data()
+          }));
+          setCelebrities(firebaseCoaches);
+          // Sync to localStorage for offline access
+          localStorage.setItem('actingCoaches', JSON.stringify(firebaseCoaches));
+        } else {
+          // Fallback to localStorage if Firebase is empty
+          const savedActingCoaches = localStorage.getItem('actingCoaches');
+          if (savedActingCoaches) {
+            const parsed = JSON.parse(savedActingCoaches);
+            setCelebrities(parsed);
+          } else {
+            setCelebrities([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading acting coaches from Firebase:', error);
+        // Fallback to localStorage on error
+        const savedActingCoaches = localStorage.getItem('actingCoaches');
+        if (savedActingCoaches) {
+          const parsed = JSON.parse(savedActingCoaches);
+          setCelebrities(parsed);
+        } else {
+          setCelebrities([]);
+        }
+      } finally {
+        setLoading(false);
       }
-      // ADD THIS LINE TO STOP LOADING
-      setLoading(false);
     };
   
     loadActingCoaches();
   
-    // Listen for changes to acting coaches localStorage
+    // Listen for changes to acting coaches localStorage (for real-time updates)
     const handleStorageChange = (e) => {
       if (e.key === 'actingCoaches') {
-        loadActingCoaches();
+        const savedActingCoaches = localStorage.getItem('actingCoaches');
+        if (savedActingCoaches) {
+          const parsed = JSON.parse(savedActingCoaches);
+          setCelebrities(parsed);
+        }
       }
     };
   

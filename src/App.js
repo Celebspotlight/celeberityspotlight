@@ -33,10 +33,6 @@ import BookingCancelled from './pages/BookingCancelled';
 import ActingClasses from './pages/ActingClasses';
 import NotificationToast from './components/NotificationToast';
 import './utils/UltimateNotificationManager'; // Initialize notification manager
-import './utils/testUserRegistration'; // Import test function for browser console
-import './utils/debugUserIssue';
-import './utils/testUserCreation'; // Import user creation test
-import './utils/testNotification'; // Import notification test functions
 
 function AppContent() {
   const location = useLocation();

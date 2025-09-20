@@ -18,10 +18,19 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [profileMessage, setProfileMessage] = useState('');
   const [bookings, setBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+
+  // Ensure body scroll is restored when Dashboard mounts
+  useEffect(() => {
+    document.body.style.overflow = 'unset';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.height = '';
+  }, []);
 
   // Safety timeout to prevent infinite loading
   useEffect(() => {
@@ -50,22 +59,47 @@ const Dashboard = () => {
         ? allLocalBookings.filter(booking => booking.userId === currentUser.uid)
         : allLocalBookings;
       
-      const formattedBookings = userBookings.map(booking => ({
-        id: booking.id || booking.bookingId,
+      const formattedBookings = userBookings.map((booking, index) => ({
+        id: booking.id || booking.bookingId || `local-${booking.type || 'booking'}-${Date.now()}-${index}`,
         ...booking,
         service: booking.celebrity?.name || booking.service || 'Celebrity Experience',
         date: booking.sessionDetails?.date || booking.date || '',
         time: booking.sessionDetails?.time || booking.time || '',
         status: booking.status || 'pending',
-        total: booking.pricing?.total || booking.total || 0,
+        total: booking.pricing?.total || booking.total || booking.amount || booking.price || booking.celebrity?.price || 0,
         package: booking.sessionDetails?.packageName || booking.package || 'Basic Package',
         paymentStatus: booking.paymentStatus || 'pending'
       }));
       
-      // Remove duplicates based on bookingId
-      const uniqueBookings = formattedBookings.filter((booking, index, self) => 
-        index === self.findIndex(b => (b.bookingId || b.id) === (booking.bookingId || booking.id))
-      );
+      // Remove duplicates based on multiple criteria
+      const uniqueBookings = formattedBookings.filter((booking, index, self) => {
+        const currentKey = booking.bookingId || booking.id;
+        const currentType = booking.type;
+        const currentService = booking.service || booking.className;
+        const currentCreatedAt = booking.createdAt;
+        
+        return index === self.findIndex(b => {
+          const compareKey = b.bookingId || b.id;
+          const compareType = b.type;
+          const compareService = b.service || b.className;
+          const compareCreatedAt = b.createdAt;
+          
+          // Primary match: same booking ID
+          if (currentKey && compareKey && currentKey === compareKey) {
+            return true;
+          }
+          
+          // Secondary match: same type, service, and created within 1 minute
+          if (currentType === compareType && 
+              currentService === compareService && 
+              currentCreatedAt && compareCreatedAt) {
+            const timeDiff = Math.abs(new Date(currentCreatedAt).getTime() - new Date(compareCreatedAt).getTime());
+            return timeDiff < 60000; // 1 minute
+          }
+          
+          return false;
+        });
+      });
       
       setBookings(uniqueBookings);
     } catch (error) {
@@ -98,11 +132,13 @@ const Dashboard = () => {
           id: doc.id,
           ...bookingData,
           // Format data for display
-          service: bookingData.celebrity?.name || 'Celebrity Experience',
-          date: bookingData.sessionDetails?.date || '',
-          time: bookingData.sessionDetails?.time || '',
+          service: bookingData.type === 'acting_class' 
+            ? `Acting Class - ${bookingData.coach?.name || 'Unknown Coach'}` 
+            : bookingData.celebrity?.name || bookingData.service || 'Celebrity Experience',
+          date: bookingData.sessionDetails?.date || bookingData.date || '',
+          time: bookingData.sessionDetails?.time || bookingData.time || '',
           status: bookingData.status || 'pending',
-          total: bookingData.pricing?.total || 0,
+          total: bookingData.pricing?.total || bookingData.total || bookingData.amount || bookingData.price || bookingData.celebrity?.price || 0,
           package: bookingData.sessionDetails?.packageName || 'Basic Package',
           paymentStatus: bookingData.paymentStatus || 'pending'
         });
@@ -127,7 +163,7 @@ const Dashboard = () => {
           date: '',
           time: '',
           status: donationData.status || 'pending',
-          total: donationData.amount || 0,
+          total: donationData.amount || donationData.total || donationData.price || 0,
           package: 'Donation',
           paymentStatus: donationData.paymentStatus || 'pending'
         });
@@ -149,7 +185,9 @@ const Dashboard = () => {
         .map(booking => ({
           id: booking.id || booking.bookingId,
           ...booking,
-          service: booking.celebrity?.name || booking.service || 'Celebrity Experience',
+          service: booking.type === 'acting_class' 
+            ? `Acting Class - ${booking.coach?.name || 'Unknown Coach'}` 
+            : booking.celebrity?.name || booking.service || 'Celebrity Experience',
           date: booking.sessionDetails?.date || booking.date || '',
           time: booking.sessionDetails?.time || booking.time || '',
           status: booking.status || 'pending',
@@ -212,6 +250,25 @@ const Dashboard = () => {
       loadUserBookings();
     }
   }, [currentUser?.uid, loadUserBookings]);
+
+  // Clear messages when all payments are confirmed
+  useEffect(() => {
+    const hasPendingPayments = bookings.some(b => 
+      b.status === 'pending' || 
+      b.status === 'pending_payment' || 
+      b.paymentStatus === 'submitted'
+    );
+    
+    if (!hasPendingPayments && (message || profileMessage)) {
+      // Clear messages after a delay if no pending payments
+      const timer = setTimeout(() => {
+        setMessage('');
+        setProfileMessage('');
+      }, 2000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [bookings, message, profileMessage]);
 
   // Listen for real-time booking and donation updates
   useEffect(() => {
@@ -320,27 +377,49 @@ const Dashboard = () => {
       setNotifications(notificationsList);
       setUnreadCount(unreadCounter);
 
-      // Show toast notification for new payment approvals
+      // Show toast notification for new payment approvals and order completions
       notificationsList.forEach(notification => {
-        if (notification.type === 'payment_approved' && !notification.read) {
-          // Extract celebrity name from notification data
-          const celebrityName = notification.celebrityName || 
-                               notification.data?.celebrityName || 
-                               notification.data?.celebrity?.name ||
-                               (notification.message && typeof notification.message === 'string' ? 
-                                notification.message.match(/for (.+?) has been/)?.[1] : null) ||
-                               'your booking';
-          setMessage(`🎉 Payment Approved! Your booking for ${celebrityName} has been confirmed.`);
-          // Auto-refresh bookings to show updated status
-          setTimeout(() => {
-            loadUserBookings();
-          }, 1000);
+        if ((notification.type === 'payment_approved' || notification.type === 'order_completed') && !notification.read) {
+          // Extract booking details from notification data
+          let bookingDescription = 'your booking';
+          
+          if (notification.data) {
+            // Check if it's an acting class booking
+            if (notification.data.type === 'acting_class' || notification.data.bookingType === 'acting_class') {
+              const coachName = notification.data.actingCoach || notification.data.coach || 'Acting Coach';
+              bookingDescription = `your acting class with ${coachName}`;
+            }
+            // Check if it's a celebrity meet & greet
+            else if (notification.data.celebrityName || notification.data.celebrity?.name) {
+              const celebrityName = notification.data.celebrityName || notification.data.celebrity?.name;
+              bookingDescription = `your booking for ${celebrityName}`;
+            }
+            // Check if it's a class enrollment
+            else if (notification.data.type === 'class_enrollment') {
+              const className = notification.data.className || 'class';
+              bookingDescription = `your enrollment for ${className}`;
+            }
+          }
+          
+          if (notification.type === 'payment_approved') {
+            setMessage(`🎉 Payment Approved! ${bookingDescription.charAt(0).toUpperCase() + bookingDescription.slice(1)} has been confirmed.`);
+          } else if (notification.type === 'order_completed') {
+            setMessage(`✅ Order Completed! ${bookingDescription.charAt(0).toUpperCase() + bookingDescription.slice(1)} has been completed.`);
+          }
+          
+          // Auto-refresh bookings to show updated status (debounced)
+          if (!window.dashboardRefreshTimeout) {
+            window.dashboardRefreshTimeout = setTimeout(() => {
+              loadUserBookings();
+              window.dashboardRefreshTimeout = null;
+            }, 2000);
+          }
         }
       });
     });
 
     return () => unsubscribe();
-  }, [currentUser?.uid, loadUserBookings]);
+  }, [currentUser?.uid]);
 
 
 
@@ -357,13 +436,16 @@ const Dashboard = () => {
       });
 
       if (result.success) {
-        setMessage('Profile updated successfully!');
+        setProfileMessage('Profile updated successfully!');
+                setTimeout(() => setProfileMessage(''), 3000);
         setIsEditing(false);
       } else {
-        setMessage(result.error || 'Failed to update profile');
+        setProfileMessage(result.error || 'Failed to update profile');
+                setTimeout(() => setProfileMessage(''), 5000);
       }
     } catch (error) {
-      setMessage('Failed to update profile');
+      setProfileMessage('Failed to update profile');
+              setTimeout(() => setProfileMessage(''), 5000);
     }
 
     setIsLoading(false);
@@ -378,7 +460,40 @@ const Dashboard = () => {
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    if (!dateString) return 'No date';
+    
+    // Handle Firestore Timestamp objects
+    if (dateString && typeof dateString === 'object') {
+      try {
+        if (dateString.toDate) {
+          // Firebase Timestamp with toDate method
+          return dateString.toDate().toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        } else if (dateString.seconds) {
+          // Firestore Timestamp format with seconds
+          const date = new Date(dateString.seconds * 1000);
+          return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+      } catch (error) {
+        console.warn('Error converting Firestore timestamp:', error);
+        return 'Date unavailable';
+      }
+    }
+    
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date string:', dateString);
+      return 'Date unavailable';
+    }
+    
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
@@ -388,6 +503,7 @@ const Dashboard = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return '#48bb78';
+      case 'completed': return '#22c55e';
       case 'pending': return '#ed8936';
       case 'cancelled': return '#f56565';
       default: return '#718096';
@@ -425,10 +541,22 @@ const Dashboard = () => {
                   <p className="user-subtitle">Manage your celebrity bookings and profile</p>
                   <div className="profile-completeness">
                     <div className="completeness-bar">
-                      <div className="completeness-fill" style={{width: `${profileData.displayName && profileData.phone ? '85%' : '60%'}`}}></div>
+                      <div className="completeness-fill" style={{width: `${(() => {
+                        let completeness = 20; // Base for having an account
+                        if (profileData.email || currentUser?.email) completeness += 20;
+                        if (profileData.displayName || currentUser?.displayName) completeness += 30;
+                        if (profileData.phone || currentUser?.phoneNumber) completeness += 30;
+                        return Math.min(completeness, 100);
+                      })()}%`}}></div>
                     </div>
                     <span className="completeness-text">
-                      Profile {profileData.displayName && profileData.phone ? '85%' : '60%'} complete
+                      Profile {(() => {
+                        let completeness = 20; // Base for having an account
+                        if (profileData.email || currentUser?.email) completeness += 20;
+                        if (profileData.displayName || currentUser?.displayName) completeness += 30;
+                        if (profileData.phone || currentUser?.phoneNumber) completeness += 30;
+                        return Math.min(completeness, 100);
+                      })()}% complete
                     </span>
                   </div>
                 </div>
@@ -533,8 +661,8 @@ const Dashboard = () => {
                 <div className="stat-card">
                   <div className="stat-icon">✅</div>
                   <div className="stat-content">
-                    <h3>{bookings.filter(b => b.status === 'confirmed').length}</h3>
-                    <p>Confirmed</p>
+                    <h3>{bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length}</h3>
+                    <p>Confirmed & Completed</p>
                   </div>
                 </div>
                 <div className="stat-card">
@@ -547,7 +675,7 @@ const Dashboard = () => {
                 <div className="stat-card">
                   <div className="stat-icon">🎭</div>
                   <div className="stat-content">
-                    <h3>0</h3>
+                    <h3>{bookings.filter(b => b.type === 'acting_class' || b.type === 'class_enrollment').length}</h3>
                     <p>Acting Classes</p>
                   </div>
                 </div>
@@ -560,8 +688,10 @@ const Dashboard = () => {
                     {bookings.filter(b => b.status === 'pending' || b.status === 'pending_payment').map((booking) => (
                       <div key={booking.id || booking.bookingId || `pending-${booking.service}-${booking.date}`} className="pending-item">
                         <div className="pending-info">
-                          <h4>{booking.service}</h4>
-                          <p>Booking ID: {booking.bookingId}</p>
+                          <h4>{booking.service || booking.celebrity?.name || 'Booking'}</h4>
+                          <p>Booking ID: {booking.bookingId || booking.id}</p>
+                          <p><strong>Package:</strong> {booking.package || booking.sessionDetails?.package || booking.formData?.package || booking.podcastType || 'Standard Package'}</p>
+                          <p><strong>Total:</strong> ${booking.total || booking.pricing?.total || booking.price || booking.amount || 0}</p>
                           <p className="pending-message">
                             {booking.status === 'pending_payment' ? 
                               'Complete your payment to confirm this booking' : 
@@ -577,7 +707,7 @@ const Dashboard = () => {
                           )}
                         </div>
                         <div className="pending-actions-buttons">
-                          {booking.status === 'pending_payment' && (
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Redirecting to payment...')}>Complete Payment</button>
                           )}
                           <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
@@ -595,8 +725,13 @@ const Dashboard = () => {
                     {bookings.slice(0, 3).map((booking) => (
                       <div key={booking.id || booking.bookingId || `recent-${booking.service}-${booking.date}`} className="booking-item">
                         <div className="booking-info">
-                          <h4>{booking.service}</h4>
-                          <p>{formatDate(booking.date)} at {booking.time}</p>
+                          <h4>{booking.service || booking.celebrity?.name || 'Booking'}</h4>
+                          <p>{(() => {
+                            const bookingDate = booking.date || booking.sessionDetails?.date || booking.formData?.date || booking.eventDate || booking.startDate;
+                            const paymentDate = booking.paymentDate || booking.confirmedAt || booking.createdAt;
+                            const displayDate = bookingDate || paymentDate;
+                            return displayDate ? formatDate(displayDate) : 'Recent';
+                          })()} {booking.time || booking.sessionDetails?.time || booking.formData?.time || booking.eventTime ? 'at ' + (booking.time || booking.sessionDetails?.time || booking.formData?.time || booking.eventTime) : ''}</p>
                         </div>
                         <span 
                           className="booking-status"
@@ -639,7 +774,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {message && (
+              {message && (bookings.some(b => b.status === 'pending' || b.status === 'pending_payment' || b.paymentStatus === 'submitted') || message.includes('success') || message.includes('longer than expected')) && (
                 <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
                   <div className="message-content">
                     <span className="message-text">{message}</span>
@@ -695,16 +830,56 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <div className="order-details">
-                          <p><strong>Date:</strong> {booking.date ? formatDate(booking.date) : 'TBD'}</p>
+                          <p><strong>Date:</strong> {booking.date || booking.sessionDetails?.date || booking.formData?.date ? formatDate(booking.date || booking.sessionDetails?.date || booking.formData?.date) : (booking.createdAt ? formatDate(booking.createdAt) : 'Date not available')}</p>
                           <p><strong>Total:</strong> ${booking.total}</p>
                           {booking.paymentStatus === 'submitted' && (
                             <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Approval</p>
                           )}
                         </div>
                         <div className="order-actions">
-                          {booking.status === 'pending_payment' && (
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
+                          <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Completed Orders Section */}
+              <div className="completed-orders">
+                <h3>Completed Orders</h3>
+                {bookings.filter(booking => booking.status === 'completed' || booking.status === 'confirmed').length === 0 ? (
+                  <div className="empty-state-small">
+                    <p>No completed orders yet</p>
+                  </div>
+                ) : (
+                  <div className="orders-grid">
+                    {bookings.filter(booking => booking.status === 'completed' || booking.status === 'confirmed').map((booking) => (
+                      <div key={booking.id || booking.bookingId || `completed-order-${booking.service}`} className="order-card completed">
+                        <div className="order-header">
+                          <div className="order-title">
+                            <h3>{booking.service}</h3>
+                            <p className="order-id">ID: {booking.bookingId}</p>
+                          </div>
+                          <span 
+                            className="order-status"
+                            style={{ backgroundColor: getStatusColor(booking.status) }}
+                          >
+                            {booking.status.replace('_', ' ').toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="order-details">
+                          <p><strong>Date:</strong> {booking.date || booking.sessionDetails?.date || booking.formData?.date ? formatDate(booking.date || booking.sessionDetails?.date || booking.formData?.date) : (booking.createdAt ? formatDate(booking.createdAt) : 'Date not available')}</p>
+                          <p><strong>Total:</strong> ${booking.total}</p>
+                          {booking.completedAt && (
+                            <p><strong>Completed:</strong> {formatDate(booking.completedAt)}</p>
+                          )}
+                          <p><strong>Status:</strong> {booking.status === 'completed' ? 'Order Completed' : 'Payment Confirmed'}</p>
+                        </div>
+                        <div className="order-actions">
                           <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
                         </div>
                       </div>
@@ -738,11 +913,11 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <div className="order-details">
-                          <p><strong>Package:</strong> {booking.package}</p>
-                          <p><strong>Date:</strong> {booking.date ? formatDate(booking.date) : 'TBD'}</p>
-                          <p><strong>Time:</strong> {booking.time || 'TBD'}</p>
-                          <p><strong>Location:</strong> {booking.sessionDetails?.location === 'virtual' ? 'Virtual (Zoom)' : 'In-Person'}</p>
-                          <p><strong>Total:</strong> ${booking.total}</p>
+                          <p><strong>Package:</strong> {booking.package || booking.sessionDetails?.package || booking.formData?.package || booking.podcastType || 'Standard Package'}</p>
+                          <p><strong>Date:</strong> {booking.date || booking.sessionDetails?.date || booking.formData?.date ? formatDate(booking.date || booking.sessionDetails?.date || booking.formData?.date) : (booking.createdAt ? formatDate(booking.createdAt) : 'Date not available')}</p>
+                          <p><strong>Time:</strong> {booking.time || booking.sessionDetails?.time || booking.formData?.time || 'To be scheduled'}</p>
+                          <p><strong>Location:</strong> {booking.sessionDetails?.location === 'virtual' ? 'Virtual (Zoom)' : (booking.sessionDetails?.location || 'In-Person')}</p>
+                          <p><strong>Total:</strong> ${booking.total || booking.pricing?.total || booking.price || booking.amount || 0}</p>
                           {booking.paymentStatus === 'submitted' && (
                             <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Admin Approval</p>
                           )}
@@ -751,8 +926,8 @@ const Dashboard = () => {
                           )}
                         </div>
                         <div className="order-actions">
-                          <button className="secondary-btn" onClick={() => alert('Order details:\n\n' + JSON.stringify(booking, null, 2))}>View Details</button>
-                          {booking.status === 'pending_payment' && (
+                          <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
                           {(booking.status === 'pending' || booking.status === 'pending_payment') && (
@@ -798,7 +973,7 @@ const Dashboard = () => {
                 </div>
               </div>
               
-              {message && (
+              {message && (bookings.some(b => b.status === 'pending' || b.status === 'pending_payment' || b.paymentStatus === 'submitted') || message.includes('success') || message.includes('longer than expected')) && (
                 <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
                   <div className="message-content">
                     <span className="message-text">{message}</span>
@@ -866,7 +1041,7 @@ const Dashboard = () => {
                           )}
                         </div>
                         <div className="video-actions">
-                          {booking.status === 'pending_payment' && (
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
                           <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
@@ -917,8 +1092,8 @@ const Dashboard = () => {
                           )}
                         </div>
                         <div className="video-actions">
-                          <button className="secondary-btn" onClick={() => alert('Video details:\n\n' + JSON.stringify(booking, null, 2))}>View Details</button>
-                          {booking.status === 'pending_payment' && (
+                          <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
                           {(booking.status === 'pending' || booking.status === 'pending_payment') && (
@@ -954,13 +1129,13 @@ const Dashboard = () => {
               {/* Active Celebrity Bookings */}
               <div className="active-bookings">
                 <h3>Active Celebrity Bookings</h3>
-                {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending')).length === 0 ? (
+                {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')).length === 0 ? (
                   <div className="empty-state-small">
                     <p>No active celebrity bookings</p>
                   </div>
                 ) : (
                   <div className="bookings-grid">
-                    {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending')).map((booking) => (
+                    {bookings.filter(b => (b.type === 'celebrity_booking' || b.type === 'celebrity_experience' || b.type === 'meet_greet' || (b.service && b.service.toLowerCase().includes('meet'))) && (b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')).map((booking) => (
                       <div key={booking.id || booking.bookingId || `celebrity-${booking.celebrity?.name || booking.service}-${booking.date || booking.createdAt}`} className="booking-card">
                         <div className="booking-header">
                           <h4>{booking.celebrity?.name || booking.service} - Meet & Greet</h4>
@@ -976,13 +1151,13 @@ const Dashboard = () => {
                           <p><strong>Time:</strong> {booking.eventTime || booking.time || 'TBD'}</p>
                           <p><strong>Location:</strong> {booking.location || 'TBD'}</p>
                           <p><strong>Total:</strong> ${booking.pricing?.total || booking.total}</p>
-                          {booking.paymentStatus === 'pending' && (
+                          {booking.paymentStatus === 'submitted' && (
                             <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Approval</p>
                           )}
                         </div>
                         <div className="booking-actions">
                           <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
-                          {booking.status === 'pending_payment' && (
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
                         </div>
@@ -1039,13 +1214,13 @@ const Dashboard = () => {
               {/* Current Enrollments */}
               <div className="current-enrollments">
                 <h3>Current Enrollments</h3>
-                {bookings.filter(b => (b.type === 'acting_class' || b.type === 'class_enrollment') && (b.status === 'confirmed' || b.status === 'pending')).length === 0 ? (
+                {bookings.filter(b => (b.type === 'acting_class' || b.type === 'class_enrollment') && (b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')).length === 0 ? (
                   <div className="empty-state-small">
                     <p>No current class enrollments</p>
                   </div>
                 ) : (
                   <div className="enrollments-grid">
-                    {bookings.filter(b => (b.type === 'acting_class' || b.type === 'class_enrollment') && (b.status === 'confirmed' || b.status === 'pending')).map((booking) => (
+                    {bookings.filter(b => (b.type === 'acting_class' || b.type === 'class_enrollment') && (b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')).map((booking) => (
                       <div key={booking.id || booking.bookingId || `class-${booking.className || booking.service}-${booking.createdAt}`} className="enrollment-card">
                         <div className="enrollment-header">
                           <h4>{booking.className || booking.service || 'Acting Class'}</h4>
@@ -1057,17 +1232,28 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <div className="enrollment-details">
-                          <p><strong>Duration:</strong> {booking.duration || 'TBD'}</p>
-                          <p><strong>Start Date:</strong> {booking.startDate ? formatDate(booking.startDate) : 'TBD'}</p>
-                          <p><strong>Schedule:</strong> {booking.schedule || 'TBD'}</p>
-                          <p><strong>Total:</strong> ${booking.pricing?.total || booking.total}</p>
-                          {booking.paymentStatus === 'pending' && (
-                            <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Approval</p>
+                          <p><strong>Duration:</strong> {booking.duration || booking.coach?.duration || booking.sessionDetails?.duration || '1 hour'}</p>
+                          <p><strong>Start Date:</strong> {booking.startDate ? formatDate(booking.startDate) : booking.sessionDetails?.date ? formatDate(booking.sessionDetails.date) : booking.date ? formatDate(booking.date) : booking.createdAt ? formatDate(booking.createdAt) : 'To be scheduled'}</p>
+                          <p><strong>Coach:</strong> {booking.coach?.name || booking.celebrity?.name || booking.sessionDetails?.instructor || 'Professional Coach'}</p>
+                          <p><strong>Total:</strong> ${booking.pricing?.total || booking.total || booking.amount || 0}</p>
+                          
+                          {/* Payment Status Indicator */}
+                          {booking.paymentStatus === 'submitted' && (
+                            <div className="payment-status-indicator submitted">
+                              <span>💳</span>
+                              <span>Payment Submitted - Awaiting Admin Approval</span>
+                            </div>
+                          )}
+                          {booking.status === 'confirmed' && (
+                            <div className="payment-status-indicator confirmed">
+                              <span>✅</span>
+                              <span>Payment Confirmed - Enrollment Active</span>
+                            </div>
                           )}
                         </div>
                         <div className="enrollment-actions">
                           <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
-                          {booking.status === 'pending_payment' && (
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
                         </div>
@@ -1086,11 +1272,11 @@ const Dashboard = () => {
                   </div>
                 ) : (
                   <div className="completed-list">
-                    {bookings.filter(b => (b.type === 'acting_class' || b.type === 'class_enrollment') && b.status === 'completed').map((booking) => (
-                      <div key={booking.id || booking.bookingId || `completed-class-${booking.className || booking.service}-${booking.createdAt}`} className="completed-item">
+                    {bookings.filter(b => (b.type === 'acting_class' || b.type === 'class_enrollment') && b.status === 'completed').map((booking, index) => (
+                      <div key={`completed-${booking.id || booking.bookingId || `${booking.className || booking.service}-${booking.createdAt}-${index}`}`} className="completed-item">
                         <div className="completed-info">
                           <h4>{booking.className || booking.service || 'Acting Class'}</h4>
-                          <p>Completed: {booking.completedDate ? formatDate(booking.completedDate) : formatDate(booking.createdAt)} • ${booking.pricing?.total || booking.total}</p>
+                          <p>Completed: {booking.completedDate ? formatDate(booking.completedDate) : booking.createdAt ? formatDate(booking.createdAt) : booking.date ? formatDate(booking.date) : 'Date not available'} • ${booking.pricing?.total || booking.total || booking.amount || 0}</p>
                         </div>
                         <span className="completed-badge">COMPLETED</span>
                       </div>
@@ -1141,13 +1327,13 @@ const Dashboard = () => {
               {/* Active Requests */}
               <div className="active-requests">
                 <h3>Active Requests</h3>
-                {bookings.filter(b => (b.type === 'podcast_request' || b.type === 'podcast_booking') && (b.status === 'confirmed' || b.status === 'pending')).length === 0 ? (
+                {bookings.filter(b => (b.type === 'podcast_request' || b.type === 'podcast_booking') && (b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')).length === 0 ? (
                   <div className="empty-state-small">
                     <p>No active podcast requests</p>
                   </div>
                 ) : (
                   <div className="requests-grid">
-                    {bookings.filter(b => (b.type === 'podcast_request' || b.type === 'podcast_booking') && (b.status === 'confirmed' || b.status === 'pending')).map((booking) => (
+                    {bookings.filter(b => (b.type === 'podcast_request' || b.type === 'podcast_booking') && (b.status === 'confirmed' || b.status === 'pending' || b.status === 'pending_payment')).map((booking) => (
                       <div key={booking.id || booking.bookingId || `podcast-${booking.podcastType || booking.service}-${booking.createdAt}`} className="request-card">
                         <div className="request-header">
                           <h4>{booking.podcastType || booking.service || 'Podcast Request'}</h4>
@@ -1159,17 +1345,30 @@ const Dashboard = () => {
                           </span>
                         </div>
                         <div className="request-details">
-                          <p><strong>Topic:</strong> {booking.topic || 'TBD'}</p>
-                          <p><strong>Duration:</strong> {booking.duration || 'TBD'}</p>
-                          <p><strong>Preferred Date:</strong> {booking.preferredDate ? formatDate(booking.preferredDate) : 'TBD'}</p>
-                          <p><strong>Total:</strong> ${booking.pricing?.total || booking.total}</p>
-                          {booking.paymentStatus === 'pending' && (
-                            <p><strong>Payment:</strong> {booking.paymentMethod === 'bitcoin' ? 'Bitcoin' : booking.paymentMethod} - Awaiting Approval</p>
+                          <p><strong>Topic:</strong> {booking.podcastDetails?.podcastName || booking.topic || booking.formData?.topic || 'Interview Session'}</p>
+                          <p><strong>Host:</strong> {booking.podcastDetails?.hostName || booking.formData?.hostName || booking.personalInfo?.firstName + ' ' + booking.personalInfo?.lastName || 'Host Name Pending'}</p>
+                          <p><strong>Duration:</strong> {booking.podcastDetails?.duration || booking.formData?.duration || booking.duration || '30'} minutes</p>
+                          <p><strong>Format:</strong> {booking.podcastDetails?.format || booking.formData?.podcastType || booking.podcastType || 'Interview'}</p>
+                          <p><strong>Preferred Date:</strong> {booking.preferredDate ? formatDate(booking.preferredDate) : booking.formData?.preferredDate ? formatDate(booking.formData.preferredDate) : 'To be scheduled'}</p>
+                          <p><strong>Total:</strong> ${booking.pricing?.total || booking.total || booking.amount || '0'}</p>
+                          
+                          {/* Payment Status Indicator */}
+                          {booking.paymentStatus === 'submitted' && (
+                            <div className="payment-status-indicator submitted">
+                              <span>💳</span>
+                              <span>Payment Submitted - Awaiting Admin Approval</span>
+                            </div>
+                          )}
+                          {booking.status === 'confirmed' && (
+                            <div className="payment-status-indicator confirmed">
+                              <span>✅</span>
+                              <span>Payment Confirmed - Booking Active</span>
+                            </div>
                           )}
                         </div>
                         <div className="request-actions">
                           <button className="secondary-btn" onClick={() => setSelectedBooking(booking)}>View Details</button>
-                          {booking.status === 'pending_payment' && (
+                          {booking.status === 'pending_payment' && booking.paymentStatus !== 'submitted' && (
                             <button className="primary-btn" onClick={() => alert('Payment options will be available soon!')}>Complete Payment</button>
                           )}
                         </div>
@@ -1191,9 +1390,9 @@ const Dashboard = () => {
                     {bookings.filter(b => b.type === 'podcast_request' || b.type === 'podcast_booking').map((booking) => (
                       <div key={booking.id || booking.bookingId || `podcast-history-${booking.podcastType || booking.service}-${booking.createdAt}`} className="request-item">
                         <div className="request-info">
-                          <h4>{booking.podcastType || booking.service || 'Podcast Request'}</h4>
-                          <p>{booking.topic || 'Topic TBD'} • ${booking.pricing?.total || booking.total}</p>
-                          <p className="request-date">{booking.createdAt ? formatDate(booking.createdAt) : 'Recent'}</p>
+                          <h4>{booking.podcastType || booking.formData?.podcastType || booking.service || 'Podcast Interview'}</h4>
+                          <p>{booking.topic || booking.formData?.topic || booking.podcastDetails?.podcastName || 'Interview Session'} • ${booking.pricing?.total || booking.total || booking.amount || '0'}</p>
+                          <p className="request-date">{booking.createdAt ? formatDate(booking.createdAt) : booking.formData?.createdAt ? formatDate(booking.formData.createdAt) : 'Recent'}</p>
                         </div>
                         <span 
                           className="request-status"
@@ -1284,18 +1483,18 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="promotions-list">
-                      {bookings.filter(b => b.type === 'promotion').map((promotion) => (
-                        <div key={promotion.id || promotion.bookingId || `promotion-${promotion.createdAt}`} className="promotion-item">
+                      {bookings.filter(b => b.type === 'promotion').map((promotion, index) => (
+                        <div key={`promotion-${promotion.id || promotion.bookingId || `promo-${index}`}`} className="promotion-item">
                           <div className="promotion-info">
-                            <h4>{promotion.celebrity || 'Promotional Booking'}</h4>
-                            <p>Package: {promotion.package} • Amount: ${promotion.amount}</p>
-                            <p className="promotion-date">{promotion.createdAt ? formatDate(promotion.createdAt) : 'Recent'}</p>
+                            <h4>{promotion.celebrity?.name || 'Promotional Booking'}</h4>
+                            <p>Package: {promotion.package || promotion.sessionDetails?.package || promotion.formData?.package || promotion.podcastType || 'Standard Package'} • Amount: ${promotion.total || (promotion.service && typeof promotion.service === 'object' ? promotion.service.price : promotion.service) || promotion.amount || promotion.pricing?.total || promotion.price || 0}</p>
+                            <p className="promotion-date">{promotion.date || promotion.sessionDetails?.date || promotion.formData?.date ? formatDate(promotion.date || promotion.sessionDetails?.date || promotion.formData?.date) : (promotion.createdAt ? formatDate(promotion.createdAt) : 'Date not available')}</p>
                           </div>
                           <span 
                             className="promotion-status"
                             style={{ backgroundColor: getStatusColor(promotion.status) }}
                           >
-                            {promotion.status.replace('_', ' ').toUpperCase()}
+                            {String(promotion.status || 'pending').replace('_', ' ').toUpperCase()}
                           </span>
                         </div>
                       ))}
@@ -1355,7 +1554,7 @@ const Dashboard = () => {
                           <h4>{notification.title}</h4>
                           <p>{notification.message}</p>
                           <span className="notification-time">
-                            {notification.createdAt?.toDate?.()?.toLocaleString() || 'Just now'}
+                            {notification.createdAt?.toDate?.()?.toLocaleString?.() || 'Just now'}
                           </span>
                         </div>
                         {!notification.read && <div className="unread-indicator"></div>}
@@ -1440,7 +1639,7 @@ const Dashboard = () => {
                             className="donation-status"
                             style={{ backgroundColor: getStatusColor(donation.status) }}
                           >
-                            {donation.status.replace('_', ' ').toUpperCase()}
+                            {String(donation.status || 'pending').replace('_', ' ').toUpperCase()}
                           </span>
                         </div>
                       ))}
@@ -1462,9 +1661,9 @@ const Dashboard = () => {
                 )}
               </div>
 
-              {message && (
-                <div className={`message ${message.includes('success') ? 'success' : 'error'}`}>
-                  {message}
+              {profileMessage && bookings.some(b => b.status === 'pending' || b.status === 'pending_payment' || b.paymentStatus === 'submitted') && (
+                <div className={`message ${profileMessage.includes('success') ? 'success' : 'error'}`}>
+                  {profileMessage}
                 </div>
               )}
 
@@ -1591,31 +1790,63 @@ const Dashboard = () => {
                 </div>
               )}
               
-              <div className="panel-section">
-                <h4>Session Information</h4>
-                <div className="info-grid">
-                  <div className="info-item">
-                    <span className="info-label">Date</span>
-                    <span className="info-value">{selectedBooking.date ? formatDate(selectedBooking.date) : 'TBD'}</span>
-                  </div>
-                  <div className="info-item">
-                    <span className="info-label">Time</span>
-                    <span className="info-value">{selectedBooking.time || 'TBD'}</span>
-                  </div>
-                  {selectedBooking.sessionDetails?.location && (
+              {(selectedBooking.type === 'podcast_request' || selectedBooking.type === 'podcast_booking') ? (
+                <div className="panel-section">
+                  <h4>Podcast Details</h4>
+                  <div className="info-grid">
                     <div className="info-item">
-                      <span className="info-label">Location</span>
-                      <span className="info-value">{selectedBooking.sessionDetails.location === 'virtual' ? 'Virtual (Zoom)' : 'In-Person'}</span>
+                      <span className="info-label">Topic</span>
+                      <span className="info-value">{selectedBooking.podcastDetails?.podcastName || selectedBooking.topic || selectedBooking.formData?.topic || 'Interview Session'}</span>
                     </div>
-                  )}
-                  {selectedBooking.sessionDetails?.language && (
                     <div className="info-item">
-                      <span className="info-label">Language</span>
-                      <span className="info-value">{selectedBooking.sessionDetails.language}</span>
+                      <span className="info-label">Host Name</span>
+                      <span className="info-value">{selectedBooking.podcastDetails?.hostName || selectedBooking.formData?.hostName || selectedBooking.personalInfo?.firstName + ' ' + selectedBooking.personalInfo?.lastName || 'Host Name Pending'}</span>
                     </div>
-                  )}
+                    <div className="info-item">
+                      <span className="info-label">Duration</span>
+                      <span className="info-value">{selectedBooking.podcastDetails?.duration || selectedBooking.formData?.duration || selectedBooking.duration || '30'} minutes</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Format</span>
+                      <span className="info-value">{selectedBooking.podcastDetails?.format || selectedBooking.formData?.podcastType || selectedBooking.podcastType || 'Interview'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Preferred Date</span>
+                      <span className="info-value">{selectedBooking.preferredDate ? formatDate(selectedBooking.preferredDate) : selectedBooking.formData?.preferredDate ? formatDate(selectedBooking.formData.preferredDate) : 'To be scheduled'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Recording Date</span>
+                      <span className="info-value">{selectedBooking.date ? formatDate(selectedBooking.date) : selectedBooking.sessionDetails?.date ? formatDate(selectedBooking.sessionDetails.date) : selectedBooking.formData?.date ? formatDate(selectedBooking.formData.date) : 'To be scheduled'}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="panel-section">
+                  <h4>Session Information</h4>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <span className="info-label">Date</span>
+                      <span className="info-value">{selectedBooking.date ? formatDate(selectedBooking.date) : selectedBooking.sessionDetails?.date ? formatDate(selectedBooking.sessionDetails.date) : selectedBooking.formData?.date ? formatDate(selectedBooking.formData.date) : selectedBooking.createdAt ? formatDate(selectedBooking.createdAt) : 'To be scheduled'}</span>
+                    </div>
+                    <div className="info-item">
+                      <span className="info-label">Time</span>
+                      <span className="info-value">{selectedBooking.time || selectedBooking.sessionDetails?.time || selectedBooking.formData?.time || 'To be scheduled'}</span>
+                    </div>
+                    {selectedBooking.sessionDetails?.location && (
+                      <div className="info-item">
+                        <span className="info-label">Location</span>
+                        <span className="info-value">{selectedBooking.sessionDetails.location === 'virtual' ? 'Virtual (Zoom)' : 'In-Person'}</span>
+                      </div>
+                    )}
+                    {selectedBooking.sessionDetails?.language && (
+                      <div className="info-item">
+                        <span className="info-label">Language</span>
+                        <span className="info-value">{selectedBooking.sessionDetails.language}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               
               {selectedBooking.personalInfo && (
                 <div className="panel-section">
@@ -1664,7 +1895,7 @@ const Dashboard = () => {
             </div>
             
             <div className="slide-panel-actions">
-              {selectedBooking.status === 'pending_payment' && (
+              {selectedBooking.status === 'pending_payment' && selectedBooking.paymentStatus !== 'submitted' && (
                 <button className="action-btn primary" onClick={() => alert('Payment options will be available soon!')}>
                   Complete Payment
                 </button>

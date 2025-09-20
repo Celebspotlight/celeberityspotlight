@@ -1765,7 +1765,7 @@
 
 .celebrity-name {
   margin-bottom: 0.5rem;
-  color: var(--accent-color);
+  color: var(--text-primary) !important;
   font-weight: 600;
 }
 

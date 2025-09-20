@@ -121,7 +121,7 @@ const BitcoinPayment = ({ amount, onPaymentComplete, onCancel, bookingId }) => {
           <h4>📋 Payment Instructions:</h4>
           <ol>
             <li>Copy the Bitcoin address above</li>
-            <li>Open your preferred crypto wallet or exchange (Coinbase, Binance, etc.)</li>
+            <li>Open your preferred crypto wallet or exchange (Kraken, Coinbase, or Binance)</li>
             <li>Send the equivalent BTC amount to our address</li>
             <li>Watch our comprehensive crypto tutorial series if you need step-by-step guidance</li>
             <li>Click "I've Sent Payment" below once completed</li>
