@@ -791,6 +791,9 @@ const AdminPage = () => {
       });
       setShowAddActingCoachForm(false);
       
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('actingCoachesUpdated'));
+      
       alert('Acting coach added successfully!');
     } catch (error) {
       console.error('Error adding acting coach:', error);
@@ -832,6 +835,10 @@ const AdminPage = () => {
       localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
       
       setEditingActingCoach(null);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new CustomEvent('actingCoachesUpdated'));
+      
       alert('Acting coach updated successfully!');
     } catch (error) {
       console.error('Error updating acting coach:', error);
@@ -857,6 +864,9 @@ const AdminPage = () => {
         
         // Update localStorage
         localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
+        
+        // Dispatch custom event to notify other components
+        window.dispatchEvent(new CustomEvent('actingCoachesUpdated'));
         
         alert('Acting coach deleted successfully!');
       } catch (error) {

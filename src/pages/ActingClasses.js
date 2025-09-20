@@ -57,6 +57,11 @@ const ActingClasses = () => {
   
     loadActingCoaches();
   
+    // Listen for custom events when acting coaches are updated
+    const handleCoachUpdate = () => {
+      loadActingCoaches();
+    };
+  
     // Listen for changes to acting coaches localStorage (for real-time updates)
     const handleStorageChange = (e) => {
       if (e.key === 'actingCoaches') {
@@ -69,9 +74,11 @@ const ActingClasses = () => {
     };
   
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('actingCoachesUpdated', handleCoachUpdate);
   
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('actingCoachesUpdated', handleCoachUpdate);
     };
   }, []);
 
