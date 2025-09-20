@@ -215,9 +215,13 @@ const ActingClasses = () => {
               filteredCoaches.map(coach => (
                 <div key={coach.id} className={`coach-card ${!coach.available ? 'unavailable' : ''}`}>
                   <div className="coach-image">
-                    <div className="placeholder-image">
-                      <span>{coach.name.charAt(0)}</span>
-                    </div>
+                    {coach.image ? (
+                      <img src={coach.image} alt={coach.name} style={{width: '100%', height: '100%', objectFit: 'cover'}} />
+                    ) : (
+                      <div className="placeholder-image">
+                        <span>{coach.name.charAt(0)}</span>
+                      </div>
+                    )}
                     <div className="class-type-badge">{coach.class_type}</div>
                     {!coach.available && <div className="unavailable-overlay">Unavailable</div>}
                   </div>
