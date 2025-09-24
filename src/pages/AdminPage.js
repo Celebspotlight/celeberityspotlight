@@ -6,7 +6,7 @@ import '../styles/PaymentsTable.css';
 import visitorTracker from '../services/visitorTracker';
 import LiveVisitorTracker from '../components/LiveVisitorTracker';
 import { db } from '../services/firebase';
-import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import authService from '../services/authService';
 // import { createPayment } from '../services/paymentService';
 
@@ -318,22 +318,90 @@ const AdminPage = () => {
     // Clean up old data first
     cleanupOldData();
     
-    const savedCelebrities = localStorage.getItem('celebrities');
-    if (savedCelebrities) {
-      const parsed = JSON.parse(savedCelebrities);
-      setCelebrities(parsed);
-    } else {
-      // Initialize with default celebrities if none exist
-      const defaultCelebrities = getDefaultCelebrities();
-      setCelebrities(defaultCelebrities);
-      localStorage.setItem('celebrities', JSON.stringify(defaultCelebrities));
-    }
+    // Set up Firebase real-time listener for celebrities
+    const unsubscribe = onSnapshot(
+      collection(db, 'celebrities'),
+      (snapshot) => {
+        try {
+          const firebaseCelebrities = snapshot.docs.map(doc => ({
+            firebaseId: doc.id,
+            ...doc.data()
+          }));
+          
+          if (firebaseCelebrities.length > 0) {
+            // Merge with local celebrities, prioritizing Firebase data
+            const savedCelebrities = localStorage.getItem('celebrities');
+            let localCelebrities = [];
+            
+            if (savedCelebrities) {
+              localCelebrities = JSON.parse(savedCelebrities);
+            }
+            
+            // Combine Firebase and local celebrities, removing duplicates
+            const allCelebrities = [...firebaseCelebrities];
+            localCelebrities.forEach(localCeleb => {
+              const existsInFirebase = firebaseCelebrities.some(fbCeleb => fbCeleb.id === localCeleb.id);
+              if (!existsInFirebase) {
+                allCelebrities.push(localCeleb);
+              }
+            });
+            
+            setCelebrities(allCelebrities);
+            localStorage.setItem('celebrities', JSON.stringify(allCelebrities));
+          } else {
+            // Fallback to localStorage if Firebase is empty
+            const savedCelebrities = localStorage.getItem('celebrities');
+            if (savedCelebrities) {
+              const parsed = JSON.parse(savedCelebrities);
+              setCelebrities(parsed);
+            } else {
+              // Initialize with default celebrities if none exist
+              const defaultCelebrities = getDefaultCelebrities();
+              setCelebrities(defaultCelebrities);
+              localStorage.setItem('celebrities', JSON.stringify(defaultCelebrities));
+            }
+          }
+        } catch (error) {
+          console.error('Error processing Firebase celebrities:', error);
+          // Fallback to localStorage on error
+          const savedCelebrities = localStorage.getItem('celebrities');
+          if (savedCelebrities) {
+            const parsed = JSON.parse(savedCelebrities);
+            setCelebrities(parsed);
+          } else {
+            const defaultCelebrities = getDefaultCelebrities();
+            setCelebrities(defaultCelebrities);
+            localStorage.setItem('celebrities', JSON.stringify(defaultCelebrities));
+          }
+        }
+      },
+      (error) => {
+        console.error('Firebase listener error:', error);
+        // Fallback to localStorage on listener error
+        const savedCelebrities = localStorage.getItem('celebrities');
+        if (savedCelebrities) {
+          const parsed = JSON.parse(savedCelebrities);
+          setCelebrities(parsed);
+        } else {
+          const defaultCelebrities = getDefaultCelebrities();
+          setCelebrities(defaultCelebrities);
+          localStorage.setItem('celebrities', JSON.stringify(defaultCelebrities));
+        }
+      }
+    );
 
     // Load all bookings from both localStorage and Firebase
     loadAllBookings();
     
     // Load pending payments on component mount
     loadPendingPayments();
+    
+    // Cleanup function to unsubscribe from Firebase listener
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, []);
 
   // Auto-refresh visitor stats every 30 seconds when viewing stats
@@ -519,7 +587,7 @@ const AdminPage = () => {
     }
   };
 
-  const addCelebrity = (e) => {
+  const addCelebrity = async (e) => {
     e.preventDefault();
     const id = Date.now();
     const celebrity = {
@@ -527,7 +595,23 @@ const AdminPage = () => {
       id,
       price: parseInt(newCelebrity.price)
     };
+    
+    // Update local state first for immediate UI feedback
     setCelebrities([...celebrities, celebrity]);
+    
+    // Save to Firebase for real-time synchronization
+    try {
+      await addDoc(collection(db, 'celebrities'), {
+        ...celebrity,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      console.log('Celebrity saved to Firebase successfully');
+    } catch (error) {
+      console.error('Error saving celebrity to Firebase:', error);
+      // Don't fail the entire process if Firebase save fails
+    }
+    
     setNewCelebrity({
       name: '',
       category: 'Music',
@@ -544,20 +628,43 @@ const AdminPage = () => {
     setShowAddForm(false);
   };
 
-  const updateCelebrity = (e) => {
+  const updateCelebrity = async (e) => {
     e.preventDefault();
+    const updatedCelebrity = {
+      ...editingCelebrity, 
+      price: parseInt(editingCelebrity.price),
+      // Ensure acting coach numeric fields are properly converted
+      class_price: editingCelebrity.class_price ? parseInt(editingCelebrity.class_price) : '',
+      // Ensure boolean field is properly handled
+      is_acting_coach: Boolean(editingCelebrity.is_acting_coach)
+    };
+    
+    // Update local state first for immediate UI feedback
     setCelebrities(celebrities.map(celeb => 
-      celeb.id === editingCelebrity.id 
-        ? { 
-            ...editingCelebrity, 
-            price: parseInt(editingCelebrity.price),
-            // Ensure acting coach numeric fields are properly converted
-            class_price: editingCelebrity.class_price ? parseInt(editingCelebrity.class_price) : '',
-            // Ensure boolean field is properly handled
-            is_acting_coach: Boolean(editingCelebrity.is_acting_coach)
-          }
-        : celeb
+      celeb.id === editingCelebrity.id ? updatedCelebrity : celeb
     ));
+    
+    // Update in Firebase for real-time synchronization
+    try {
+      const celebritiesQuery = query(
+        collection(db, 'celebrities'),
+        where('id', '==', editingCelebrity.id)
+      );
+      const querySnapshot = await getDocs(celebritiesQuery);
+      
+      if (!querySnapshot.empty) {
+        const docRef = querySnapshot.docs[0].ref;
+        await updateDoc(docRef, {
+          ...updatedCelebrity,
+          updatedAt: new Date()
+        });
+        console.log('Celebrity updated in Firebase successfully');
+      }
+    } catch (error) {
+      console.error('Error updating celebrity in Firebase:', error);
+      // Don't fail the entire process if Firebase update fails
+    }
+    
     handleCloseEditModal();
   };
 

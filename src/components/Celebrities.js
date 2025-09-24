@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import './Celebrities.css';
 import BookingModal from './BookingModal';
+import { db } from '../services/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
 
 const Celebrities = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,28 +13,77 @@ const Celebrities = () => {
   const [availabilityFilter, setAvailabilityFilter] = useState('All');
   const [celebrities, setCelebrities] = useState([]);
 
-  // Load celebrities from localStorage (managed by admin)
+  // Load celebrities with Firebase real-time listener
   useEffect(() => {
-    const savedCelebrities = localStorage.getItem('celebrities');
-    if (savedCelebrities) {
-      setCelebrities(JSON.parse(savedCelebrities));
-    } else {
-      // Initialize with default celebrities if localStorage is empty
-      resetCelebrityData();
-    }
-  }, []);
+    // Set up Firebase real-time listener for celebrities
+    const unsubscribe = onSnapshot(
+      collection(db, 'celebrities'),
+      (snapshot) => {
+        try {
+          const firebaseCelebrities = snapshot.docs.map(doc => ({
+            firebaseId: doc.id,
+            ...doc.data()
+          }));
+          
+          if (firebaseCelebrities.length > 0) {
+            // Merge with local celebrities, prioritizing Firebase data
+            const savedCelebrities = localStorage.getItem('celebrities');
+            let localCelebrities = [];
+            
+            if (savedCelebrities) {
+              localCelebrities = JSON.parse(savedCelebrities);
+            }
+            
+            // Combine Firebase and local celebrities, removing duplicates
+            const allCelebrities = [...firebaseCelebrities];
+            localCelebrities.forEach(localCeleb => {
+              const existsInFirebase = firebaseCelebrities.some(fbCeleb => fbCeleb.id === localCeleb.id);
+              if (!existsInFirebase) {
+                allCelebrities.push(localCeleb);
+              }
+            });
+            
+            setCelebrities(allCelebrities);
+            localStorage.setItem('celebrities', JSON.stringify(allCelebrities));
+          } else {
+            // Fallback to localStorage if Firebase is empty
+            const savedCelebrities = localStorage.getItem('celebrities');
+            if (savedCelebrities) {
+              setCelebrities(JSON.parse(savedCelebrities));
+            } else {
+              // Initialize with default celebrities if localStorage is empty
+              resetCelebrityData();
+            }
+          }
+        } catch (error) {
+          console.error('Error processing Firebase celebrities:', error);
+          // Fallback to localStorage on error
+          const savedCelebrities = localStorage.getItem('celebrities');
+          if (savedCelebrities) {
+            setCelebrities(JSON.parse(savedCelebrities));
+          } else {
+            resetCelebrityData();
+          }
+        }
+      },
+      (error) => {
+        console.error('Firebase listener error:', error);
+        // Fallback to localStorage on listener error
+        const savedCelebrities = localStorage.getItem('celebrities');
+        if (savedCelebrities) {
+          setCelebrities(JSON.parse(savedCelebrities));
+        } else {
+          resetCelebrityData();
+        }
+      }
+    );
 
-  // Listen for changes in localStorage (when admin updates data)
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedCelebrities = localStorage.getItem('celebrities');
-      if (savedCelebrities) {
-        setCelebrities(JSON.parse(savedCelebrities));
+    // Cleanup function to unsubscribe from Firebase listener
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // IMPORTANT: Make sure this useEffect is commented out or removed:
