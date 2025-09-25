@@ -151,6 +151,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
   gap: 2rem;
+  align-items: stretch;
 }
 
 .coach-card {
@@ -160,6 +161,9 @@
   box-shadow: 0 10px 25px var(--shadow-color);
   border: 1px solid var(--border-color);
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .coach-card:hover {
@@ -232,6 +236,8 @@
   justify-content: center;
   align-items: center;
   flex-direction: column;
+  flex: 1;
+  position: relative;
 }
 
 .coach-name {
@@ -265,6 +271,13 @@
   line-height: 1.6;
   margin-bottom: 1.5rem;
   font-size: 0.95rem;
+  flex: 1;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 6rem;
 }
 
 /* Book Button */
@@ -279,6 +292,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  margin-top: auto;
+  flex-shrink: 0;
 }
 
 .book-btn:hover:not(.disabled) {

@@ -381,7 +381,10 @@ const Celebrities = () => {
           {/* Celebrities Grid */}
           <div className="celebrities-grid">
             {filteredCelebrities.map((celebrity, index) => (
-              <div key={celebrity.id} className={`celebrity-card ${!celebrity.available ? 'unavailable' : ''}`}>
+              <div 
+                key={celebrity.id} 
+                className={`celebrity-card ${!celebrity.available ? 'unavailable' : ''}`}
+              >
                 <div className="celebrity-image">
                   <CelebrityImage celebrity={celebrity} />
                   {!celebrity.available && (

@@ -18,8 +18,8 @@ export const ThemeProvider = ({ children }) => {
       return savedTheme;
     }
     
-    // Default to light mode regardless of system preference
-    return 'light';
+    // Default to dark mode for new users
+    return 'dark';
   });
 
   const toggleTheme = () => {
