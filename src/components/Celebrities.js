@@ -25,36 +25,39 @@ const Celebrities = () => {
             ...doc.data()
           }));
           
-          if (firebaseCelebrities.length > 0) {
-            // Merge with local celebrities, prioritizing Firebase data
-            const savedCelebrities = localStorage.getItem('celebrities');
-            let localCelebrities = [];
-            
-            if (savedCelebrities) {
-              localCelebrities = JSON.parse(savedCelebrities);
-            }
-            
-            // Combine Firebase and local celebrities, removing duplicates
-            const allCelebrities = [...firebaseCelebrities];
-            localCelebrities.forEach(localCeleb => {
-              const existsInFirebase = firebaseCelebrities.some(fbCeleb => fbCeleb.id === localCeleb.id);
-              if (!existsInFirebase) {
-                allCelebrities.push(localCeleb);
-              }
-            });
-            
-            setCelebrities(allCelebrities);
-            localStorage.setItem('celebrities', JSON.stringify(allCelebrities));
+          // Always start with existing celebrities (from localStorage or defaults)
+          const savedCelebrities = localStorage.getItem('celebrities');
+          let allCelebrities = [];
+          
+          if (savedCelebrities) {
+            allCelebrities = JSON.parse(savedCelebrities);
           } else {
-            // Fallback to localStorage if Firebase is empty
-            const savedCelebrities = localStorage.getItem('celebrities');
-            if (savedCelebrities) {
-              setCelebrities(JSON.parse(savedCelebrities));
-            } else {
-              // Initialize with default celebrities if localStorage is empty
-              resetCelebrityData();
+            // Initialize with default celebrities if none exist
+            resetCelebrityData();
+            const newSavedCelebrities = localStorage.getItem('celebrities');
+            if (newSavedCelebrities) {
+              allCelebrities = JSON.parse(newSavedCelebrities);
             }
           }
+          
+          // Add Firebase celebrities, avoiding duplicates
+          if (firebaseCelebrities.length > 0) {
+            firebaseCelebrities.forEach(fbCeleb => {
+              const existsInLocal = allCelebrities.some(localCeleb => localCeleb.id === fbCeleb.id);
+              if (!existsInLocal) {
+                allCelebrities.push(fbCeleb);
+              } else {
+                // Update existing celebrity with Firebase data if it exists
+                const index = allCelebrities.findIndex(localCeleb => localCeleb.id === fbCeleb.id);
+                if (index !== -1) {
+                  allCelebrities[index] = { ...allCelebrities[index], ...fbCeleb };
+                }
+              }
+            });
+          }
+          
+          setCelebrities(allCelebrities);
+          localStorage.setItem('celebrities', JSON.stringify(allCelebrities));
         } catch (error) {
           console.error('Error processing Firebase celebrities:', error);
           // Fallback to localStorage on error
