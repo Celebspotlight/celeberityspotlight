@@ -18,6 +18,7 @@ const PodcastRequestsPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [tutorialVideoType, setTutorialVideoType] = useState(null);
   const [isBookingProcessed, setIsBookingProcessed] = useState(false);
   const [currentBookingId, setCurrentBookingId] = useState(null);
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
@@ -640,13 +641,28 @@ const PodcastRequestsPage = () => {
                 </div>
                 
                 <div className="payment-methods">
-                  <button 
-                    type="button" 
-                    className="payment-btn tutorial"
-                    onClick={() => setShowCryptoTutorial(true)}
-                  >
-                    🎥 Watch Crypto Tutorial
-                  </button>
+                  <div className="tutorial-buttons">
+                    <button 
+                      type="button" 
+                      className="payment-btn tutorial cashapp-btn"
+                      onClick={() => {
+                        setTutorialVideoType('cashapp');
+                        setShowCryptoTutorial(true);
+                      }}
+                    >
+                      💰 CashApp Tutorial
+                    </button>
+                    <button 
+                      type="button" 
+                      className="payment-btn tutorial venmo-btn"
+                      onClick={() => {
+                        setTutorialVideoType('venmo');
+                        setShowCryptoTutorial(true);
+                      }}
+                    >
+                      💳 Venmo Tutorial
+                    </button>
+                  </div>
                   <button 
                     type="button" 
                     className="payment-btn bitcoin"
@@ -695,8 +711,15 @@ const PodcastRequestsPage = () => {
               <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
             </div>
             <CryptoTutorial 
-              onContinue={() => setShowCryptoTutorial(false)}
-              onSkip={() => setShowCryptoTutorial(false)}
+              videoType={tutorialVideoType}
+              onContinue={() => {
+                setShowCryptoTutorial(false);
+                setTutorialVideoType(null);
+              }}
+              onSkip={() => {
+                setShowCryptoTutorial(false);
+                setTutorialVideoType(null);
+              }}
             />
           </div>
         </div>

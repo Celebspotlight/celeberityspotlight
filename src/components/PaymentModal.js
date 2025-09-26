@@ -12,6 +12,13 @@ const PaymentModal = ({
   onShowCryptoTutorial,
   position = { x: 0, y: 0 }
 }) => {
+  
+  const handleCryptoTutorial = (videoType) => {
+    if (onShowCryptoTutorial) {
+      onShowCryptoTutorial(videoType);
+    }
+  };
+  
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -212,15 +219,24 @@ const PaymentModal = ({
               <span className="tutorial-icon">🚀</span>
               <div className="tutorial-content">
                 <h6>New to Crypto Payments?</h6>
-                <p>Watch our 3-step video series to learn how to send cryptocurrency payments securely</p>
+                <p>Choose your preferred payment method and watch our tutorial to learn how to send cryptocurrency payments securely using CashApp or Venmo</p>
               </div>
-              <button 
-                type="button"
-                className="btn-tutorial"
-                onClick={onShowCryptoTutorial}
-              >
-                🎥 Watch Crypto Tutorial
-              </button>
+              <div className="tutorial-buttons">
+                <button 
+                  type="button"
+                  className="btn-tutorial cashapp-btn"
+                  onClick={() => handleCryptoTutorial('cashapp')}
+                >
+                  💰 CashApp Tutorial
+                </button>
+                <button 
+                  type="button"
+                  className="btn-tutorial venmo-btn"
+                  onClick={() => handleCryptoTutorial('venmo')}
+                >
+                  💳 Venmo Tutorial
+                </button>
+              </div>
             </div>
           </div>
         </div>

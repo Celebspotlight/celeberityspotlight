@@ -541,7 +541,7 @@ const BookVideoPage = () => {
                   <div className="tutorial-icon">💳</div>
                   <div className="tutorial-content">
                     <h4>Having Payment Issues?</h4>
-                    <p>New to cryptocurrency payments? Watch our comprehensive 3-step video tutorial to learn how to send crypto payments securely!</p>
+                    <p>New to cryptocurrency payments? Watch our crypto tutorials to learn how to send payments securely using CashApp or Venmo!</p>
                 <button 
                   className="tutorial-btn"
                   onClick={() => setShowCryptoTutorial(true)}

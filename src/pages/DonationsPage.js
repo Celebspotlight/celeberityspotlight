@@ -41,6 +41,7 @@ const DonationsPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [tutorialVideoType, setTutorialVideoType] = useState(null);
   const [campaignAmounts, setCampaignAmounts] = useState({});
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
   const paymentModalRef = useRef(null);
@@ -686,7 +687,10 @@ const DonationsPage = () => {
             amount={donationAmount}
             onRegularPayment={handleRegularPayment}
             onBitcoinPayment={handleBitcoinPayment}
-            onShowCryptoTutorial={() => setShowCryptoTutorial(true)}
+            onShowCryptoTutorial={(videoType) => {
+              setTutorialVideoType(videoType);
+              setShowCryptoTutorial(true);
+            }}
           />
         </div>
       )}
@@ -719,9 +723,16 @@ const DonationsPage = () => {
               ×
             </button>
             <CryptoTutorial 
-                   onContinue={() => setShowCryptoTutorial(false)}
-                   onSkip={() => setShowCryptoTutorial(false)}
-                />
+              videoType={tutorialVideoType}
+              onContinue={() => {
+                setShowCryptoTutorial(false);
+                setTutorialVideoType(null);
+              }}
+              onSkip={() => {
+                setShowCryptoTutorial(false);
+                setTutorialVideoType(null);
+              }}
+            />
           </div>
         </div>
       )}

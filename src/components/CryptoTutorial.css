@@ -7,11 +7,22 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
 
+/* Dark mode support */
+[data-theme="dark"] .crypto-tutorial-container {
+  background: #1a1a1a;
+  color: #ffffff;
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.1);
+}
+
 .tutorial-header {
   text-align: center;
   margin-bottom: 30px;
   padding-bottom: 20px;
   border-bottom: 2px solid #f0f0f0;
+}
+
+[data-theme="dark"] .tutorial-header {
+  border-bottom: 2px solid #333;
 }
 
 .tutorial-header h3 {
@@ -21,10 +32,18 @@
   font-weight: 600;
 }
 
+[data-theme="dark"] .tutorial-header h3 {
+  color: #ffffff;
+}
+
 .tutorial-header p {
   color: #666;
   font-size: 1.1rem;
   margin: 0;
+}
+
+[data-theme="dark"] .tutorial-header p {
+  color: #cccccc;
 }
 
 /* Progress Indicator */
@@ -511,5 +530,222 @@
   .alternative-actions button {
     min-height: 48px;
     font-size: 1rem;
+  }
+}
+
+/* Direct Tutorial Buttons Layout */
+.tutorial-direct-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+.tutorial-direct-option {
+  width: 100%;
+}
+
+.tutorial-direct-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+[data-theme="dark"] .tutorial-direct-card {
+  background: #2a2a2a;
+  border: 2px solid #444;
+}
+
+.tutorial-direct-card:hover {
+  border-color: #3498db;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.1);
+}
+
+[data-theme="dark"] .tutorial-direct-card:hover {
+  border-color: #3498db;
+  box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+}
+
+.tutorial-icon {
+  font-size: 2.5rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.tutorial-info {
+  flex: 1;
+}
+
+.tutorial-info h5 {
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .tutorial-info h5 {
+  color: #ffffff;
+}
+
+.tutorial-info p {
+  color: #666;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+[data-theme="dark"] .tutorial-info p {
+  color: #cccccc;
+}
+
+.tutorial-direct-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 200px;
+}
+
+.tutorial-direct-btn:hover {
+  background: #2980b9;
+  transform: translateY(-1px);
+}
+
+/* Video Content Styles */
+.tutorial-video-content {
+  margin-bottom: 30px;
+}
+
+.video-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.btn-back {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-back:hover {
+  background: #5a6268;
+}
+
+.video-header h4 {
+  color: #2c3e50;
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+[data-theme="dark"] .video-header h4 {
+  color: #ffffff;
+}
+
+.video-description {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+[data-theme="dark"] .video-description {
+  color: #cccccc;
+}
+
+/* Dark mode for payment options */
+[data-theme="dark"] .payment-option {
+  background: #2a2a2a;
+  border: 2px solid #444;
+}
+
+[data-theme="dark"] .payment-choice h4 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .option-header h5 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .payment-option p {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .alternative-payment-info {
+  background: #2a2a2a;
+  border: 1px solid #444;
+}
+
+[data-theme="dark"] .alert-warning {
+  background: #2a2a2a;
+  border: 1px solid #444;
+}
+
+[data-theme="dark"] .alert-warning h5 {
+  color: #ffffff;
+}
+
+[data-theme="dark"] .alert-warning p,
+[data-theme="dark"] .alert-warning li {
+  color: #cccccc;
+}
+
+[data-theme="dark"] .contact-info p {
+  color: #cccccc;
+}
+
+/* Button styles for dark mode */
+[data-theme="dark"] .btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+[data-theme="dark"] .btn-primary:hover {
+  background: #2980b9;
+}
+
+[data-theme="dark"] .btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+[data-theme="dark"] .btn-secondary:hover {
+  background: #5a6268;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .tutorial-direct-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 15px;
+  }
+  
+  .tutorial-direct-btn {
+    min-width: auto;
+    width: 100%;
+  }
+  
+  .video-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
   }
 }

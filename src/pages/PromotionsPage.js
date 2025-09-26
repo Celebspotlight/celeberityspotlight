@@ -14,6 +14,7 @@ const PromotionsPage = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [tutorialVideoType, setTutorialVideoType] = useState(null);
   const [clickedButtonRef, setClickedButtonRef] = useState(null);
   const [tempFormData, setTempFormData] = useState(null);
   const [tempBookingId, setTempBookingId] = useState(null);
@@ -404,7 +405,10 @@ const PromotionsPage = () => {
             amount={selectedService?.price}
             onRegularPayment={handleRegularPayment}
             onBitcoinPayment={handleBitcoinPayment}
-            onShowCryptoTutorial={() => setShowCryptoTutorial(true)}
+            onShowCryptoTutorial={(videoType) => {
+              setTutorialVideoType(videoType);
+              setShowCryptoTutorial(true);
+            }}
           />
         </div>
       )}
@@ -434,9 +438,16 @@ const PromotionsPage = () => {
               ×
             </button>
             <CryptoTutorial 
-                  onContinue={() => setShowCryptoTutorial(false)}
-                  onSkip={() => setShowCryptoTutorial(false)}
-                />
+              videoType={tutorialVideoType}
+              onContinue={() => {
+                setShowCryptoTutorial(false);
+                setTutorialVideoType(null);
+              }}
+              onSkip={() => {
+                setShowCryptoTutorial(false);
+                setTutorialVideoType(null);
+              }}
+            />
           </div>
         </div>
       )}

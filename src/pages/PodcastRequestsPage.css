@@ -642,3 +642,34 @@
     padding: 1rem;
   }
 }
+
+/* Tutorial Buttons Layout */
+.tutorial-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
+.tutorial-buttons .payment-btn.tutorial {
+  flex: 1;
+  min-width: 140px;
+  font-size: 0.9rem;
+  padding: 10px 16px;
+}
+
+.tutorial-buttons .cashapp-btn {
+  background: linear-gradient(135deg, #00d632 0%, #00b82c 100%);
+}
+
+.tutorial-buttons .cashapp-btn:hover {
+  background: linear-gradient(135deg, #00b82c 0%, #009e26 100%);
+}
+
+.tutorial-buttons .venmo-btn {
+  background: linear-gradient(135deg, #3d95ce 0%, #2980b9 100%);
+}
+
+.tutorial-buttons .venmo-btn:hover {
+  background: linear-gradient(135deg, #2980b9 0%, #1f5f8b 100%);
+}

@@ -12,6 +12,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
   const { currentUser } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [tutorialVideoType, setTutorialVideoType] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [bitcoinPaymentStep, setBitcoinPaymentStep] = useState(1); // 1: details, 2: payment, 3: confirmation
   const [bookingCompleted, setBookingCompleted] = useState(false);
@@ -1017,15 +1018,30 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                     <span className="tutorial-icon">🚀</span>
                     <div className="tutorial-content">
                       <h6>New to Crypto Payments?</h6>
-                      <p>Watch our 3-step video series to learn how to send cryptocurrency payments securely</p>
+                      <p>Choose your preferred payment method and watch our tutorial to learn how to send cryptocurrency payments securely using CashApp or Venmo</p>
                     </div>
-                    <button 
-                      type="button"
-                      className="btn-tutorial"
-                      onClick={() => setShowCryptoTutorial(true)}
-                    >
-                      🎥 Watch Crypto Tutorial
-                    </button>
+                    <div className="tutorial-buttons">
+                      <button 
+                        type="button"
+                        className="btn-tutorial cashapp-btn"
+                        onClick={() => {
+                          setTutorialVideoType('cashapp');
+                          setShowCryptoTutorial(true);
+                        }}
+                      >
+                        💰 CashApp Tutorial
+                      </button>
+                      <button 
+                        type="button"
+                        className="btn-tutorial venmo-btn"
+                        onClick={() => {
+                          setTutorialVideoType('venmo');
+                          setShowCryptoTutorial(true);
+                        }}
+                      >
+                        💳 Venmo Tutorial
+                      </button>
+                    </div>
                   </div>
                 </div>
                 
@@ -1055,7 +1071,7 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                 </div>
                 
                 <h5>Payment Instructions:</h5>
-                <p>Watch the crypto tutorial above to learn how to make Bitcoin payments, then use the Bitcoin payment option to get the wallet address and complete your payment.</p>
+                <p>Watch the crypto tutorial above to learn how to make Bitcoin payments using CashApp or Venmo, then use the Bitcoin payment option to get the wallet address and complete your payment.</p>
                 <p><strong>Simple Process:</strong> Tutorial → Copy Bitcoin Address → Send Payment</p>
               </div>
             </div>
@@ -1108,8 +1124,15 @@ const BookingModal = ({ isOpen, onClose, celebrity }) => {
                   <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
                 </div>
                 <CryptoTutorial 
-                  onContinue={() => setShowCryptoTutorial(false)}
-                  onSkip={() => setShowCryptoTutorial(false)}
+                  onContinue={() => {
+                    setShowCryptoTutorial(false);
+                    setTutorialVideoType(null);
+                  }}
+                  onSkip={() => {
+                    setShowCryptoTutorial(false);
+                    setTutorialVideoType(null);
+                  }}
+                  videoType={tutorialVideoType}
                 />
               </div>
             </div>

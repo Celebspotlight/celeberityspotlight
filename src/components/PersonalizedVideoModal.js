@@ -22,6 +22,7 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
   const [formErrors, setFormErrors] = useState({});
   const [showBitcoinPayment, setShowBitcoinPayment] = useState(false);
   const [showCryptoTutorial, setShowCryptoTutorial] = useState(false);
+  const [tutorialVideoType, setTutorialVideoType] = useState(null);
   const [, setSelectedPaymentMethod] = useState(null);
   const modalRef = useRef(null);
 
@@ -294,14 +295,29 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
                     <div className="tutorial-icon">🚀</div>
                     <div className="tutorial-content">
                       <h4>New to Crypto Payments?</h4>
-                      <p>Watch our comprehensive 3-step video series to learn how to send cryptocurrency payments securely and confidently.</p>
-                      <button 
-                        type="button"
-                        className="tutorial-btn"
-                        onClick={() => setShowCryptoTutorial(true)}
-                      >
-                        🎥 Watch Crypto Tutorial
-                      </button>
+                      <p>Choose your preferred payment method and watch our tutorial to learn how to send cryptocurrency payments securely using CashApp or Venmo.</p>
+                      <div className="tutorial-buttons">
+                        <button 
+                          type="button"
+                          className="tutorial-btn cashapp-btn"
+                          onClick={() => {
+                            setTutorialVideoType('cashapp');
+                            setShowCryptoTutorial(true);
+                          }}
+                        >
+                          💰 CashApp Tutorial
+                        </button>
+                        <button 
+                          type="button"
+                          className="tutorial-btn venmo-btn"
+                          onClick={() => {
+                            setTutorialVideoType('venmo');
+                            setShowCryptoTutorial(true);
+                          }}
+                        >
+                          💳 Venmo Tutorial
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -523,8 +539,15 @@ const PersonalizedVideoModal = ({ isOpen, onClose, celebrity, videoServices, get
                 <button className="close-btn" onClick={() => setShowCryptoTutorial(false)}>&times;</button>
               </div>
               <CryptoTutorial 
-                onContinue={() => setShowCryptoTutorial(false)}
-                onSkip={() => setShowCryptoTutorial(false)}
+                onContinue={() => {
+                  setShowCryptoTutorial(false);
+                  setTutorialVideoType(null);
+                }}
+                onSkip={() => {
+                  setShowCryptoTutorial(false);
+                  setTutorialVideoType(null);
+                }}
+                videoType={tutorialVideoType}
               />
             </div>
           </div>
