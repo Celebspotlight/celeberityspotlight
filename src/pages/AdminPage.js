@@ -9,6 +9,7 @@ import { db } from '../services/firebase';
 import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import authService from '../services/authService';
 import { migrateActingCoachesToFirebase, refreshActingCoachesFromFirebase } from '../utils/migrateActingCoaches';
+import { createAdminUser } from '../utils/createAdminUser';
 // import { createPayment } from '../services/paymentService';
 
 const getDefaultCelebrities = () => {
@@ -582,14 +583,28 @@ const AdminPage = () => {
         const adminEmail = process.env.REACT_APP_ADMIN_EMAIL || 'admin@meetandgreet.com';
         const firebasePassword = process.env.REACT_APP_ADMIN_FIREBASE_PASSWORD || adminPassword;
         
-        const result = await authService.login(adminEmail, firebasePassword);
+        let result = await authService.login(adminEmail, firebasePassword);
+        
+        // If login fails, try to create the admin user
+        if (!result.success && result.error.includes('user-not-found')) {
+          console.log('🔄 Admin user not found, creating admin account...');
+          const createResult = await createAdminUser();
+          
+          if (createResult.success) {
+            console.log('✅ Admin user created, attempting login again...');
+            result = await authService.login(adminEmail, firebasePassword);
+          } else {
+            console.error('❌ Failed to create admin user:', createResult.error);
+          }
+        }
+        
         if (result.success) {
-          console.log('Admin authenticated with Firebase successfully');
+          console.log('✅ Admin authenticated with Firebase successfully');
         } else {
-          console.warn('Firebase authentication failed, but proceeding with local auth:', result.error);
+          console.warn('⚠️ Firebase authentication failed, but proceeding with local auth:', result.error);
         }
       } catch (error) {
-        console.warn('Firebase authentication error, but proceeding with local auth:', error);
+        console.warn('⚠️ Firebase authentication error, but proceeding with local auth:', error);
       }
       
       setIsAuthenticated(true);
