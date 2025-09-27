@@ -571,12 +571,27 @@ const AdminPage = () => {
     }
   }, [celebrities]);
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     const adminUsername = process.env.REACT_APP_ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.REACT_APP_ADMIN_PASSWORD || 'SecureAdminPass2024!';
     
     if (loginForm.username === adminUsername && loginForm.password === adminPassword) {
+      try {
+        // Also authenticate with Firebase using a dedicated admin email
+        const adminEmail = process.env.REACT_APP_ADMIN_EMAIL || 'admin@meetandgreet.com';
+        const firebasePassword = process.env.REACT_APP_ADMIN_FIREBASE_PASSWORD || adminPassword;
+        
+        const result = await authService.login(adminEmail, firebasePassword);
+        if (result.success) {
+          console.log('Admin authenticated with Firebase successfully');
+        } else {
+          console.warn('Firebase authentication failed, but proceeding with local auth:', result.error);
+        }
+      } catch (error) {
+        console.warn('Firebase authentication error, but proceeding with local auth:', error);
+      }
+      
       setIsAuthenticated(true);
       localStorage.setItem('adminAuth', 'true');
     } else {
@@ -584,7 +599,14 @@ const AdminPage = () => {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await authService.logout();
+      console.log('Admin signed out from Firebase successfully');
+    } catch (error) {
+      console.warn('Firebase logout error:', error);
+    }
+    
     setIsAuthenticated(false);
     localStorage.removeItem('adminAuth');
   };
@@ -689,13 +711,31 @@ const AdminPage = () => {
   // Add countdown state
   const [undoCountdown, setUndoCountdown] = useState(30);
 
-  const deleteCelebrity = (id) => {
+  const deleteCelebrity = async (id) => {
     if (window.confirm('Are you sure you want to delete this celebrity?')) {
       const celebrityToDelete = celebrities.find(celeb => celeb.id === id);
       setLastDeleted(celebrityToDelete);
       setCelebrities(celebrities.filter(celeb => celeb.id !== id));
       setShowUndo(true);
       setUndoCountdown(30);
+      
+      // Delete from Firebase for real-time synchronization
+      try {
+        const celebritiesQuery = query(
+          collection(db, 'celebrities'),
+          where('id', '==', id)
+        );
+        const querySnapshot = await getDocs(celebritiesQuery);
+        
+        if (!querySnapshot.empty) {
+          const docRef = querySnapshot.docs[0].ref;
+          await deleteDoc(docRef);
+          console.log('Celebrity deleted from Firebase successfully');
+        }
+      } catch (error) {
+        console.error('Error deleting celebrity from Firebase:', error);
+        // Don't fail the entire process if Firebase delete fails
+      }
       
       // Countdown timer
       const countdownInterval = setInterval(() => {
@@ -715,9 +755,23 @@ const AdminPage = () => {
     }
   };
   
-  const undoDelete = () => {
+  const undoDelete = async () => {
     if (lastDeleted) {
       setCelebrities([...celebrities, lastDeleted]);
+      
+      // Restore to Firebase for real-time synchronization
+      try {
+        await addDoc(collection(db, 'celebrities'), {
+          ...lastDeleted,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        console.log('Celebrity restored to Firebase successfully');
+      } catch (error) {
+        console.error('Error restoring celebrity to Firebase:', error);
+        // Don't fail the entire process if Firebase restore fails
+      }
+      
       setLastDeleted(null);
       setShowUndo(false);
       // Clear the countdown interval
@@ -890,18 +944,18 @@ const AdminPage = () => {
     };
     
     try {
-      // Save to Firebase
-      const actingCoachesCollection = collection(db, 'actingCoaches');
-      await addDoc(actingCoachesCollection, {
-        ...coach,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      
-      // Update local state
+      // Update local state first for immediate UI feedback
       setActingCoaches([...actingCoaches, coach]);
       
-      // Also save to localStorage for backward compatibility
+      // Save to Firebase for real-time synchronization
+      await addDoc(collection(db, 'actingCoaches'), {
+        ...coach,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      console.log('Acting coach saved to Firebase successfully');
+      
+      // Also save to localStorage for backup/offline access
       const updatedCoaches = [...actingCoaches, coach];
       localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
       
@@ -943,24 +997,28 @@ const AdminPage = () => {
         updatedAt: new Date().toISOString()
       };
       
-      // Update in Firebase
-      const actingCoachesCollection = collection(db, 'actingCoaches');
-      const querySnapshot = await getDocs(query(actingCoachesCollection, where('id', '==', editingActingCoach.id)));
+      // Update local state first for immediate UI feedback
+      setActingCoaches(actingCoaches.map(coach => 
+        coach.id === editingActingCoach.id ? updatedCoach : coach
+      ));
+      
+      // Update in Firebase for real-time synchronization
+      const actingCoachesQuery = query(
+        collection(db, 'actingCoaches'),
+        where('id', '==', editingActingCoach.id)
+      );
+      const querySnapshot = await getDocs(actingCoachesQuery);
       
       if (!querySnapshot.empty) {
         const docRef = querySnapshot.docs[0].ref;
         await updateDoc(docRef, {
           ...updatedCoach,
-          updatedAt: serverTimestamp()
+          updatedAt: new Date()
         });
+        console.log('Acting coach updated in Firebase successfully');
       }
       
-      // Update local state
-      setActingCoaches(actingCoaches.map(coach => 
-        coach.id === editingActingCoach.id ? updatedCoach : coach
-      ));
-      
-      // Update localStorage
+      // Also update localStorage for backup/offline access
       const updatedCoaches = actingCoaches.map(coach => 
         coach.id === editingActingCoach.id ? updatedCoach : coach
       );
@@ -988,20 +1046,24 @@ const AdminPage = () => {
   const deleteActingCoach = async (id) => {
     if (window.confirm('Are you sure you want to delete this acting coach?')) {
       try {
-        // Delete from Firebase
-        const actingCoachesCollection = collection(db, 'actingCoaches');
-        const querySnapshot = await getDocs(query(actingCoachesCollection, where('id', '==', id)));
+        // Update local state first for immediate UI feedback
+        const updatedCoaches = actingCoaches.filter(coach => coach.id !== id);
+        setActingCoaches(updatedCoaches);
+        
+        // Delete from Firebase for real-time synchronization
+        const actingCoachesQuery = query(
+          collection(db, 'actingCoaches'),
+          where('id', '==', id)
+        );
+        const querySnapshot = await getDocs(actingCoachesQuery);
         
         if (!querySnapshot.empty) {
           const docRef = querySnapshot.docs[0].ref;
           await deleteDoc(docRef);
+          console.log('Acting coach deleted from Firebase successfully');
         }
         
-        // Update local state
-        const updatedCoaches = actingCoaches.filter(coach => coach.id !== id);
-        setActingCoaches(updatedCoaches);
-        
-        // Update localStorage
+        // Also update localStorage for backup/offline access
         localStorage.setItem('actingCoaches', JSON.stringify(updatedCoaches));
         
         // Dispatch custom event to notify other components with detailed data
