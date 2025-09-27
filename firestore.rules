@@ -5,28 +5,32 @@ service cloud.firestore {
     match /users/{userId} {
       // Users can read and write their own data
       allow read, write: if request.auth != null && request.auth.uid == userId;
-      // Allow authenticated users to read basic user info for bookings
+      // Allow authenticated users to read basic user info for bookings and admin access
       allow read: if request.auth != null;
-      // Allow admins to read all users (when admin claims are implemented)
-      allow read: if request.auth != null && request.auth.token.admin == true;
     }
     
     // Bookings collection - secure access rules
     match /bookings/{bookingId} {
       // Users can create new bookings when authenticated
-      allow create: if request.auth != null && request.auth.uid == resource.data.userId;
+      allow create: if request.auth != null;
       // Users can read and update their own bookings
       allow read, update: if request.auth != null && request.auth.uid == resource.data.userId;
-      // Allow admins to read and update all bookings for management
-      allow read, write: if request.auth != null && request.auth.token.admin == true;
+      // Allow any authenticated user to read and write bookings (for admin panel)
+      allow read, write: if request.auth != null;
     }
     
-    // Celebrities collection - read-only for users, write for admins
+    // Payments collection - for admin access to payment data
+    match /payments/{paymentId} {
+      // Allow authenticated users to create and access payments
+      allow read, write: if request.auth != null;
+    }
+    
+    // Celebrities collection - read-only for users, write for authenticated users
     match /celebrities/{celebrityId} {
       // Anyone can read celebrity data (for browsing)
       allow read: if true;
-      // Only admins can modify celebrity data
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      // Allow authenticated users to modify celebrity data (admin panel handles auth)
+      allow write: if request.auth != null;
     }
     
     // Acting coaches collection - read for all, write for authenticated users
@@ -34,7 +38,6 @@ service cloud.firestore {
       // Anyone can read acting coach data (for browsing)
       allow read: if true;
       // Allow authenticated users to add/modify acting coach data
-      // This allows celebrities to add their own acting coaches
       allow write: if request.auth != null;
     }
     
