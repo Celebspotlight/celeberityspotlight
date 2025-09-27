@@ -8,6 +8,7 @@ import LiveVisitorTracker from '../components/LiveVisitorTracker';
 import { db } from '../services/firebase';
 import { collection, getDocs, doc, updateDoc, query, where, addDoc, getDoc, deleteDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import authService from '../services/authService';
+import { migrateActingCoachesToFirebase, refreshActingCoachesFromFirebase } from '../utils/migrateActingCoaches';
 // import { createPayment } from '../services/paymentService';
 
 const getDefaultCelebrities = () => {
@@ -240,6 +241,10 @@ const AdminPage = () => {
     image: null
   });
 
+  // Migration state
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState('');
+
   // ADD THESE PERSONALIZED VIDEOS STATE VARIABLES:
   const [personalizedVideos, setPersonalizedVideos] = useState([]);
   const [filteredPersonalizedVideos, setFilteredPersonalizedVideos] = useState([]);
@@ -446,8 +451,17 @@ const AdminPage = () => {
 
   // Load acting coaches from Firebase and localStorage
   const loadActingCoaches = async () => {
+    console.log('🔄 Loading acting coaches...');
+    
     try {
+      // Check Firebase configuration
+      if (!db) {
+        console.warn('⚠️ Firebase not configured, falling back to localStorage');
+        throw new Error('Firebase not configured');
+      }
+      
       // Load from Firebase first
+      console.log('📡 Attempting to load from Firebase...');
       const actingCoachesCollection = collection(db, 'actingCoaches');
       const querySnapshot = await getDocs(actingCoachesCollection);
       
@@ -456,25 +470,33 @@ const AdminPage = () => {
           firebaseId: doc.id,
           ...doc.data()
         }));
+        console.log(`✅ Loaded ${firebaseCoaches.length} acting coaches from Firebase`);
         setActingCoaches(firebaseCoaches);
         // Sync to localStorage for offline access
         localStorage.setItem('actingCoaches', JSON.stringify(firebaseCoaches));
+        return;
       } else {
-        // Fallback to localStorage if Firebase is empty
-        const savedActingCoaches = localStorage.getItem('actingCoaches');
-        if (savedActingCoaches) {
-          const parsed = JSON.parse(savedActingCoaches);
-          setActingCoaches(parsed);
-        }
+        console.log('ℹ️ No acting coaches found in Firebase, checking localStorage...');
       }
     } catch (error) {
-      console.error('Error loading acting coaches from Firebase:', error);
-      // Fallback to localStorage on error
+      console.error('❌ Error loading acting coaches from Firebase:', error);
+      console.log('🔄 Falling back to localStorage...');
+    }
+    
+    // Fallback to localStorage
+    try {
       const savedActingCoaches = localStorage.getItem('actingCoaches');
       if (savedActingCoaches) {
         const parsed = JSON.parse(savedActingCoaches);
+        console.log(`📱 Loaded ${parsed.length} acting coaches from localStorage`);
         setActingCoaches(parsed);
+      } else {
+        console.log('ℹ️ No acting coaches found in localStorage either');
+        setActingCoaches([]);
       }
+    } catch (error) {
+      console.error('❌ Error loading from localStorage:', error);
+      setActingCoaches([]);
     }
   };
   
@@ -1017,6 +1039,74 @@ const AdminPage = () => {
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  // MIGRATION FUNCTIONS
+  const handleMigrateActingCoaches = async () => {
+    setIsMigrating(true);
+    setMigrationStatus('Starting migration...');
+    
+    try {
+      const result = await migrateActingCoachesToFirebase();
+      
+      if (result.success) {
+        setMigrationStatus(`✅ ${result.message}`);
+        
+        // Refresh the acting coaches data
+        await loadActingCoaches();
+        
+        setTimeout(() => {
+          setMigrationStatus('');
+        }, 5000);
+      } else {
+        setMigrationStatus(`❌ ${result.message}`);
+        setTimeout(() => {
+          setMigrationStatus('');
+        }, 10000);
+      }
+    } catch (error) {
+      console.error('Migration error:', error);
+      setMigrationStatus(`❌ Migration failed: ${error.message}`);
+      setTimeout(() => {
+        setMigrationStatus('');
+      }, 10000);
+    } finally {
+      setIsMigrating(false);
+    }
+  };
+
+  const handleRefreshFromFirebase = async () => {
+    setIsMigrating(true);
+    setMigrationStatus('Refreshing from Firebase...');
+    
+    try {
+      const result = await refreshActingCoachesFromFirebase();
+      
+      if (result.success) {
+        setMigrationStatus(`✅ ${result.message}`);
+        
+        // Update local state with fresh data
+        setActingCoaches(result.coaches);
+        setFilteredActingCoaches(result.coaches);
+        
+        setTimeout(() => {
+          setMigrationStatus('');
+        }, 5000);
+      } else {
+        setMigrationStatus(`❌ ${result.message}`);
+        setTimeout(() => {
+          setMigrationStatus('');
+        }, 10000);
+      }
+    } catch (error) {
+      console.error('Refresh error:', error);
+      setMigrationStatus(`❌ Refresh failed: ${error.message}`);
+      setTimeout(() => {
+        setMigrationStatus('');
+      }, 10000);
+    } finally {
+      setIsMigrating(false);
     }
   };
 
@@ -2477,7 +2567,37 @@ const AdminPage = () => {
             >
               Add New Acting Coach
             </button>
+            <button 
+              onClick={handleMigrateActingCoaches}
+              className="add-celebrity-btn"
+              disabled={isMigrating}
+              style={{ marginLeft: '10px', backgroundColor: '#28a745' }}
+            >
+              {isMigrating ? 'Migrating...' : 'Sync to Firebase'}
+            </button>
+            <button 
+              onClick={handleRefreshFromFirebase}
+              className="add-celebrity-btn"
+              disabled={isMigrating}
+              style={{ marginLeft: '10px', backgroundColor: '#17a2b8' }}
+            >
+              {isMigrating ? 'Loading...' : 'Refresh from Firebase'}
+            </button>
           </div>
+
+          {/* Migration Status */}
+          {migrationStatus && (
+            <div className="migration-status" style={{
+              padding: '10px',
+              margin: '10px 0',
+              borderRadius: '5px',
+              backgroundColor: migrationStatus.includes('✅') ? '#d4edda' : '#f8d7da',
+              color: migrationStatus.includes('✅') ? '#155724' : '#721c24',
+              border: `1px solid ${migrationStatus.includes('✅') ? '#c3e6cb' : '#f5c6cb'}`
+            }}>
+              {migrationStatus}
+            </div>
+          )}
 
           {/* Add Acting Coach Form */}
           {showAddActingCoachForm && (

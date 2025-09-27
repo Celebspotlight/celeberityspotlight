@@ -291,19 +291,14 @@ const Header = () => {
                   onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                   aria-label="Authentication Menu"
                 >
-                  <svg width="48" height="48" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" className="auth-icon-svg">
                     <defs>
-                      <linearGradient id="logoGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#667eea"/>
-                        <stop offset="50%" stopColor="#764ba2"/>
-                        <stop offset="100%" stopColor="#f093fb"/>
+                      <linearGradient id="modernAuthGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#3b82f6"/>
+                        <stop offset="100%" stopColor="#8b5cf6"/>
                       </linearGradient>
-                      <linearGradient id="logoGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#4facfe"/>
-                        <stop offset="100%" stopColor="#00f2fe"/>
-                      </linearGradient>
-                      <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
-                        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                      <filter id="modernGlow" x="-50%" y="-50%" width="200%" height="200%">
+                        <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
                         <feMerge>
                           <feMergeNode in="coloredBlur"/>
                           <feMergeNode in="SourceGraphic"/>
@@ -311,21 +306,29 @@ const Header = () => {
                       </filter>
                     </defs>
                     
-                    {/* Main circle background */}
-                    <circle cx="100" cy="100" r="90" fill="url(#logoGrad1)" filter="url(#logoGlow)" opacity="0.9"/>
+                    {/* Modern circular background */}
+                    <circle 
+                      cx="20" 
+                      cy="20" 
+                      r="18" 
+                      fill="url(#modernAuthGrad)" 
+                      filter="url(#modernGlow)"
+                      className="auth-icon-bg"
+                    />
                     
-                    {/* User icon */}
-                    <circle cx="100" cy="75" r="25" fill="white" opacity="0.9"/>
-                    <path d="M65 140 C65 120, 80 105, 100 105 C120 105, 135 120, 135 140 L135 155 L65 155 Z" fill="white" opacity="0.9"/>
+                    {/* User silhouette - modern and clean */}
+                    <circle cx="20" cy="16" r="6" fill="white" opacity="0.95"/>
+                    <path 
+                      d="M10 32 C10 26, 14 22, 20 22 C26 22, 30 26, 30 32" 
+                      stroke="white" 
+                      strokeWidth="2.5" 
+                      fill="none" 
+                      strokeLinecap="round"
+                      opacity="0.95"
+                    />
                     
-                    {/* Decorative elements */}
-                    <circle cx="140" cy="60" r="8" fill="url(#logoGrad2)" opacity="0.8"/>
-                    <circle cx="60" cy="140" r="6" fill="url(#logoGrad2)" opacity="0.7"/>
-                    <circle cx="150" cy="150" r="4" fill="white" opacity="0.6"/>
-                    
-                    {/* Authentication indicator */}
-                    <circle cx="160" cy="40" r="12" fill="#10b981" stroke="white" strokeWidth="2"/>
-                    <path d="M155 40 L158 43 L165 36" stroke="white" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                    {/* Modern accent dot */}
+                    <circle cx="30" cy="10" r="3" fill="#10b981" className="auth-status-dot"/>
                   </svg>
                   
                   <div className="auth-logo-text">

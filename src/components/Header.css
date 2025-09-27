@@ -1037,6 +1037,41 @@
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.25);
 }
 
+/* Modern Auth Icon Styles */
+.auth-icon-svg {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.2));
+}
+
+.auth-logo-toggle:hover .auth-icon-svg {
+  transform: scale(1.05);
+  filter: drop-shadow(0 4px 12px rgba(59, 130, 246, 0.3));
+}
+
+.auth-icon-bg {
+  transition: all 0.3s ease;
+}
+
+.auth-logo-toggle:hover .auth-icon-bg {
+  filter: brightness(1.1) saturate(1.2);
+}
+
+.auth-status-dot {
+  animation: pulse 2s infinite;
+  filter: drop-shadow(0 0 4px rgba(16, 185, 129, 0.6));
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
 .auth-logo-text {
   display: flex;
   flex-direction: column;
@@ -1761,6 +1796,19 @@
 
 [data-theme="dark"] .auth-dropdown-arrow {
   color: #94a3b8;
+}
+
+/* Dark Mode Auth Icon Styles */
+[data-theme="dark"] .auth-icon-svg {
+  filter: drop-shadow(0 2px 8px rgba(96, 165, 250, 0.3));
+}
+
+[data-theme="dark"] .auth-logo-toggle:hover .auth-icon-svg {
+  filter: drop-shadow(0 4px 12px rgba(96, 165, 250, 0.4));
+}
+
+[data-theme="dark"] .auth-status-dot {
+  filter: drop-shadow(0 0 6px rgba(16, 185, 129, 0.8));
 }
 
 /* Authentication Dropdown Dark Mode */
