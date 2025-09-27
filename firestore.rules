@@ -25,6 +25,12 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
     
+    // Donations collection - for admin access to donation data
+    match /donations/{donationId} {
+      // Allow authenticated users to create and access donations
+      allow read, write: if request.auth != null;
+    }
+    
     // Celebrities collection - read-only for users, write for authenticated users
     match /celebrities/{celebrityId} {
       // Anyone can read celebrity data (for browsing)
