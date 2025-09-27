@@ -2727,6 +2727,157 @@
 }
 
 /* Additional responsive styles for user-centric payments */
+/* ===== DARK MODE STYLES FOR USER SECTIONS ===== */
+
+/* Dark mode search components */
+[data-theme="dark"] .search-filters {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+[data-theme="dark"] .search-bar {
+  background: transparent;
+}
+
+[data-theme="dark"] .search-input {
+  background: #1e293b;
+  border: 2px solid #334155;
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .search-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  outline: none;
+}
+
+[data-theme="dark"] .search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Dark mode user stats */
+[data-theme="dark"] .user-stats {
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid #334155;
+}
+
+[data-theme="dark"] .user-stats .stat-item {
+  background: #1e293b;
+  border: 1px solid #334155;
+}
+
+[data-theme="dark"] .user-stats .stat-value {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .user-stats .stat-label {
+  color: #94a3b8;
+}
+
+/* Dark mode users section */
+[data-theme="dark"] .users-section h2 {
+  color: #f8fafc;
+  border-bottom-color: #334155;
+}
+
+/* Dark mode loading states */
+[data-theme="dark"] .loading {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .loading-state {
+  color: #94a3b8;
+}
+
+/* Dark mode empty states */
+[data-theme="dark"] .empty-state {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .empty-state h3 {
+  color: #f8fafc;
+}
+
+/* Dark mode user actions */
+[data-theme="dark"] .user-actions .expand-btn {
+  background: #3b82f6;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .user-actions .expand-btn:hover {
+  background: #2563eb;
+}
+
+[data-theme="dark"] .edit-btn {
+  background: #d97706;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .edit-btn:hover {
+  background: #b45309;
+}
+
+[data-theme="dark"] .delete-btn {
+  background: #dc2626;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .delete-btn:hover {
+  background: #b91c1c;
+}
+
+/* Enhanced responsive design for dark mode */
+@media (max-width: 768px) {
+  [data-theme="dark"] .search-filters {
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid #1e293b;
+    padding: 0.75rem;
+  }
+  
+  [data-theme="dark"] .search-input {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    font-size: 0.85rem;
+  }
+  
+  [data-theme="dark"] .user-stats {
+    background: rgba(15, 23, 42, 0.9);
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  [data-theme="dark"] .user-stats .stat-item {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+  }
+}
+
+@media (max-width: 480px) {
+  [data-theme="dark"] .users-section h2 {
+    font-size: 1.25rem;
+  }
+  
+  [data-theme="dark"] .search-input {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+  }
+  
+  [data-theme="dark"] .user-stats .stat-value {
+    font-size: 1.25rem;
+  }
+  
+  [data-theme="dark"] .user-stats .stat-label {
+    font-size: 0.7rem;
+  }
+}
+
 @media (max-width: 768px) {
   .pending-payments-section {
     padding: 1rem;

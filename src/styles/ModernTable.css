@@ -445,3 +445,211 @@
 .pricing-breakdown .sub-item .value {
   font-size: 13px;
 }
+
+/* ===== DARK MODE STYLES ===== */
+
+/* Dark mode table container */
+[data-theme="dark"] .modern-table {
+  background: #1e293b;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .modern-table table {
+  background: #1e293b;
+}
+
+/* Dark mode table headers */
+[data-theme="dark"] .modern-table th {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+  color: #f8fafc;
+}
+
+/* Dark mode table cells */
+[data-theme="dark"] .modern-table td {
+  border-bottom: 1px solid #334155;
+  color: #e2e8f0;
+}
+
+/* Dark mode user rows */
+[data-theme="dark"] .user-row:hover, 
+[data-theme="dark"] .payment-row:hover {
+  background-color: #334155;
+}
+
+[data-theme="dark"] .user-row.expanded, 
+[data-theme="dark"] .payment-row.expanded {
+  background-color: #1e40af;
+}
+
+/* Dark mode user info */
+[data-theme="dark"] .user-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .user-id {
+  color: #94a3b8;
+}
+
+/* Dark mode contact info */
+[data-theme="dark"] .contact-cell .email {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .contact-cell .phone {
+  color: #94a3b8;
+}
+
+/* Dark mode booking info */
+[data-theme="dark"] .booking-id {
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .booking-date, 
+[data-theme="dark"] .customer-email, 
+[data-theme="dark"] .package-type, 
+[data-theme="dark"] .payment-method {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .customer-name, 
+[data-theme="dark"] .celebrity-name {
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .amount {
+  color: #34d399;
+}
+
+/* Dark mode expanded content */
+[data-theme="dark"] .user-expanded-content, 
+[data-theme="dark"] .payment-expanded-content {
+  background: #0f172a;
+  border-top: 1px solid #334155;
+}
+
+/* Dark mode detail sections */
+[data-theme="dark"] .detail-section {
+  background: #1e293b;
+  border: 1px solid #334155;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+[data-theme="dark"] .detail-section h4 {
+  color: #f8fafc;
+  border-bottom-color: #3b82f6;
+}
+
+/* Dark mode detail items */
+[data-theme="dark"] .detail-item .label {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .detail-item .value {
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .detail-item .value.amount-highlight {
+  color: #34d399;
+}
+
+/* Dark mode buttons */
+[data-theme="dark"] .copy-btn-small {
+  background: #475569;
+  color: #f8fafc;
+}
+
+[data-theme="dark"] .copy-btn-small:hover {
+  background: #64748b;
+}
+
+[data-theme="dark"] .load-bookings-btn, 
+[data-theme="dark"] .approve-btn-full {
+  background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
+}
+
+[data-theme="dark"] .approve-btn-full {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+}
+
+[data-theme="dark"] .load-bookings-btn:hover, 
+[data-theme="dark"] .approve-btn-full:hover {
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="dark"] .approve-btn-full:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Dark mode empty states */
+[data-theme="dark"] .no-payments, 
+[data-theme="dark"] .no-users {
+  color: #94a3b8;
+}
+
+/* Dark mode pricing breakdown */
+[data-theme="dark"] .pricing-breakdown {
+  border-top-color: #334155;
+}
+
+[data-theme="dark"] .pricing-breakdown .sub-item .label {
+  color: #94a3b8;
+}
+
+/* Dark mode status indicators */
+[data-theme="dark"] .status-badge {
+  background: #374151;
+  color: #e5e7eb;
+  border: 1px solid #4b5563;
+}
+
+[data-theme="dark"] .status-badge.active {
+  background: #065f46;
+  color: #34d399;
+  border-color: #059669;
+}
+
+[data-theme="dark"] .status-badge.inactive {
+  background: #7f1d1d;
+  color: #fca5a5;
+  border-color: #dc2626;
+}
+
+[data-theme="dark"] .status-badge.pending {
+  background: #92400e;
+  color: #fbbf24;
+  border-color: #d97706;
+}
+
+/* Enhanced responsive design for dark mode */
+@media (max-width: 768px) {
+  [data-theme="dark"] .modern-table {
+    background: #0f172a;
+  }
+  
+  [data-theme="dark"] .user-info-cell {
+    background: rgba(30, 41, 59, 0.5);
+    padding: 8px;
+    border-radius: 6px;
+    margin: 4px 0;
+  }
+  
+  [data-theme="dark"] .detail-section {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+  }
+}
+
+@media (max-width: 480px) {
+  [data-theme="dark"] .modern-table th {
+    background: linear-gradient(135deg, #1e40af 0%, #3730a3 100%);
+  }
+  
+  [data-theme="dark"] .user-avatar {
+    border: 2px solid #334155;
+  }
+  
+  [data-theme="dark"] .detail-item .label {
+    color: #94a3b8;
+    font-weight: 600;
+  }
+}
